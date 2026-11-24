@@ -1,0 +1,545 @@
+import type { ReactNode } from 'react'
+import {
+  Archive,
+  ArchiveRestore,
+  Briefcase,
+  CalendarClock,
+  ChevronDown,
+  Clock,
+  Copy,
+  ExternalLink,
+  HandCoins,
+  Link2,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  ReceiptText,
+  Trash2,
+  X,
+} from 'lucide-react'
+import { AnimatedMoney } from '@/components/count-up'
+import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { accentStyle, tintStyle } from '@/components/goal-bits'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  type InvoiceDraft,
+  WorkEntryDialog,
+  WorkInvoiceDialog,
+  WorkJobDialog,
+  WorkPaymentDialog,
+  type WorkPaymentDraft,
+} from '@/components/work-dialogs'
+import { api, type InvoiceStatus, type WorkInvoice, type WorkJob } from '@/lib/api'
+import { demoMode } from '@/lib/demo'
+import { formatDate, formatMoney, formatRelativeDate, formatShortDate, isoDate } from '@/lib/format'
+import { useWork } from '@/lib/queries'
+import { cn } from '@/lib/utils'
+import { copyText, formatDuration, formatHours, invoiceText, paymentLine, scheduleLabel } from '@/lib/work'
+
+const fail = (err: unknown) => toast.error((err as Error).message)
+const readOnly = () => toast.error('Demo mode is read-only. Exit demo mode to make changes.')
+
+async function copy(text: string, what: string) {
+  if (await copyText(text)) toast.success(`${what} copied`, { description: text.length > 120 ? `${text.slice(0, 120)}…` : text })
+  else toast.error('Couldn’t copy to the clipboard')
+}
+
+export function WorkPage() {
+  const { data, loading, error } = useWork()
+  const [jobDialog, setJobDialog] = useState<{ job: WorkJob | null } | null>(null)
+  const [logging, setLogging] = useState<WorkJob | null>(null)
+  const [billing, setBilling] = useState<InvoiceDraft | null>(null)
+  const [paying, setPaying] = useState<WorkPaymentDraft | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
+
+  const jobs = useMemo(() => data?.jobs ?? [], [data])
+  const active = jobs.filter((j) => !j.archived)
+  const archived = jobs.filter((j) => j.archived)
+
+  const owed = active.reduce((s, j) => s + j.owed, 0)
+  const unbilledHours = active.reduce((s, j) => s + j.unbilledHours, 0)
+  const unbilledValue = active.reduce((s, j) => s + j.unbilledValue, 0)
+  const paidThisMonth = active.reduce((s, j) => s + j.paidThisMonth, 0)
+  const next = active
+    .filter((j) => j.nextPaymentDate)
+    .sort((a, b) => a.nextPaymentDate!.localeCompare(b.nextPaymentDate!))[0]
+  const payoff = active
+    .map((j) => j.payoffDate)
+    .filter((d): d is string => !!d)
+    .sort()
+    .at(-1)
+
+  // Writes are blocked in demo mode; every action funnels through here.
+  const guard =
+    <A extends unknown[]>(fn: (...a: A) => void) =>
+    (...a: A) =>
+      demoMode ? readOnly() : fn(...a)
+
+  async function removeJob(j: WorkJob) {
+    const bills = j.invoices.length
+    if (!confirm(`Delete ${j.name}${bills ? ` and its ${bills} bill${bills === 1 ? '' : 's'}, payments and logged hours` : ''}? This can’t be undone.`)) return
+    try {
+      await api.deleteWorkJob(j.id)
+      toast.success(`${j.name} deleted`)
+    } catch (err) {
+      fail(err)
+    }
+  }
+
+  async function setArchived(j: WorkJob, value: boolean) {
+    try {
+      await api.updateWorkJob(j.id, { archived: value })
+      toast.success(value ? `${j.name} archived` : `${j.name} restored`)
+    } catch (err) {
+      fail(err)
+    }
+  }
+
+  const actions: JobActions = {
+    onLog: guard((j) => setLogging(j)),
+    onBill: guard((j, invoice) => setBilling({ job: j, invoice })),
+    onPay: guard((j, invoiceId) => setPaying({ job: j, invoiceId })),
+    onEdit: guard((j) => setJobDialog({ job: j })),
+    onArchive: guard((j) => void setArchived(j, !j.archived)),
+    onDelete: guard((j) => void removeJob(j)),
+  }
+
+  return (
+    <div className="grid gap-8">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Work</h1>
+          <p className="text-sm text-muted-foreground">Log your hours, bill them, and track every instalment until you’re paid in full.</p>
+        </div>
+        {!demoMode && jobs.length > 0 && (
+          <Button onClick={() => setJobDialog({ job: null })}>
+            <Plus /> Add job
+          </Button>
+        )}
+      </div>
+
+      {error && <p className="text-sm text-destructive">{error.message}</p>}
+
+      {!data && loading ? (
+        <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-24 rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-72 rounded-xl" />
+        </div>
+      ) : jobs.length === 0 ? (
+        <EmptyWork onAdd={guard(() => setJobDialog({ job: null }))} />
+      ) : (
+        <>
+          {active.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Stat label="Owed to you" value={<AnimatedMoney value={owed} />} hint={payoff ? `Cleared by ${formatDate(payoff)} at this pace` : owed > 0 ? 'Across your open bills' : 'All caught up'} />
+              <Stat
+                label="Next payment"
+                value={next ? <AnimatedMoney value={Math.min(next.payAmount ?? next.owed, next.owed)} currency={next.currency} /> : '—'}
+                hint={next ? `${formatRelativeDate(next.nextPaymentDate!)} · ${formatShortDate(next.nextPaymentDate!)}` : 'Nothing scheduled'}
+              />
+              <Stat label="Not billed yet" value={<AnimatedMoney value={unbilledValue} />} hint={unbilledHours > 0 ? `${formatDuration(unbilledHours)} logged` : 'No unbilled hours'} />
+              <Stat label="Paid this month" value={<AnimatedMoney value={paidThisMonth} />} />
+            </div>
+          )}
+
+          {active.map((j) => (
+            <JobSection key={j.id} job={j} {...actions} />
+          ))}
+
+          {archived.length > 0 && (
+            <section className="grid gap-3">
+              <button
+                type="button"
+                className="flex w-fit items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                onClick={() => setShowArchived((v) => !v)}
+              >
+                <ChevronDown className={cn('size-4 transition-transform', !showArchived && '-rotate-90')} />
+                Archived jobs ({archived.length})
+              </button>
+              {showArchived && (
+                <div className="grid gap-4 opacity-80 animate-in fade-in-0 duration-200">
+                  {archived.map((j) => (
+                    <JobSection key={j.id} job={j} {...actions} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </>
+      )}
+
+      <WorkJobDialog open={!!jobDialog} job={jobDialog?.job} onClose={() => setJobDialog(null)} />
+      <WorkEntryDialog job={logging} onClose={() => setLogging(null)} />
+      <WorkInvoiceDialog draft={billing} onClose={() => setBilling(null)} />
+      <WorkPaymentDialog draft={paying} onClose={() => setPaying(null)} />
+    </div>
+  )
+}
+
+interface JobActions {
+  onLog: (j: WorkJob) => void
+  onBill: (j: WorkJob, invoice?: WorkInvoice) => void
+  onPay: (j: WorkJob, invoiceId?: string) => void
+  onEdit: (j: WorkJob) => void
+  onArchive: (j: WorkJob) => void
+  onDelete: (j: WorkJob) => void
+}
+
+function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
+  const [showPaid, setShowPaid] = useState(false)
+  const money = (n: number) => formatMoney(n, j.currency)
+  const schedule = scheduleLabel(j, money)
+  const openBills = j.invoices.filter((i) => i.status !== 'paid')
+  const paidBills = j.invoices.filter((i) => i.status === 'paid')
+
+  async function removeEntry(id: string) {
+    if (demoMode) return readOnly()
+    try {
+      await api.deleteWorkEntry(id)
+      toast.success('Shift removed')
+    } catch (err) {
+      fail(err)
+    }
+  }
+
+  return (
+    <Card className="gap-0">
+      <CardHeader className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl" style={tintStyle(j.color)}>
+          <Briefcase className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <CardTitle className="truncate">{j.name}</CardTitle>
+          <CardDescription className="truncate">
+            {money(j.rate)}/hr
+            {schedule && ` · paid ${schedule}`}
+          </CardDescription>
+        </div>
+        {!demoMode && (
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={`${j.name} options`} />}>
+              <MoreHorizontal />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => actions.onEdit(j)}>
+                <Pencil /> Edit job
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => actions.onArchive(j)}>
+                {j.archived ? <ArchiveRestore /> : <Archive />} {j.archived ? 'Restore' : 'Archive'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => actions.onDelete(j)}>
+                <Trash2 /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </CardHeader>
+
+      <CardContent className="grid gap-5 pt-4">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase">Owed to you</p>
+            <p className="text-3xl font-semibold tabular-nums">{money(j.owed)}</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">{jobNudge(j, money)}</p>
+          </div>
+          {!demoMode && !j.archived && (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => actions.onLog(j)}>
+                <Clock /> Log hours
+              </Button>
+              <Button variant="outline" onClick={() => actions.onBill(j)}>
+                <ReceiptText /> Bill hours
+                {j.unbilledHours > 0 && <span className="text-muted-foreground tabular-nums">· {formatHours(j.unbilledHours)}h</span>}
+              </Button>
+              <Button onClick={() => actions.onPay(j)} disabled={j.owed <= 0}>
+                <HandCoins /> Record payment
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {j.notes && <p className="rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">{j.notes}</p>}
+
+        {j.unbilled.length > 0 && (
+          <div className="grid gap-1">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-medium text-muted-foreground uppercase">Not billed yet</h3>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {formatDuration(j.unbilledHours)} · {money(j.unbilledValue)}
+              </span>
+            </div>
+            <ul className="grid text-sm">
+              {j.unbilled.map((e) => (
+                <li key={e.id} className="group flex items-center gap-2 rounded-md px-2 py-1 odd:bg-muted/40">
+                  <span className="w-14 shrink-0 text-muted-foreground tabular-nums">{formatShortDate(e.date)}</span>
+                  <span className="min-w-0 flex-1 truncate text-muted-foreground">{e.note}</span>
+                  <span className="tabular-nums">{formatDuration(e.hours)}</span>
+                  {!demoMode && (
+                    <button
+                      type="button"
+                      aria-label="Remove shift"
+                      className="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100"
+                      onClick={() => void removeEntry(e.id)}
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {openBills.length > 0 && (
+          <div className="grid gap-3 md:grid-cols-2">
+            {openBills.map((inv) => (
+              <InvoiceCard key={inv.id} job={j} invoice={inv} {...actions} />
+            ))}
+          </div>
+        )}
+
+        {j.invoices.length === 0 && j.unbilled.length === 0 && (
+          <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+            Log shifts as you work them, or jump straight to <span className="font-medium text-foreground">Bill hours</span> when you send your total.
+          </p>
+        )}
+
+        {paidBills.length > 0 && (
+          <div className="grid gap-3">
+            <button
+              type="button"
+              className="flex w-fit items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+              onClick={() => setShowPaid((v) => !v)}
+            >
+              <ChevronDown className={cn('size-4 transition-transform', !showPaid && '-rotate-90')} />
+              Paid bills ({paidBills.length}) · {money(paidBills.reduce((s, i) => s + i.total, 0))}
+            </button>
+            {showPaid && (
+              <div className="grid gap-3 md:grid-cols-2 animate-in fade-in-0 duration-200">
+                {paidBills.map((inv) => (
+                  <InvoiceCard key={inv.id} job={j} invoice={inv} {...actions} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function jobNudge(j: WorkJob, money: (n: number) => string) {
+  if (j.owed <= 0) return j.unbilledHours > 0 ? `${formatDuration(j.unbilledHours)} ready to bill` : 'All paid up'
+  if (j.payoffDate && j.paymentsLeft) {
+    const next = j.nextPaymentDate === isoDate() ? 'next one due today' : `next ${formatShortDate(j.nextPaymentDate!)}`
+    return `${j.paymentsLeft} more payment${j.paymentsLeft === 1 ? '' : 's'} · ${next} · cleared by ${formatDate(j.payoffDate)}`
+  }
+  return j.lastPaymentDate ? `Last paid ${formatRelativeDate(j.lastPaymentDate)}` : `Billed ${money(j.billedTotal)} so far`
+}
+
+const STATUS: Record<InvoiceStatus, { label: string; className: string }> = {
+  unpaid: { label: 'Unpaid', className: 'bg-amber-500/15 text-amber-700 dark:text-amber-300' },
+  partial: { label: 'Paying off', className: 'bg-sky-500/15 text-sky-700 dark:text-sky-300' },
+  paid: { label: 'Paid', className: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' },
+}
+
+function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; invoice: WorkInvoice } & JobActions) {
+  const money = (n: number) => formatMoney(n, j.currency)
+  const status = STATUS[inv.status]
+  const [showAll, setShowAll] = useState(false)
+  // Newest first on screen, like a feed.
+  const payments = [...inv.payments].reverse()
+  const shown = showAll ? payments : payments.slice(0, 4)
+
+  async function remove() {
+    const n = inv.payments.length
+    if (!confirm(`Delete this ${money(inv.total)} bill${n ? ` and its ${n} payment${n === 1 ? '' : 's'}` : ''}? Logged shifts on it go back to “not billed”.`)) return
+    try {
+      await api.deleteWorkInvoice(inv.id)
+      toast.success('Bill deleted')
+    } catch (err) {
+      fail(err)
+    }
+  }
+
+  async function removePayment(id: string) {
+    if (demoMode) return readOnly()
+    try {
+      await api.deleteWorkPayment(id)
+      toast.success('Payment removed')
+    } catch (err) {
+      fail(err)
+    }
+  }
+
+  return (
+    <div className="grid gap-3 rounded-xl border p-4">
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-2 text-sm font-medium">
+            Billed {formatShortDate(inv.date)}
+            <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', status.className)}>{status.label}</span>
+          </p>
+          <p className="text-xs text-muted-foreground tabular-nums">
+            {formatHours(inv.hours)} hrs × {money(inv.rate)}
+            {Math.abs(inv.total - Math.round(inv.hours * inv.rate * 100) / 100) > 0.005 && ' (agreed total)'}
+            {inv.counterHours !== null && ` · tracker at ${formatHours(inv.counterHours)}`}
+          </p>
+        </div>
+        <Button variant="ghost" size="icon-xs" aria-label="Copy for chat" title="Copy as a message" onClick={() => void copy(invoiceText(inv), 'Bill')}>
+          <Copy />
+        </Button>
+        {!demoMode && (
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label="Bill options" />}>
+              <MoreHorizontal />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {inv.status !== 'paid' && !j.archived && (
+                <DropdownMenuItem onClick={() => onPay(j, inv.id)}>
+                  <HandCoins /> Record payment
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => onBill(j, inv)}>
+                <Pencil /> Edit bill
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => void remove()}>
+                <Trash2 /> Delete bill
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+
+      <div className="grid gap-1.5">
+        <div className="flex items-baseline justify-between gap-2 tabular-nums">
+          <span className="text-xl font-semibold">{inv.status === 'paid' ? money(inv.total) : money(inv.remaining)}</span>
+          <span className="text-xs text-muted-foreground">
+            {inv.status === 'paid' ? `paid ${inv.paidAt ? formatShortDate(inv.paidAt) : ''}` : `left of ${money(inv.total)}`}
+          </span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${Math.round(inv.progress * 100)}%`, ...accentStyle(j.color) }} />
+        </div>
+        {inv.overpaid > 0 && <p className="text-xs text-amber-600 dark:text-amber-400">Overpaid by {money(inv.overpaid)}</p>}
+      </div>
+
+      {(inv.proofUrl || inv.note) && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          {inv.proofUrl && (
+            <a href={inv.proofUrl} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+              <ExternalLink className="size-3" /> Proof
+            </a>
+          )}
+          {inv.note && <span className="truncate">{inv.note}</span>}
+        </div>
+      )}
+
+      {payments.length > 0 && (
+        <div className="grid gap-1">
+          <ul className="grid text-sm">
+            {shown.map((p) => (
+              <li key={p.id} className="group flex items-center gap-2 rounded-md px-2 py-1 odd:bg-muted/40">
+                <span className="w-14 shrink-0 text-muted-foreground tabular-nums">{formatShortDate(p.date)}</span>
+                <span className="text-emerald-600 tabular-nums dark:text-emerald-400">+{money(p.amount)}</span>
+                <span className="flex min-w-0 flex-1 items-center justify-end gap-1 truncate text-xs text-muted-foreground tabular-nums">
+                  {p.transactionId && <Link2 className="size-3 shrink-0" aria-label="Linked to a transaction" />}
+                  {p.remainingAfter > 0 ? `${money(p.remainingAfter)} left` : 'cleared'}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Copy update"
+                  title={paymentLine(p)}
+                  className="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
+                  onClick={() => void copy(paymentLine(p), 'Update')}
+                >
+                  <Copy className="size-3.5" />
+                </button>
+                {!demoMode && (
+                  <button
+                    type="button"
+                    aria-label="Remove payment"
+                    className="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100"
+                    onClick={() => void removePayment(p.id)}
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+          {payments.length > 4 && (
+            <button type="button" className="w-fit text-xs font-medium text-primary hover:underline" onClick={() => setShowAll((v) => !v)}>
+              {showAll ? 'Show less' : `Show all ${payments.length}`}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function EmptyWork({ onAdd }: { onAdd: () => void }) {
+  const steps = [
+    { icon: Clock, title: 'Log hours', body: 'Add shifts as you go, or just your tracker total.' },
+    { icon: ReceiptText, title: 'Bill them', body: '“done 40 hours since last pay, total is $1,000.”' },
+    { icon: CalendarClock, title: 'Get paid in instalments', body: 'Record each payment and see when it’s cleared.' },
+  ]
+  return (
+    <Card className="items-center py-12 text-center">
+      <CardContent className="flex flex-col items-center gap-5">
+        <span className="grid size-14 place-items-center rounded-2xl" style={tintStyle('ocean')}>
+          <Briefcase className="size-7" />
+        </span>
+        <div>
+          <h2 className="font-semibold">Track a side job</h2>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+            For hourly work you bill yourself. Keep the running total of what you’re owed in one place instead of a chat thread.
+          </p>
+        </div>
+        <div className="grid w-full max-w-2xl gap-2 sm:grid-cols-3">
+          {steps.map(({ icon: Icon, title, body }) => (
+            <div key={title} className="rounded-xl border p-3 text-left">
+              <Icon className="mb-2 size-4 text-primary" />
+              <p className="text-sm font-medium">{title}</p>
+              <p className="text-xs text-muted-foreground">{body}</p>
+            </div>
+          ))}
+        </div>
+        {!demoMode && (
+          <Button onClick={onAdd}>
+            <Plus /> Add a job
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardDescription>{label}</CardDescription>
+        <CardTitle className="text-2xl! font-semibold tabular-nums">{value}</CardTitle>
+        {hint && <p className="truncate text-xs text-muted-foreground">{hint}</p>}
+      </CardHeader>
+    </Card>
+  )
+}

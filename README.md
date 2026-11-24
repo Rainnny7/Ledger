@@ -1,0 +1,105 @@
+<p align="center">
+  <img src="assets/icon.svg" width="72" height="72" alt="Ledger logo">
+</p>
+
+<h1 align="center">Ledger</h1>
+
+<p align="center">A self-hosted personal finance dashboard that pulls in your bank data on its own.</p>
+
+![Ledger dashboard](assets/screenshots/dashboard.png)
+
+## Why I made it
+
+I wanted one place to see my transactions, how much I'm earning, what subscriptions I'm paying for and how close I am to my goals, without logging into a bunch of different sites and copying numbers into a spreadsheet. So I built Ledger. You link your accounts once, and it signs in and fetches new transactions by itself in the background, so everything stays up to date without you touching it.
+
+## What it does
+
+- **Bank accounts**: balances, overdraft and credit, a balance history chart, cash flow, upcoming payments and recent activity, with a page for each account.
+- **Insights**: spending by category, top merchants and month-by-month cash flow. Transfers between your own accounts are ignored so nothing gets counted twice.
+- **Subscriptions**: track recurring payments on any schedule, see them on a calendar, and get suggestions for recurring charges it spots in your transactions.
+- **Goals**: save up for something or pay something off. Log payments as you go and it tells you what you need to put in each month to hit your deadline.
+- **Work**: log hours for side work, bill them, and track each payment until you're paid in full.
+- **Automatic refresh**: saved connections are refreshed every 6 hours in the background.
+- **Multi-user**: the first account is the admin. Admins can add users, open or close sign-ups, and see an audit log. Two-factor sign-in is supported.
+- **Demo mode**: fills every page with made-up data, handy for showing it off (the screenshots here use it).
+
+Ledger currently connects to **TD EasyWeb** and **PayPal**.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="assets/screenshots/insights.png" alt="Insights"></td>
+    <td><img src="assets/screenshots/subscriptions.png" alt="Subscriptions"></td>
+  </tr>
+  <tr>
+    <td align="center">Insights</td>
+    <td align="center">Subscriptions</td>
+  </tr>
+  <tr>
+    <td><img src="assets/screenshots/goals.png" alt="Goals"></td>
+    <td><img src="assets/screenshots/work.png" alt="Work"></td>
+  </tr>
+  <tr>
+    <td align="center">Goals</td>
+    <td align="center">Work</td>
+  </tr>
+</table>
+
+## Getting started
+
+You'll need [Bun](https://bun.sh) 1.3+ and Node.js 22.5+ (the API uses `node:sqlite`).
+
+```bash
+bun install
+bunx playwright install chromium   # used to sign in to TD EasyWeb
+cp .env.example .env               # optional, every setting has a default
+bun run dev                        # API on :3001, app on http://localhost:5173
+```
+
+Create an account (the first one becomes the admin), click **Add account** and pick a bank.
+
+For production:
+
+```bash
+bun run build && bun run start     # serves the app and API from one port
+```
+
+## Connecting accounts
+
+**TD.** TD doesn't have a public API, so the server signs in to EasyWeb with a headless browser (Playwright), reads your accounts and transactions, and saves them. If TD asks for a 2-Step Verification code, the app asks you for it. Refreshes only pull in what's new. Set `TD_HEADLESS=false` to watch the browser while it works.
+
+**PayPal.** Uses PayPal's official REST API. Create a **Live** app on [developer.paypal.com](https://developer.paypal.com/dashboard/applications/live) with a Business account, turn on **Transaction Search**, and paste the app's Client ID and Secret into Ledger.
+
+## Security
+
+- Your bank password is only saved if you tick **Save credentials**. Saved credentials, API keys and account numbers are encrypted with AES-256-GCM using `APP_SECRET` (generated into `data/.secret` if you don't set one).
+- Everything lives in a local SQLite database in `data/`. It's git-ignored; don't commit or share it.
+- Sign-in is rate-limited, sign-ups are closed after the first account unless an admin opens them, and the server sends strict security headers.
+- Automated access may be against your bank's terms of service. Use it for your own accounts, at your own risk.
+
+## Configuration
+
+All optional. See [`.env.example`](.env.example).
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PORT` | `3001` | API port |
+| `APP_URL` | `http://localhost:5173` | Public URL of the app |
+| `APP_SECRET` | generated | Signs sessions and encrypts saved credentials |
+| `DATA_DIR` | `./data` | Where the database lives |
+| `TD_HEADLESS` | `true` | `false` to watch the browser sign in |
+| `TD_BROWSER_CHANNEL` | | e.g. `chrome` to use your installed Chrome |
+| `ALLOW_REGISTRATION` | `false` | Whether sign-ups start open after the first account |
+| `TRUST_PROXY` | `false` | `true` behind a reverse proxy, so rate limits see the real client IP |
+| `PAYPAL_ENV` | `live` | `sandbox` to test against PayPal's sandbox |
+
+## Built with
+
+React, Vite, Tailwind CSS and shadcn/ui on the front end. Hono, Better Auth, SQLite and Playwright on the server.
+
+```bash
+bun test server     # tests
+bun run typecheck
+bun run lint
+```

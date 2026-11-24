@@ -1,0 +1,243 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * "Sunset" theme: mostly neutral surfaces with a slight warm tint, a dusty-rose primary,
+ * and a pastel peach → pink → violet gradient kept to the logo and favicon.
+ *
+ * Chart colours were checked with the dataviz palette validator (lightness band,
+ * colour-blind separation, contrast) against each mode's card surface:
+ * chart-1 = money in / balance (teal), chart-2 = money out (pink).
+ */
+:root {
+    --background: oklch(0.985 0.002 60);
+    --foreground: oklch(0.2 0.008 300);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.2 0.008 300);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.2 0.008 300);
+    --primary: #b8466f;
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.965 0.004 340);
+    --secondary-foreground: oklch(0.28 0.01 300);
+    --muted: oklch(0.965 0.003 340);
+    --muted-foreground: oklch(0.52 0.012 300);
+    --accent: oklch(0.955 0.01 350);
+    --accent-foreground: oklch(0.28 0.03 350);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.915 0.005 320);
+    --input: oklch(0.9 0.006 320);
+    --ring: #b8466f;
+    --chart-1: #0b93b8; /* money in / balance */
+    --chart-2: #e23a7f; /* money out */
+    --chart-3: #7c4dcc;
+    --chart-4: #f08a24;
+    --chart-5: #f2c230;
+    --sunset-peach: #f9b27c;
+    --sunset-pink: #f17aa6;
+    --sunset-violet: #9d7cf0;
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0.002 60);
+    --sidebar-foreground: oklch(0.2 0.008 300);
+    --sidebar-primary: #b8466f;
+    --sidebar-primary-foreground: oklch(0.99 0 0);
+    --sidebar-accent: oklch(0.955 0.01 350);
+    --sidebar-accent-foreground: oklch(0.28 0.03 350);
+    --sidebar-border: oklch(0.915 0.005 320);
+    --sidebar-ring: #b8466f;
+}
+
+.dark {
+    --background: #111013;
+    --foreground: oklch(0.95 0.005 320);
+    --card: #1a181d;
+    --card-foreground: oklch(0.95 0.005 320);
+    --popover: #1a181d;
+    --popover-foreground: oklch(0.95 0.005 320);
+    --primary: #f08fb3;
+    --primary-foreground: #1a1216;
+    --secondary: oklch(0.27 0.008 310);
+    --secondary-foreground: oklch(0.95 0.005 320);
+    --muted: oklch(0.255 0.007 310);
+    --muted-foreground: oklch(0.72 0.012 310);
+    --accent: oklch(0.28 0.02 340);
+    --accent-foreground: oklch(0.95 0.005 320);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: #f08fb3;
+    --chart-1: #1aa3c8; /* money in / balance */
+    --chart-2: #e04a8f; /* money out */
+    --chart-3: #9a6bf0;
+    --chart-4: #f08a24;
+    --chart-5: #f2c230;
+    --sidebar: #1a181d;
+    --sidebar-foreground: oklch(0.95 0.005 320);
+    --sidebar-primary: #f08fb3;
+    --sidebar-primary-foreground: #1a1216;
+    --sidebar-accent: oklch(0.28 0.02 340);
+    --sidebar-accent-foreground: oklch(0.95 0.005 320);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: #f08fb3;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    /* Always reserve the scrollbar's space so pages and overlays never shift sideways. */
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+    }
+
+  /* Themed scrollbars: a thin thumb in the border colour on the page background. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent) transparent;
+    }
+  html {
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent) var(--background);
+    }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    }
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--muted-foreground) 45%, transparent) padding-box;
+    }
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--muted-foreground) 70%, transparent) padding-box;
+    }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+    }
+
+  /* Anything you can click shows the hand cursor (shadcn's default is the arrow). */
+  button,
+  [role='button'],
+  [role='tab'],
+  [role='switch'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='option'],
+  [role='menuitem'],
+  [role='menuitemcheckbox'],
+  [role='menuitemradio'],
+  [role='combobox'],
+  a[href],
+  label[for],
+  summary,
+  select,
+  input[type='checkbox'],
+  input[type='radio'],
+  [data-slot='select-trigger'],
+  [data-slot='toggle'],
+  [data-slot='toggle-group-item'] {
+    cursor: pointer;
+    }
+  :is(button, [role='button'], [role='tab'], [role='switch'], [role='checkbox'], [role='option'], [role='menuitem'], [role='combobox'], [data-slot='select-trigger']):is(:disabled, [aria-disabled='true'], [data-disabled]) {
+    cursor: not-allowed;
+    }
+
+  /* Page content eases in: cards rise slightly as they appear, a few at a time. */
+  main [data-slot='card'] {
+    animation: ledger-rise 360ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    }
+  main :nth-child(2 of [data-slot='card']) { animation-delay: 40ms; }
+  main :nth-child(3 of [data-slot='card']) { animation-delay: 80ms; }
+  main :nth-child(4 of [data-slot='card']) { animation-delay: 120ms; }
+  main :nth-child(n + 5 of [data-slot='card']) { animation-delay: 160ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      }
+    }
+
+  /* Scrolling inside an open overlay shouldn't scroll the page behind it. */
+  [data-slot='dialog-content'],
+  [data-slot='sheet-content'],
+  [data-slot='dropdown-menu-content'],
+  [data-slot='select-content'] {
+    overscroll-behavior: contain;
+    }
+}
+
+@keyframes ledger-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes ledger-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Pastel sunset gradient: brand mark only. */
+@utility bg-sunset {
+  background-image: linear-gradient(135deg, var(--sunset-peach) 0%, var(--sunset-pink) 55%, var(--sunset-violet) 100%);
+}

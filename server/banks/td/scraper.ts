@@ -1,0 +1,666 @@
+/**
+ * Drives TD EasyWeb with a real (headless) Chromium.
+ *
+ * TD does not offer a public API, so this logs in like a person would, hands
+ * 2-Step Verification back to the user through the UI, then reads the account
+ * summary and each account's activity page.
+ *
+ * EasyWeb's markup changes from time to time. Selectors here are deliberately
+ * loose, with several fallbacks; pure parsing lives in parse.ts and is unit tested.
+ */
+import { type Browser, type BrowserContext, chromium, type Frame, type Locator, type Page } from 'playwright'
+import { env } from '../../env.ts'
+import type { BankClient, LoginStep, MfaOption, ScrapedAccount } from '../types.ts'
+import { findLabelledAmount, parseAccountDetails, parseAccountSummary, parseTransactions, type RawFrame } from './parse.ts'
+
+const LOGIN_URL = 'https://easyweb.td.com/'
+const MAX_ACCOUNTS = 20
+
+const USERNAME_SEL = '#username, input[name="username"], input[autocomplete="username"]'
+const PASSWORD_SEL = '#uapPassword, input[type="password"]'
+const MFA_TEXT = /2-step|two-step|verif|security code|one-time|confirm (it.s|that it.s) you|make sure it.s you|let.s make sure/i
+const CODE_SEL =
+  'input#code, input[autocomplete="one-time-code"], input[name*="code" i]:not([type="hidden"]), input[id*="otp" i], input[name*="otp" i], input[id*="securityCode" i]'
+
+/** In-page extractor. Written as a plain string so the TS toolchain can't inject helpers into it. */
+const EXTRACT_SCRIPT = `(() => {
+  const clean = (s) => (s || '').replace(/\\s+/g, ' ').trim();
+  const headingNear = (t) => {
+    let el = t;
+    for (let depth = 0; depth < 6 && el; depth++) {
+      let p = el.previousElementSibling;
+      while (p) {
+        const h = p.matches('h1,h2,h3,h4,h5,[role=heading],caption') ? p : p.querySelector('h1,h2,h3,h4,h5,[role=heading]');
+        if (h && clean(h.innerText)) return clean(h.innerText);
+        p = p.previousElementSibling;
+      }
+      el = el.parentElement;
+    }
+    return '';
+  };
+  const tables = [...document.querySelectorAll('table')].map((t, index) => {
+    let headers = [...t.querySelectorAll('thead th, thead td')].map((c) => clean(c.innerText));
+    let rows = [...t.querySelectorAll('tbody tr')];
+    if (!rows.length) rows = [...t.querySelectorAll('tr')];
+    if (!headers.length) {
+      const first = t.querySelector('tr');
+      if (first && first.querySelector('th')) {
+        headers = [...first.querySelectorAll('th,td')].map((c) => clean(c.innerText));
+        rows = rows.filter((r) => r !== first);
+      }
+    }
+    const caption = t.querySelector('caption');
+    return {
+      index,
+      headers,
+      context: clean(caption && caption.innerText) || headingNear(t),
+      rows: rows
+        .map((r) => ({
+          cells: [...r.querySelectorAll('td,th')].map((c) => clean(c.innerText)),
+          link: clean(r.querySelector('a') && r.querySelector('a').innerText) || null,
+        }))
+        .filter((r) => r.cells.some(Boolean)),
+    };
+  });
+  const ariaTables = [...document.querySelectorAll('mat-table, [role=table], [role=grid]')]
+    .filter((e) => e.tagName !== 'TABLE')
+    .map((t, i) => ({
+      index: 1000 + i,
+      headers: [...t.querySelectorAll('mat-header-cell, [role=columnheader]')].map((c) => clean(c.innerText)),
+      context: headingNear(t),
+      rows: [...t.querySelectorAll('mat-row, [role=row]')]
+        .map((r) => ({
+          cells: [...r.querySelectorAll('mat-cell, [role=cell], [role=gridcell]')].map((c) => clean(c.innerText)),
+          link: clean(r.querySelector('a') && r.querySelector('a').innerText) || null,
+        }))
+        .filter((r) => r.cells.length),
+    }));
+  return {
+    url: location.href,
+    title: document.title,
+    text: document.body ? document.body.innerText.slice(0, 60000) : '',
+    tables: tables.concat(ariaTables),
+  };
+})()`
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+async function visible(l: Locator): Promise<boolean> {
+  return l.first().isVisible().catch(() => false)
+}
+
+export class TdScraper implements BankClient {
+  private browser?: Browser
+  private context?: BrowserContext
+  private page?: Page
+  private mfaChoices: Locator[] = []
+
+  async open(storageState?: unknown) {
+    this.browser = await chromium.launch({
+      headless: env.tdHeadless,
+      channel: process.env.TD_BROWSER_CHANNEL || undefined, // e.g. "chrome" to use installed Chrome
+      args: ['--disable-blink-features=AutomationControlled'],
+    })
+    const ua = (await this.browser.newPage().then(async (p) => {
+      const v = await p.evaluate('navigator.userAgent')
+      await p.close()
+      return String(v)
+    })).replace('HeadlessChrome', 'Chrome')
+    this.context = await this.browser.newContext({
+      userAgent: ua,
+      locale: 'en-CA',
+      timezoneId: 'America/Toronto',
+      viewport: { width: 1366, height: 900 },
+      // biome-ignore lint: Playwright's storage state type
+      storageState: (storageState as any) ?? undefined,
+    })
+    this.page = await this.context.newPage()
+    this.page.setDefaultTimeout(20_000)
+  }
+
+  async close() {
+    await this.browser?.close().catch(() => {})
+    this.browser = undefined
+  }
+
+  async storageState(): Promise<unknown> {
+    return this.context?.storageState()
+  }
+
+  private get p(): Page {
+    if (!this.page) throw new Error('Browser not open')
+    return this.page
+  }
+
+  // ---------------------------------------------------------------- login
+
+  async login(username: string, password: string): Promise<LoginStep> {
+    const page = this.p
+    await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: 45_000 })
+
+    // A remembered session may skip the login form entirely.
+    const first = await Promise.race([
+      page.locator(USERNAME_SEL).first().waitFor({ state: 'visible', timeout: 30_000 }).then(() => 'form' as const),
+      this.waitForLoggedIn(30_000).then((ok) => (ok ? ('in' as const) : new Promise<never>(() => {}))),
+    ]).catch(() => 'timeout' as const)
+
+    if (first === 'in') return { type: 'success' }
+    if (first === 'timeout') {
+      return { type: 'error', message: 'Could not find the EasyWeb login form. TD may have changed their page.' }
+    }
+
+    // Close the cookie banner (without opting into tracking) so it can't cover the Login button.
+    const closeBanner = page.locator('.onetrust-close-btn-handler, #onetrust-reject-all-handler').first()
+    if (await visible(closeBanner)) await closeBanner.click().catch(() => {})
+
+    // Use fill() rather than per-key typing: TD's username field reformats as you
+    // type and drops keystrokes (an Access Card number came through as 6 of 16 digits).
+    const user = page.locator(USERNAME_SEL).first()
+    const pass = page.locator(PASSWORD_SEL).first()
+    const enter = async (field: Locator, value: string) => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await field.click()
+        await field.fill(value)
+        await field.blur()
+        await sleep(300)
+        if ((await field.inputValue()).trim() === value.trim()) return true
+      }
+      return false
+    }
+    const cleanUsername = username.replace(/\s+/g, '')
+    if (!(await enter(user, cleanUsername)) || !(await enter(pass, password))) {
+      return { type: 'error', message: 'Could not enter your username/password into the EasyWeb form. Nothing was submitted.' }
+    }
+
+    const submit = page.locator('.login-form button.td-button-secondary')
+    const fallback = page.locator('.login-form button[type="submit"], button:text-is("Login")')
+    if (await visible(submit)) await submit.first().click()
+    else if (await visible(fallback)) await fallback.first().click()
+    else await pass.press('Enter')
+
+    return this.waitForStep(60_000)
+  }
+
+  async chooseMfa(optionId: string): Promise<LoginStep> {
+    const choice = this.mfaChoices[Number(optionId)]
+    if (!choice) return { type: 'error', message: 'That verification option is no longer available.' }
+    await choice.click()
+    await sleep(500)
+
+    // Radio-style choices need a separate "Send" / "Continue" click.
+    const cont = this.p
+      .locator('button, [role="button"]')
+      .filter({ hasText: /^\s*(send( code)?|continue|next|get code|send security code)\s*$/i })
+    if (!(await visible(this.p.locator(CODE_SEL))) && (await visible(cont))) {
+      await cont.first().click().catch(() => {})
+    }
+    return this.waitForStep(45_000, { ignoreSelect: true })
+  }
+
+  async submitCode(code: string): Promise<LoginStep> {
+    const page = this.p
+    const input = page.locator(CODE_SEL).first()
+    if (!(await visible(input))) return this.waitForStep(10_000)
+    await input.fill(code.replace(/\s+/g, ''))
+
+    // Ask TD to remember this browser so future syncs need fewer codes.
+    const remember = page.getByLabel(/remember|trust this|don.t ask/i).first()
+    if (await visible(remember)) await remember.check().catch(() => {})
+
+    const btn = page
+      .locator('button, [role="button"], input[type="submit"]')
+      .filter({ hasText: /^\s*(enter|submit|verify|continue|confirm|next)\s*$/i })
+    if (await visible(btn)) await btn.first().click()
+    else await input.press('Enter')
+
+    await sleep(1500)
+    return this.waitForStep(45_000, { codeSubmitted: true })
+  }
+
+  /** Called while the user approves a push notification in the TD app. */
+  async waitForApproval(): Promise<LoginStep> {
+    return this.waitForStep(25_000, { allowPush: true })
+  }
+
+  private async waitForLoggedIn(timeout: number): Promise<boolean> {
+    const end = Date.now() + timeout
+    while (Date.now() < end) {
+      if (this.isLoggedInUrl(this.p.url())) return true
+      await sleep(500)
+    }
+    return false
+  }
+
+  private isLoggedInUrl(url: string) {
+    return /^https:\/\/easyweb\.td\.com\//.test(url) && !/authentication|uap-ui|login/i.test(url)
+  }
+
+  private async waitForStep(
+    timeout: number,
+    opts: { ignoreSelect?: boolean; codeSubmitted?: boolean; allowPush?: boolean } = {},
+  ): Promise<LoginStep> {
+    const end = Date.now() + timeout
+    let lastStep: LoginStep | null = null
+    while (Date.now() < end) {
+      const step = await this.detect(opts).catch(() => null)
+      if (step) {
+        if (step.type === 'mfa_push' && opts.allowPush) {
+          lastStep = step
+        } else return step
+      }
+      await sleep(1000)
+    }
+    if (lastStep) return lastStep
+    return { type: 'error', message: 'Timed out waiting for EasyWeb to respond.' }
+  }
+
+  private async detect(opts: { ignoreSelect?: boolean; codeSubmitted?: boolean }): Promise<LoginStep | null> {
+    const page = this.p
+    if (this.isLoggedInUrl(page.url())) {
+      await page.waitForLoadState('domcontentloaded').catch(() => {})
+      return { type: 'success' }
+    }
+
+    let text = await page.locator('body').innerText({ timeout: 3000 }).catch(() => '')
+    const alertText = (
+      await page
+        .locator('[role="alert"], .td-error, .error-message, .td-form-error, .td-error-message, [class*="error" i]')
+        .allInnerTexts()
+        .catch(() => [] as string[])
+    )
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .join(' ')
+
+    const errorRe =
+      /incorrect|doesn.t match|do not match|not recogni[sz]ed|invalid|locked|suspended|unable to (log|sign)|try again|expired/i
+
+    // TD shows 2-Step Verification as a modal on top of the login form, so look at
+    // the modal's own text first. (The form's sidebar also mentions "Two-Step
+    // Verification" and the "TD app", so the page text alone is misleading.)
+    const modalTexts = await page
+      .locator('[role="dialog"]:visible, .modal:visible, mat-dialog-container:visible, .cdk-overlay-pane:visible, [class*="modal" i]:visible')
+      .allInnerTexts()
+      .catch(() => [] as string[])
+    const modalText = modalTexts.find((t) => MFA_TEXT.test(t)) ?? ''
+    const mfaButtons = page.locator('button:visible, [role="button"]:visible').filter({ hasText: /^\s*(text|call) me\s*$/i })
+    const hasMfaUi = !!modalText || (await visible(page.locator(CODE_SEL))) || (await mfaButtons.count().catch(() => 0)) > 0
+
+    if (!hasMfaUi && (await visible(page.locator(PASSWORD_SEL)))) {
+      if (errorRe.test(alertText)) return { type: 'error', message: alertText.slice(0, 300) }
+      return null // still on the login form (submitting / redirecting)
+    }
+    if (modalText) text = modalText
+
+    if (await visible(page.locator(CODE_SEL))) {
+      if (opts.codeSubmitted && errorRe.test(alertText)) {
+        return { type: 'error', message: alertText.slice(0, 300) || 'The security code was not accepted.' }
+      }
+      if (opts.codeSubmitted) return null // still processing
+      return { type: 'mfa_code', prompt: this.promptFrom(text) || 'Enter the security code TD sent you.' }
+    }
+
+    if (!hasMfaUi && !MFA_TEXT.test(text)) return null
+
+    if (!opts.ignoreSelect) {
+      const options = await this.collectMfaOptions()
+      if (options.length) return { type: 'mfa_select', prompt: this.promptFrom(text), options }
+    }
+
+    if (/approve (the|this|it)|approve .*(td app|notification)|check your (td app|phone for a notification)/i.test(text)) {
+      return { type: 'mfa_push', prompt: this.promptFrom(text) || 'Approve the sign-in from the TD app on your phone.' }
+    }
+    return null
+  }
+
+  private promptFrom(text: string): string {
+    const line = text
+      .split('\n')
+      .map((l) => l.trim())
+      .find((l) => /verif|code|confirm|approve|sent|text|call/i.test(l) && l.length > 15 && l.length < 220)
+    return line ?? ''
+  }
+
+  private async collectMfaOptions(): Promise<MfaOption[]> {
+    // TD's modal: a phone list where each number has its own "Call me" / "Text me" buttons.
+    const perPhone = this.p.locator('button:visible, [role="button"]:visible').filter({ hasText: /^\s*(text|call) me\s*$/i })
+    const n = await perPhone.count().catch(() => 0)
+    if (n > 0) {
+      const items: { label: string; el: Locator; text: boolean }[] = []
+      for (let i = 0; i < n; i++) {
+        const el = perPhone.nth(i)
+        const action = (await el.innerText().catch(() => '')).replace(/\s+/g, ' ').trim()
+        // Walk up to the nearest container that shows exactly one phone number.
+        const phone: string = await el
+          .evaluate((node: any) => {
+            const phoneRe = /\+?\d?\s*\(?[•*x]{3}\)?\s*[•*x]{3}\s*-?\s*\d{4}/gi
+            const isPhone = /[•*x]{3}\s*-?\s*\d{4}/i
+            for (let e = node.parentElement; e && e !== node.ownerDocument.body; e = e.parentElement) {
+              const t: string = e.innerText || ''
+              const m = t.match(phoneRe)
+              if (m && m.length > 1) break
+              if (m && m.length === 1) {
+                const name = t
+                  .split('\n')
+                  .map((l: string) => l.trim())
+                  .find((l: string) => l && l.length < 40 && !isPhone.test(l) && !/(text|call) me/i.test(l))
+                return name ? `${m[0]} (${name})` : m[0]
+              }
+            }
+            return ''
+          })
+          .catch(() => '')
+        const label = `${action}${phone ? ` at ${phone.replace(/\s+/g, ' ')}` : ` (option ${i + 1})`}`
+        items.push({ label, el, text: /^text/i.test(action) })
+      }
+      items.sort((a, b) => Number(b.text) - Number(a.text)) // texting first
+      this.mfaChoices = items.map((it) => it.el)
+      return items.map((it, i) => ({ id: String(i), label: it.label }))
+    }
+
+    const candidates = this.p.locator(
+      'button, [role="button"], [role="radio"], [role="option"], mat-radio-button, label, a, li, [class*="radio" i]',
+    )
+    const count = Math.min(await candidates.count(), 150)
+    const found: { label: string; el: Locator }[] = []
+    const seen = new Set<string>()
+    for (let i = 0; i < count; i++) {
+      const el = candidates.nth(i)
+      if (!(await el.isVisible().catch(() => false))) continue
+      const label = (await el.innerText().catch(() => '')).replace(/\s+/g, ' ').trim()
+      if (!label || label.length > 120 || seen.has(label)) continue
+      const hasPhone = /[*•x]{2,}[\s)-]*\d{2,4}\b|ending in \d{2,4}/i.test(label)
+      if (!hasPhone && /cancel|back|help|faq|privacy|security|legal|log ?out|french|français|contact/i.test(label)) continue
+      const isMethod = hasPhone || /^(text|call|email) me\b|text message|\bsms\b|phone call|voice call|email me/i.test(label)
+      if (!isMethod) continue
+      // Skip wrappers that contain several options (e.g. the whole list).
+      if ((label.match(/[*•x]{2,}[\s)-]*\d{2,4}\b/gi)?.length ?? 0) > 1) continue
+      seen.add(label)
+      found.push({ label, el })
+    }
+    // A <li> and the <label> inside it describe the same option; keep the most specific.
+    const kept = found.filter((a) => !found.some((b) => b !== a && b.label.length < a.label.length && a.label.includes(b.label)))
+    this.mfaChoices = kept.map((k) => k.el)
+    return kept.map((k, i) => ({ id: String(i), label: k.label }))
+  }
+
+  // ---------------------------------------------------------------- scraping
+
+  private async extractAll(): Promise<RawFrame[]> {
+    const frames: Frame[] = this.p.frames()
+    const out: RawFrame[] = []
+    for (const f of frames) {
+      try {
+        out.push((await f.evaluate(EXTRACT_SCRIPT)) as RawFrame)
+      } catch {
+        out.push({ url: f.url(), title: '', text: '', tables: [] })
+      }
+    }
+    return out
+  }
+
+  private async goHome() {
+    const page = this.p
+    const nav = page.locator('[data-analytics-click="Accounts"], [analytics-click="Accounts"], a:has-text("My Accounts")').first()
+    if (await visible(nav)) {
+      await nav.click().catch(() => {})
+    } else {
+      await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded' })
+    }
+    await this.settle()
+  }
+
+  /** Wait for the SPA/frames to finish rendering something table-like. */
+  private async settle(timeout = 25_000) {
+    const page = this.p
+    await page.waitForLoadState('domcontentloaded').catch(() => {})
+    const end = Date.now() + timeout
+    while (Date.now() < end) {
+      for (const f of page.frames()) {
+        const n = await f.locator('table tr, mat-row, [role="row"]').count().catch(() => 0)
+        if (n > 1) {
+          await sleep(1500)
+          return
+        }
+      }
+      await sleep(750)
+    }
+  }
+
+  /**
+   * @param sinceFor  per account, the earliest date worth reading (incremental sync), or null for
+   *                  a full backfill (EasyWeb allows up to 18 months).
+   */
+  async scrapeAccounts(
+    onProgress?: (msg: string) => void,
+    sinceFor: (externalKey: string) => string | null = () => null,
+  ): Promise<ScrapedAccount[]> {
+    const page = this.p
+    onProgress?.('Loading account summary…')
+    await this.settle()
+
+    let summary = parseAccountSummary(await this.extractAll())
+    if (summary.length === 0) {
+      await this.goHome()
+      summary = parseAccountSummary(await this.extractAll())
+    }
+    if (summary.length === 0) {
+      throw new Error('Logged in, but could not find any accounts on the EasyWeb summary page.')
+    }
+
+    const results: ScrapedAccount[] = []
+    for (const acct of summary.slice(0, MAX_ACCOUNTS)) {
+      onProgress?.(`Reading ${acct.name}…`)
+      const base: ScrapedAccount = {
+        externalKey: acct.externalKey,
+        name: acct.name,
+        type: acct.type,
+        numberMasked: acct.numberMasked,
+        currency: /usd|u\.s\./i.test(acct.name) ? 'USD' : 'CAD',
+        balance: acct.balance,
+        available: acct.available,
+        overdraftLimit: null,
+        overdraftUsed: null,
+        creditLimit: null,
+        transactions: [],
+        historyFrom: null,
+        details: null,
+      }
+
+      try {
+        const frame = page.frames()[acct.frameIndex] ?? page.mainFrame()
+        const link = frame.locator('a', { hasText: acct.linkText }).nth(acct.linkOccurrence)
+        if (!(await visible(link))) {
+          await this.goHome()
+        }
+        const target = (page.frames()[acct.frameIndex] ?? page.mainFrame())
+          .locator('a', { hasText: acct.linkText })
+          .nth(acct.linkOccurrence)
+        await target.click({ timeout: 15_000 })
+        await this.settle()
+
+        if (acct.type === 'chequing' || acct.type === 'savings') {
+          const since = sinceFor(acct.externalKey)
+          onProgress?.(
+            since
+              ? `Reading new ${acct.name} transactions (since ${since})…`
+              : `Reading ${acct.name} full history (up to 18 months)…`,
+          )
+          base.historyFrom = await this.expandDateRange(since)
+        }
+        await this.loadAllRows()
+
+        const frames = await this.extractAll()
+        const text = frames.map((f) => f.text).join('\n')
+
+        base.transactions = parseTransactions(frames, acct.type)
+        base.overdraftLimit = findLabelledAmount(text, /overdraft (protection )?(limit|amount|available)|overdraft protection/i)
+        base.creditLimit = findLabelledAmount(text, /credit limit/i)
+        base.available ??= findLabelledAmount(text, /available (balance|credit|funds)?/i)
+        base.balance ??= findLabelledAmount(text, /(current |account )?balance/i)
+        base.details = await this.readManageTab(text)
+      } catch (e) {
+        console.warn(`[td] failed reading ${acct.name}:`, (e as Error).message)
+      }
+
+      // Derive overdraft numbers for bank accounts.
+      if (base.type === 'chequing' || base.type === 'savings') {
+        if (base.balance !== null) base.overdraftUsed = base.balance < 0 ? -base.balance : 0
+        if (base.overdraftLimit === null && base.available !== null && base.balance !== null && base.available > base.balance) {
+          const implied = Math.round((base.available - Math.max(base.balance, 0)) * 100) / 100
+          if (implied > 0) base.overdraftLimit = implied + (base.overdraftUsed ?? 0)
+        }
+      }
+      results.push(base)
+      await this.goHome().catch(() => {})
+    }
+    return results
+  }
+
+  /**
+   * Direct deposit numbers and limits live on the account's "Manage" tab. Best effort: if the tab
+   * isn't there (credit cards, older layouts) we keep whatever the Activity page showed.
+   */
+  private async readManageTab(activityText: string) {
+    let text = activityText
+    try {
+      let tab: Locator | null = null
+      for (const frame of this.p.frames()) {
+        const cand = frame.locator('label, [role="tab"], button', { hasText: /^\s*Manage\s*$/ }).first()
+        if (await visible(cand)) {
+          tab = cand
+          break
+        }
+      }
+      if (tab) {
+        await tab.click({ timeout: 10_000 })
+        await this.settle()
+        text += '\n' + (await this.extractAll()).map((f) => f.text).join('\n')
+      }
+    } catch (e) {
+      console.warn('[td] could not open the Manage tab:', (e as Error).message)
+    }
+    const details = parseAccountDetails(text)
+    return details.accountNumber || details.transit || details.limits.length ? details : null
+  }
+
+  /**
+   * EasyWeb shows the last 30 days by default. Open the activity filter panel, choose "By date range"
+   * and set the From date. Tries 18 → 12 → 6 months (TD rejects dates it won't serve), then falls back
+   * to the "Last 120 days" preset. Returns the ISO from-date applied, or null if only the default window loaded.
+   */
+  private async expandDateRange(since: string | null): Promise<string | null> {
+    const page = this.p
+    await this.dismissCookieBanner()
+    const candidates = since ? [since] : [isoDaysAgo(18 * 30 + 3), isoDaysAgo(365), isoDaysAgo(183)]
+    try {
+      const icon = page.locator('#daActivityFilerIcon, [id*="ActivityFil" i][id*="Icon" i]').first()
+      if (await visible(icon)) {
+        const form = page.locator('#daTransFiltersForm').first()
+        if (!(await visible(form))) await icon.click()
+        await form.waitFor({ state: 'visible', timeout: 8_000 })
+        const byDate = page.locator('label[for="daByDateRadioButton-input"]').first()
+        if (await visible(byDate)) await byDate.click()
+        else await page.locator('#daByDateRadioButton-input').first().check({ force: true })
+        const fromInput = page.locator('#input-daDtTransFrom').first()
+        await fromInput.waitFor({ state: 'visible', timeout: 5_000 })
+
+        for (const from of candidates) {
+          const ok = await this.setDateInput(fromInput, toTdInputDate(from))
+          const toInput = page.locator('#input-daDtTransTo').first()
+          if ((await visible(toInput)) && !(await toInput.inputValue().catch(() => ''))) {
+            await this.setDateInput(toInput, toTdInputDate(isoDaysAgo(0)))
+          }
+          await sleep(400)
+          const invalid = await visible(form.getByText(/please use|invalid|cannot be|must be|not available/i).first())
+          const apply = page.locator('button', { hasText: /^\s*apply filters?\s*$/i }).first()
+          if (ok && !invalid && (await visible(apply)) && (await apply.isEnabled())) {
+            await apply.click()
+            await this.settle()
+            return from
+          }
+        }
+        const close = page.locator('button', { hasText: /^\s*close filters?\s*$/i }).first()
+        if (await visible(close)) await close.click().catch(() => {})
+      }
+    } catch {
+      /* fall through to the dropdown */
+    }
+
+    // Fallback: the "Last 30 days" dropdown also offers 60 / 90 / 120 days.
+    try {
+      const select = page.locator('mat-select, [role="combobox"]', { hasText: /last \d+ days/i }).first()
+      if (await visible(select)) {
+        await select.click()
+        const option = page.locator('mat-option, [role="option"]').filter({ hasText: /120/ }).first()
+        await option.click({ timeout: 5_000 })
+        await this.settle()
+        return isoDaysAgo(120)
+      }
+    } catch {
+      /* best effort */
+    }
+    return null
+  }
+
+  /**
+   * TD's date fields are masked inputs: fill() appends to the existing date instead of replacing it
+   * ("10/26/202605/30/2025"). Select everything, delete, then type it. Returns whether it stuck.
+   */
+  private async setDateInput(input: Locator, value: string) {
+    const digits = (v: string) => v.replace(/\D/g, '')
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await input.click()
+      await input.press('ControlOrMeta+a')
+      await input.press('Backspace')
+      if (attempt === 2) await input.fill('')
+      await input.pressSequentially(value, { delay: 40 })
+      const typed = await input.inputValue().catch(() => '')
+      await input.press('Tab')
+      if (digits(typed) === digits(value)) return true
+    }
+    return false
+  }
+
+  private async dismissCookieBanner() {
+    const btn = this.p.locator('.onetrust-close-btn-handler, #onetrust-reject-all-handler').first()
+    if (await visible(btn)) await btn.click().catch(() => {})
+  }
+
+  /** The posted-transactions table loads more rows as you scroll; keep scrolling until it stops growing. */
+  private async loadAllRows(maxRows = 5_000) {
+    const page = this.p
+    const rows = page.locator('#daActivityPostedTable tbody tr')
+    if ((await rows.count().catch(() => 0)) === 0) return
+    const loading = page.locator('#daActivityPostedTable ~ *', { hasText: /^\s*loading/i })
+    let last = -1
+    let stable = 0
+    for (let i = 0; i < 400 && stable < 4; i++) {
+      const n = await rows.count().catch(() => 0)
+      if (n >= maxRows) break
+      if (n > last) {
+        last = n
+        stable = 0
+      } else if (!(await visible(loading.first()))) {
+        stable++
+      }
+      await rows
+        .nth(Math.max(0, n - 1))
+        .scrollIntoViewIfNeeded({ timeout: 3_000 })
+        .catch(() => {})
+      await page.mouse.wheel(0, 3_000).catch(() => {})
+      await sleep(700)
+    }
+  }
+}
+
+function isoDaysAgo(days: number) {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** EasyWeb's date inputs take MM/DD/YYYY. */
+function toTdInputDate(iso: string) {
+  return `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`
+}
