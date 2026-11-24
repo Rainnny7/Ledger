@@ -141,13 +141,13 @@ export function goalNudge(g: Goal): string {
   const money = (n: number) => formatMoney(n, g.currency)
   const verb = g.kind === 'payoff' ? 'pay' : 'save'
   if (g.status === 'done') return g.kind === 'payoff' ? 'Paid off — nice work!' : 'Goal reached — nice work!'
-  if (g.status === 'overdue') return `${money(g.remaining)} to go · the target date has passed`
+  if (g.status === 'overdue') return 'The target date has passed'
   if (g.neededPerWeek !== null && g.neededPerMonth !== null && g.targetDate) {
     const Verb = verb[0].toUpperCase() + verb.slice(1)
     const per = g.daysLeft !== null && g.daysLeft < 45 ? `${money(g.neededPerWeek)}/week` : `${money(g.neededPerMonth)}/month`
     return `${Verb} ${per} to reach it by ${formatDate(g.targetDate)}`
   }
   if (g.projectedDate) return `At your pace you’ll get there ${formatRelativeDate(g.projectedDate)}`
-  return g.saved > 0 ? `${money(g.remaining)} to go` : 'Log your first payment to get started'
+  return g.saved > 0 ? 'Keep logging payments as you make them' : 'Log your first payment to get started'
 }
 

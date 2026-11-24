@@ -34,7 +34,7 @@ export function GoalsSpotlight() {
         <div className="flex items-baseline gap-2">
           <h2 className="font-semibold">Your goals</h2>
           <span className="text-sm text-muted-foreground tabular-nums">
-            {formatMoney(saved)} of {formatMoney(target)}
+            {formatMoney(saved)} of {formatMoney(target)} · {formatMoney(open.reduce((s, g) => s + g.remaining, 0))} left
           </span>
         </div>
         <Link to="/goals" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), '-mr-2 text-muted-foreground')}>
@@ -55,7 +55,7 @@ export function GoalsSpotlight() {
                 <p className="text-sm tabular-nums">
                   <span className="font-semibold">{formatMoney(g.saved, g.currency)}</span>
                   <span className="text-muted-foreground"> / {formatMoney(g.target, g.currency)}</span>
-                  <span className="text-muted-foreground"> · {Math.floor(g.progress * 100)}%</span>
+                  <span className="text-muted-foreground"> · {formatMoney(g.remaining, g.currency)} left</span>
                 </p>
               </div>
               {!demoMode && (

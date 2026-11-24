@@ -247,6 +247,12 @@ function GoalCard({
             </p>
             <p className="mt-0.5 text-sm text-muted-foreground">{goalNudge(g)}</p>
           </div>
+          {!done && (
+            <div className="shrink-0 text-right">
+              <p className="text-lg font-semibold tabular-nums">{formatMoney(g.remaining, g.currency)}</p>
+              <p className="text-xs text-muted-foreground">{g.kind === 'payoff' ? 'left to pay' : 'left to save'}</p>
+            </div>
+          )}
         </div>
         <GoalBar goal={g} />
 
