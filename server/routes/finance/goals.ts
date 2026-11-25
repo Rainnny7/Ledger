@@ -9,7 +9,13 @@ import {
   type GoalRow,
   summarizeGoal,
 } from "../../finance/goals.ts"
-import { access, canEdit, forgetItem, viewOne } from "../../sharing.ts"
+import {
+  access,
+  canEdit,
+  forgetItem,
+  listWithShared,
+  viewOne,
+} from "../../sharing.ts"
 import { loadTransactions } from "./transactions.ts"
 import type { Hono } from "hono"
 import type { Vars } from "./types.ts"
@@ -50,6 +56,12 @@ const viewGoal = (userId: string, id: string) =>
   viewOne("goal", userId, id, goalFor)
 
 export function mountGoals(finance: Hono<Vars>) {
+  finance.get("/goals", (c) =>
+    c.json({
+      goals: listWithShared("goal", c.var.user.id, loadGoals, goalFor),
+    })
+  )
+
   const goalBody = z.object({
     name: z.string().trim().min(1).max(80),
     kind: z.enum(GOAL_KINDS).default("save"),
