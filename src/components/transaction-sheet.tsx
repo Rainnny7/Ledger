@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { type Account, api, type Category, type Transaction } from '@/lib/api'
 import { CATEGORY_LIST, CATEGORY_META } from '@/lib/categories'
 import { demoMode } from '@/lib/demo'
-import { formatLongDate, formatMoney, formatTimestamp } from '@/lib/format'
+import { formatLongDate, formatTimestamp } from '@/lib/format'
 import { useGoals } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -256,8 +256,12 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
                   <p className="text-xs text-muted-foreground">
                     {history.count} transaction{history.count === 1 ? '' : 's'}
                     {history.first ? ` since ${formatLongDate(history.first)}` : ''}
-                    {history.spent > 0 &&
-                      ` · ${formatMoney(history.spent, currency)} spent · avg ${formatMoney(history.avg, currency)}`}
+                    {history.spent > 0 && (
+                      <>
+                        {' · '}
+                        <Money value={history.spent} currency={currency} /> spent · avg <Money value={history.avg} currency={currency} />
+                      </>
+                    )}
                   </p>
                 </div>
                 <ul className="grid gap-0.5">
