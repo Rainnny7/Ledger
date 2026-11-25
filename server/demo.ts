@@ -425,3 +425,11 @@ export function ensureDemoData() {
   seed(today)
   setSetting('demo_seeded', stamp)
 }
+
+/** Throw away the demo user's data (and anything changed since) and generate it again. */
+export function reseedDemoData() {
+  const today = new Date()
+  ensureDemoUser()
+  seed(today)
+  setSetting('demo_seeded', `${SEED_VERSION}:${iso(today)}`)
+}

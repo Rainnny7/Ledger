@@ -140,6 +140,22 @@ function SignupsCard() {
 }
 
 function DemoCard() {
+  const [reseeding, setReseeding] = useState(false)
+
+  async function reseed() {
+    setReseeding(true)
+    try {
+      await adminFetch('demo/reseed', { method: 'POST' })
+      // Anything cached from an earlier demo session is stale now.
+      void queryClient.invalidateQueries()
+      toast.success('Demo data reseeded')
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setReseeding(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -148,7 +164,10 @@ function DemoCard() {
           Browse the whole app filled with made-up accounts and transactions, handy for showing it off without your real
           balances on screen.
         </CardDescription>
-        <CardAction>
+        <CardAction className="flex flex-wrap justify-end gap-2">
+          <Button size="sm" variant="ghost" onClick={() => void reseed()} disabled={reseeding}>
+            {reseeding ? <Loader2 className="animate-spin" /> : <Dices />} Reseed
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setDemoMode(true)}>
             <MonitorPlay /> Start demo
           </Button>

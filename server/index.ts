@@ -11,7 +11,7 @@ import type { HttpBindings } from '@hono/node-server'
 import { audit, getOwnerId, migrateAdminTables, recentAudit } from './admin.ts'
 import { auth, CLIENT_IP_HEADER, migrateAuthTables, registrationOpen } from './auth.ts'
 import { migrateAppTables, setSetting } from './db.ts'
-import { DEMO_USER_ID, ensureDemoData } from './demo.ts'
+import { DEMO_USER_ID, ensureDemoData, reseedDemoData } from './demo.ts'
 import { DATA_DIR, env } from './env.ts'
 import { banks, STATEMENT_UPLOAD_PATH } from './routes/banks.ts'
 import { finance } from './routes/finance.ts'
@@ -144,6 +144,12 @@ app.put('/api/admin/settings', async (c) => {
     })
   }
   return c.json(adminSettings())
+})
+app.post('/api/admin/demo/reseed', (c) => {
+  reseedDemoData()
+  const user = c.var.user
+  audit({ kind: 'admin', ip: c.req.header(CLIENT_IP_HEADER), actorId: user.id, actorEmail: user.email, action: 'Reseeded demo data' })
+  return c.json({ ok: true })
 })
 app.get('/api/admin/tasks', (c) => c.json({ tasks: listTasks() }))
 app.post('/api/admin/tasks/:id/run', (c) => {
