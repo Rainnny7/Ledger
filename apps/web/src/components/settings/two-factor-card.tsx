@@ -2,6 +2,7 @@ import { Copy, Download, Loader2, ShieldCheck, ShieldOff } from "lucide-react"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -374,7 +375,7 @@ function BackupCodes({ codes }: { codes: string[] }) {
 					onClick={() =>
 						void navigator.clipboard.writeText(text).then(
 							() => toast.success("Copied"),
-							() => toast.error("Could not copy")
+							() => toastError("Could not copy")
 						)
 					}
 				>

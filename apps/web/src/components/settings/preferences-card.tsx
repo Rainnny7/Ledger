@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { CurrencySelect } from "@/components/common/currency-select"
 import {
 	Card,
@@ -37,7 +38,7 @@ export function PreferencesCard() {
 			includeOverdraft: value,
 		})
 		if (error) {
-			toast.error(error.message ?? "Could not save that")
+			toastError(error.message ?? "Could not save that")
 		} else {
 			await queryClient.invalidateQueries()
 		}
@@ -56,7 +57,7 @@ export function PreferencesCard() {
 		setPendingCurrency(code)
 		const { error } = await authClient.updateUser({ currency: code })
 		if (error) {
-			toast.error(error.message ?? "Could not save that")
+			toastError(error.message ?? "Could not save that")
 		} else {
 			toast.success(`Totals now show in ${currencyName(code)}`)
 			await queryClient.invalidateQueries()

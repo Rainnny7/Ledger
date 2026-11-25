@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Laptop, Loader2, LogOut, Smartphone } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,6 +13,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card"
+import { QueryError } from "@/components/ui/query-error"
 import { authClient, useSession } from "@/lib/auth-client"
 
 interface DeviceSession {
@@ -52,7 +54,7 @@ export function DevicesCard() {
 		})
 		setBusy(null)
 		if (error) {
-			toast.error(error.message ?? "Could not sign out that device")
+			toastError(error.message ?? "Could not sign out that device")
 		} else {
 			toast.success("Device signed out")
 		}
@@ -64,7 +66,7 @@ export function DevicesCard() {
 		const { error } = await authClient.revokeOtherSessions()
 		setBusy(null)
 		if (error) {
-			toast.error(error.message ?? "Could not sign out other devices")
+			toastError(error.message ?? "Could not sign out other devices")
 		} else {
 			toast.success("Signed out everywhere else")
 		}
@@ -101,10 +103,11 @@ export function DevicesCard() {
 				{sessions.isPending && (
 					<Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
 				)}
-				{sessions.error && (
-					<p className="text-sm text-destructive">
-						{sessions.error.message}
-					</p>
+				{sessions.error && !sessions.data && (
+					<QueryError
+						message={sessions.error.message}
+						onRetry={() => void sessions.refetch()}
+					/>
 				)}
 				{sessions.data?.map((session) => {
 					const device = describeAgent(session.userAgent)
