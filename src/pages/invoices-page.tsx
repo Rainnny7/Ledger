@@ -17,7 +17,7 @@ import {
   Trash2,
   Wallet,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import {
@@ -58,8 +58,14 @@ const FILTERS: { value: Filter; label: string; match: (s: InvoiceState) => boole
 function sumByCurrency(list: Invoice[], pick: (i: Invoice) => number) {
   const by = new Map<string, number>()
   for (const i of list) by.set(i.currency, (by.get(i.currency) ?? 0) + pick(i))
-  const parts = [...by].filter(([, n]) => n > 0).map(([c, n]) => invoiceMoney(n, c))
-  return parts.length ? parts.join(' + ') : invoiceMoney(0, list[0]?.currency ?? 'CAD')
+  const parts = [...by].filter(([, n]) => n > 0)
+  if (!parts.length) return invoiceMoney(0, list[0]?.currency ?? 'CAD')
+  return parts.map(([c, n], i) => (
+    <Fragment key={c}>
+      {i > 0 && ' + '}
+      <ForeignMoney value={n} currency={c}>{invoiceMoney(n, c)}</ForeignMoney>
+    </Fragment>
+  ))
 }
 
 export function InvoicesPage() {
@@ -266,7 +272,7 @@ export function InvoicesPage() {
   )
 }
 
-function Stat({ label, value, hint, tone }: { label: string; value: string; hint: string; tone?: 'bad' }) {
+function Stat({ label, value, hint, tone }: { label: string; value: ReactNode; hint: string; tone?: 'bad' }) {
   return (
     <Card size="sm">
       <CardContent className="grid gap-1">
@@ -398,7 +404,7 @@ function InvoiceRow({
             {money(state === 'partial' || state === 'overdue' ? inv.balance : inv.total)}
           </ForeignMoney>
         </p>
-        {inv.paid > 0 && inv.balance > 0 && <p className="text-xs text-muted-foreground tabular-nums">of {money(inv.total)}</p>}
+        {inv.paid > 0 && inv.balance > 0 && <p className="text-xs text-muted-foreground tabular-nums">of <ForeignMoney value={inv.total} currency={inv.currency}>{money(inv.total)}</ForeignMoney></p>}
       </div>
       <Hint label="Send">
         <Button variant="ghost" size="icon-sm" aria-label={`Send ${inv.number}`} onClick={onShare} className="max-sm:hidden">

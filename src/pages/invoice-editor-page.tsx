@@ -1,7 +1,8 @@
 import { DatePicker } from '@/components/date-picker'
 import { Hint } from '@/components/hint'
 import { ArrowLeft, ChevronDown, Download, ExternalLink, Eye, Loader2, Plus, Save, Send, X } from 'lucide-react'
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from 'react'
+import { ForeignMoney } from '@/components/money'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { fail, PaymentMethodDialog, pdfFileName, renderPdf, saveBlob, ShareDialog, StateBadge, invoiceState } from '@/components/invoice-bits'
@@ -167,6 +168,8 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
   const totals = invoiceTotals({ items, taxRate: d.taxRate, discount: d.discount })
   const paid = saved?.paid ?? 0
   const money = (n: number) => invoiceMoney(n, d.currency)
+  // On screen, amounts in another currency show your own on hover.
+  const shown = (n: number) => <ForeignMoney value={n} currency={d.currency}>{money(n)}</ForeignMoney>
   const chosen = d.methodIds.map((mid) => data.methods.find((m) => m.id === mid)).filter((m): m is PaymentMethod => !!m)
 
   // People you've billed before, newest first, for one-tap filling.
@@ -239,7 +242,7 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
           </h1>
           {saved && saved.paid > 0 && (
             <p className="text-sm text-muted-foreground">
-              {money(saved.paid)} paid · {money(saved.balance)} left
+              {shown(saved.paid)} paid · {shown(saved.balance)} left
             </p>
           )}
         </div>
@@ -345,7 +348,7 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
                   <div className="col-span-2 grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-2 sm:contents">
                     <Input aria-label="Quantity" inputMode="decimal" value={it.quantity} onChange={(e) => setItem(it.key, { quantity: decimal(e.target.value) })} />
                     <Input aria-label="Rate" inputMode="decimal" value={it.unitPrice} onChange={(e) => setItem(it.key, { unitPrice: decimal(e.target.value) })} placeholder="0.00" />
-                    <span className="min-w-16 text-right text-sm tabular-nums">{money(round2(num(it.quantity) * num(it.unitPrice)))}</span>
+                    <span className="min-w-16 text-right text-sm tabular-nums">{shown(round2(num(it.quantity) * num(it.unitPrice)))}</span>
                   </div>
                 </div>
               ))}
@@ -354,7 +357,7 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
               </Button>
 
               <div className="mt-2 grid gap-2 border-t pt-3 text-sm">
-                <Row label="Subtotal" value={money(totals.subtotal)} />
+                <Row label="Subtotal" value={shown(totals.subtotal)} />
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-muted-foreground">Discount</span>
                   <Input
@@ -379,10 +382,10 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
                     />
                     %
                   </span>
-                  <span className="tabular-nums">{money(totals.tax)}</span>
+                  <span className="tabular-nums">{shown(totals.tax)}</span>
                 </div>
-                <Row label="Total" value={money(totals.total)} strong />
-                {paid > 0 && <Row label="Already paid" value={money(-paid)} />}
+                <Row label="Total" value={shown(totals.total)} strong />
+                {paid > 0 && <Row label="Already paid" value={shown(-paid)} />}
               </div>
             </CardContent>
           </Card>
@@ -614,7 +617,7 @@ function Field({ id, label, children }: { id: string; label: string; children: R
   )
 }
 
-function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function Row({ label, value, strong }: { label: string; value: ReactNode; strong?: boolean }) {
   return (
     <div className={cn('flex items-center justify-between gap-3', strong && 'text-base font-semibold')}>
       <span className={strong ? undefined : 'text-muted-foreground'}>{label}</span>
