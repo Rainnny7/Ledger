@@ -41,6 +41,23 @@ const PERMISSION_ITEMS = [
   { value: "edit", label: "Can edit" },
 ]
 
+async function updateSharePermission(id: string, p: SharePermission) {
+  try {
+    await api.updateShare(id, p)
+  } catch (err) {
+    toast.error((err as Error).message)
+  }
+}
+
+async function removeShare(id: string, who: string) {
+  try {
+    await api.unshare(id)
+    toast.success(`Stopped sharing with ${who}`)
+  } catch (err) {
+    toast.error((err as Error).message)
+  }
+}
+
 function PermissionSelect({
   value,
   onChange,
@@ -242,8 +259,8 @@ export function ShareDialog({
     setSaving(true)
     try {
       await api.share(kind, item.id, { email: email.trim(), permission })
-      toast.success(`Shared ${item.name}`, {
-        description: `${email.trim()} will see it in their ${KIND_LABEL[kind]}s.`,
+      toast.success(`Invitation sent for ${item.name}`, {
+        description: `If an account uses ${email.trim()}, they’ll see the invitation and can accept it.`,
       })
       setEmail("")
     } catch (err) {
@@ -253,31 +270,15 @@ export function ShareDialog({
     }
   }
 
-  async function change(id: string, p: SharePermission) {
-    try {
-      await api.updateShare(id, p)
-    } catch (err) {
-      toast.error((err as Error).message)
-    }
-  }
-
-  async function remove(id: string, who: string) {
-    try {
-      await api.unshare(id)
-      toast.success(`Stopped sharing with ${who}`)
-    } catch (err) {
-      toast.error((err as Error).message)
-    }
-  }
-
   return (
     <Dialog open={!!item} onOpenChange={(o) => !o && close()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Share {item?.name}</DialogTitle>
           <DialogDescription>
-            People you share with see this {KIND_LABEL[kind]} in their own
-            Ledger. Only you can delete it or change who it’s shared with.
+            People you invite see this {KIND_LABEL[kind]} in their own Ledger
+            once they accept. Only you can delete it, delete its payments or
+            change who it’s shared with.
           </DialogDescription>
         </DialogHeader>
 
@@ -308,19 +309,22 @@ export function ShareDialog({
             </Link>
             <Button type="submit" size="sm" disabled={saving || !email.trim()}>
               {saving ? <Loader2 className="animate-spin" /> : <UserPlus />}{" "}
-              Share
+              Invite
             </Button>
           </div>
         </form>
 
         <div className="grid gap-2">
           <h3 className="text-xs font-medium text-muted-foreground uppercase">
-            People with access
+            People invited
           </h3>
           {shares.isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : list.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Just you, for now.</p>
+            <p className="text-sm text-muted-foreground">
+              Just you, for now. Invitations to an email with no Ledger account
+              won’t show up here.
+            </p>
           ) : (
             <ul className="grid gap-1">
               {list.map((s) => (
@@ -344,15 +348,20 @@ export function ShareDialog({
                       {s.email}
                     </span>
                   </span>
+                  {s.status === "pending" && (
+                    <Badge variant="secondary" className="font-normal">
+                      Pending
+                    </Badge>
+                  )}
                   <PermissionSelect
                     value={s.permission}
-                    onChange={(p) => void change(s.id, p)}
+                    onChange={(p) => void updateSharePermission(s.id, p)}
                   />
                   <Button
                     variant="ghost"
                     size="icon-xs"
                     aria-label={`Stop sharing with ${s.email}`}
-                    onClick={() => void remove(s.id, s.name || s.email)}
+                    onClick={() => void removeShare(s.id, s.name || s.email)}
                   >
                     <X />
                   </Button>
@@ -395,8 +404,9 @@ export function ShareBadge({
       </Tooltip>
     )
   }
-  if (item.sharedWith.length === 0) return null
-  const names = item.sharedWith.map((s) => s.name || s.email).join(", ")
+  const accepted = item.sharedWith.filter((s) => s.status === "accepted")
+  if (accepted.length === 0) return null
+  const names = accepted.map((s) => s.name || s.email).join(", ")
   return (
     <Tooltip>
       <TooltipTrigger
@@ -408,7 +418,7 @@ export function ShareBadge({
           />
         }
       >
-        <Users className="size-3" /> {item.sharedWith.length}
+        <Users className="size-3" /> {accepted.length}
       </TooltipTrigger>
       <TooltipContent>Shared with {names}</TooltipContent>
     </Tooltip>

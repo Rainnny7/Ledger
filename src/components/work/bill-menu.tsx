@@ -18,7 +18,8 @@ export function BillMenu({
   invoice: WorkInvoice
   onPay: JobActions["onPay"]
   onBill: JobActions["onBill"]
-  onRemove: () => void
+  /** Only the job's owner can delete a bill. */
+  onRemove?: () => void
 }) {
   return (
     <>
@@ -37,10 +38,14 @@ export function BillMenu({
       <DropdownMenuItem onClick={() => onBill(j, inv)}>
         <Pencil /> Edit bill
       </DropdownMenuItem>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem variant="destructive" onClick={onRemove}>
-        <Trash2 /> Delete bill
-      </DropdownMenuItem>
+      {onRemove && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onClick={onRemove}>
+            <Trash2 /> Delete bill
+          </DropdownMenuItem>
+        </>
+      )}
     </>
   )
 }

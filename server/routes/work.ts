@@ -1,7 +1,22 @@
 import { randomUUID } from "node:crypto"
 import { Hono } from "hono"
 import { z } from "zod"
-import { currencyCode, isoDate } from "../validation.ts"
+import {
+  boundedArray,
+  boundedString,
+  currencyCode,
+  id,
+  isoDate,
+  money,
+  validate,
+} from "../validation.ts"
+import {
+  fromCents,
+  fromCentsOrNull,
+  mulCents,
+  toCents,
+  toCentsOrNull,
+} from "../../shared/money.ts"
 import type { auth } from "../auth/index.ts"
 import { db } from "../db.ts"
 import { todayIso } from "../today.ts"
@@ -13,6 +28,7 @@ import {
   viewOne,
 } from "../sharing.ts"
 import {
+  roundHours,
   summarizeJob,
   type WorkEntryRow,
   type WorkInvoiceRow,
@@ -23,21 +39,20 @@ import {
 type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
 export const work = new Hono<Vars>()
 
-const round2 = (n: number) => Math.round(n * 100) / 100
 const MAX_MONEY = 100_000_000
 
-function loadJobs(userId: string, id?: string) {
-  const where = id ? "user_id = ? AND id = ?" : "user_id = ?"
+function loadJobs(userId: string, jobId?: string) {
+  const where = jobId ? "user_id = ? AND id = ?" : "user_id = ?"
   const jobs = db
     .prepare(
       `SELECT id, name, rate, currency, pay_amount AS payAmount, pay_every_days AS payEveryDays, color, notes, archived,
               created_at AS createdAt
          FROM work_job WHERE ${where} ORDER BY archived, created_at`
     )
-    .all(...(id ? [userId, id] : [userId])) as unknown as (Omit<
+    .all(...(jobId ? [userId, jobId] : [userId])) as unknown as (Omit<
     WorkJobRow,
     "archived"
-  > & { archived: number })[]
+  > & { archived: number })[] // rate, payAmount in cents
   if (jobs.length === 0) return []
   const invoices = db
     .prepare(
@@ -45,7 +60,7 @@ function loadJobs(userId: string, id?: string) {
               i.proof_url AS proofUrl, i.note, i.created_at AS createdAt
          FROM work_invoice i JOIN work_job j ON j.id = i.job_id WHERE j.user_id = ?`
     )
-    .all(userId) as unknown as WorkInvoiceRow[]
+    .all(userId) as unknown as WorkInvoiceRow[] // rate, total in cents
   const entries = db
     .prepare(
       `SELECT e.id, e.job_id AS jobId, e.date, e.hours, e.note, e.invoice_id AS invoiceId, e.created_at AS createdAt
@@ -58,27 +73,53 @@ function loadJobs(userId: string, id?: string) {
               p.received_amount AS receivedAmount, p.received_currency AS receivedCurrency, p.created_at AS createdAt
          FROM work_payment p JOIN work_invoice i ON i.id = p.invoice_id JOIN work_job j ON j.id = i.job_id WHERE j.user_id = ?`
     )
-    .all(userId) as unknown as WorkPaymentRow[]
+    .all(userId) as unknown as WorkPaymentRow[] // amount, receivedAmount in cents
   const today = todayIso()
   return jobs.map((j) =>
     summarizeJob(
-      { ...j, archived: Boolean(j.archived) },
-      invoices,
+      {
+        ...j,
+        rate: fromCents(j.rate),
+        payAmount: fromCentsOrNull(j.payAmount),
+        archived: Boolean(j.archived),
+      },
+      invoices.map((i) => ({
+        ...i,
+        rate: fromCents(i.rate),
+        total: fromCents(i.total),
+      })),
       entries,
-      payments,
+      payments.map((p) => ({
+        ...p,
+        amount: fromCents(p.amount),
+        receivedAmount: fromCentsOrNull(p.receivedAmount),
+      })),
       today
     )
   )
 }
 
-const jobFor = (ownerId: string, id: string) => loadJobs(ownerId, id)[0]
+const jobFor = (ownerId: string, jobId: string) => loadJobs(ownerId, jobId)[0]
 /** A job as the caller sees it (theirs, or shared with them). */
-const viewJob = (userId: string, id: string) =>
-  viewOne("job", userId, id, jobFor)
+const viewJob = (userId: string, jobId: string) =>
+  viewOne("job", userId, jobId, jobFor)
 
 /** Owners and people a job is shared with for editing can log hours, bills and payments. */
 const canEditJob = (userId: string, jobId: string) =>
   canEdit(access(userId, "job", jobId))
+
+/**
+ * Deleting bills, shifts and payments stays with the job's owner: 404 when the caller can't see
+ * the job, 403 when it's only shared with them.
+ */
+function ownerDeleteDenied(userId: string, jobId: string): 403 | 404 | null {
+  const a = access(userId, "job", jobId)
+  if (!a) return 404
+  return a.role === "owner" ? null : 403
+}
+
+const ONLY_OWNER = "Only the owner can delete this."
+const ONLY_OWNER_LINKS = "Only the owner can link a bank transaction."
 
 /** The job an invoice belongs to, if the caller can edit it. */
 function invoiceJob(userId: string, invoiceId: string) {
@@ -97,13 +138,13 @@ const ownsTransaction = (userId: string, txId: string) =>
     )
     .get(txId, userId)
 
-const note = z.string().max(300).nullable().optional()
+const note = boundedString(300).nullable().optional()
+const idParam = z.object({ id: id })
+const jobIdParam = z.object({ id: id })
 const clean = (s: string | null | undefined) => s?.trim() || null
 /** Only plain web links: a `javascript:` URL would run when clicked. */
-const proofUrl = z
-  .string()
+const proofUrl = boundedString(500)
   .trim()
-  .max(500)
   .refine((s) => {
     if (s === "") return true
     try {
@@ -126,89 +167,100 @@ work.get("/work", (c) =>
 // ---------------------------------------------------------------- jobs
 
 const jobBody = z.object({
-  name: z.string().trim().min(1).max(80),
-  rate: z.number().positive().max(100_000),
+  name: boundedString(80).trim().min(1),
+  rate: money.refine((n) => n > 0 && n <= 100_000, "Rate out of range"),
   currency: currencyCode.default("CAD"),
-  payAmount: z.number().positive().max(MAX_MONEY).nullable().optional(),
+  payAmount: money
+    .refine((n) => n > 0 && n <= MAX_MONEY, "Amount out of range")
+    .nullable()
+    .optional(),
   payEveryDays: z.number().int().min(1).max(366).nullable().optional(),
   color: z
     .string()
     .regex(/^[a-z-]{1,32}$/)
     .default("ocean"),
-  notes: z.string().max(500).nullable().optional(),
+  notes: boundedString(500).nullable().optional(),
   archived: z.boolean().default(false),
 })
+const patchJobBody = jobBody.partial()
 
-work.post("/work/jobs", async (c) => {
-  const body = jobBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: "Check the job details." }, 400)
-  const d = body.data
-  const id = randomUUID()
+work.post("/work/jobs", validate("json", jobBody), async (c) => {
+  const d = c.req.valid("json")
+  const jobId = randomUUID()
   db.prepare(
     `INSERT INTO work_job (id, user_id, name, rate, currency, pay_amount, pay_every_days, color, notes, archived)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
-    id,
+    jobId,
     c.var.user.id,
     d.name,
-    d.rate,
+    toCents(d.rate),
     d.currency.toUpperCase(),
-    d.payAmount ?? null,
+    toCentsOrNull(d.payAmount),
     d.payEveryDays ?? null,
     d.color,
     clean(d.notes),
     d.archived ? 1 : 0
   )
-  return c.json({ job: viewJob(c.var.user.id, id) })
+  return c.json({ job: viewJob(c.var.user.id, jobId) })
 })
 
-work.patch("/work/jobs/:id", async (c) => {
-  const body = jobBody.partial().safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: "Check the job details." }, 400)
-  const a = access(c.var.user.id, "job", c.req.param("id"))
-  if (!a) return c.json({ error: "Not found" }, 404)
-  if (!canEdit(a)) return c.json({ error: "You can only view this job." }, 403)
-  if (a.role !== "owner") delete body.data.archived
-  const cols: Record<string, string> = {
-    name: "name",
-    rate: "rate",
-    currency: "currency",
-    payAmount: "pay_amount",
-    payEveryDays: "pay_every_days",
-    color: "color",
-    notes: "notes",
-    archived: "archived",
+work.patch(
+  "/work/jobs/:id",
+  validate("param", jobIdParam),
+  validate("json", patchJobBody),
+  async (c) => {
+    const body = c.req.valid("json")
+    const { id: jobId } = c.req.valid("param")
+    const a = access(c.var.user.id, "job", jobId)
+    if (!a) return c.json({ error: "Not found" }, 404)
+    if (!canEdit(a))
+      return c.json({ error: "You can only view this job." }, 403)
+    if (a.role !== "owner") delete body.archived
+    const cols: Record<string, string> = {
+      name: "name",
+      rate: "rate",
+      currency: "currency",
+      payAmount: "pay_amount",
+      payEveryDays: "pay_every_days",
+      color: "color",
+      notes: "notes",
+      archived: "archived",
+    }
+    const sets: string[] = []
+    const vals: (string | number | null)[] = []
+    for (const [k, col] of Object.entries(cols)) {
+      const v = (body as Record<string, unknown>)[k]
+      if (v === undefined) continue
+      sets.push(`${col} = ?`)
+      vals.push(
+        typeof v === "boolean"
+          ? v
+            ? 1
+            : 0
+          : k === "notes"
+            ? clean(v as string | null)
+            : k === "rate" || k === "payAmount"
+              ? toCentsOrNull(v as number | null)
+              : (v as string | number | null)
+      )
+    }
+    if (sets.length) {
+      db.prepare(
+        `UPDATE work_job SET ${sets.join(", ")} WHERE id = ? AND user_id = ?`
+      ).run(...vals, jobId, a.ownerId)
+    }
+    const job = viewJob(c.var.user.id, jobId)
+    return job ? c.json({ job }) : c.json({ error: "Not found" }, 404)
   }
-  const sets: string[] = []
-  const vals: (string | number | null)[] = []
-  for (const [k, col] of Object.entries(cols)) {
-    const v = (body.data as Record<string, unknown>)[k]
-    if (v === undefined) continue
-    sets.push(`${col} = ?`)
-    vals.push(
-      typeof v === "boolean"
-        ? v
-          ? 1
-          : 0
-        : k === "notes"
-          ? clean(v as string | null)
-          : (v as string | number | null)
-    )
-  }
-  if (sets.length) {
-    db.prepare(
-      `UPDATE work_job SET ${sets.join(", ")} WHERE id = ? AND user_id = ?`
-    ).run(...vals, c.req.param("id"), a.ownerId)
-  }
-  const job = viewJob(c.var.user.id, c.req.param("id"))
-  return job ? c.json({ job }) : c.json({ error: "Not found" }, 404)
-})
+)
 
-work.delete("/work/jobs/:id", (c) => {
+work.delete("/work/jobs/:id", validate("param", jobIdParam), (c) => {
+  const { id: jobId } = c.req.valid("param")
   const r = db
     .prepare(`DELETE FROM work_job WHERE id = ? AND user_id = ?`)
-    .run(c.req.param("id"), c.var.user.id)
-  if (r.changes) forgetItem("job", c.req.param("id"))
+    .run(jobId, c.var.user.id)
+  if (r.changes) forgetItem("job", jobId)
   return r.changes ? c.json({ ok: true }) : c.json({ error: "Not found" }, 404)
 })
 
@@ -216,27 +268,33 @@ work.delete("/work/jobs/:id", (c) => {
 
 const entryBody = z.object({ date: isoDate, hours, note })
 
-work.post("/work/jobs/:id/entries", async (c) => {
-  const body = entryBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: "Check the hours." }, 400)
-  const userId = c.var.user.id
-  const jobId = c.req.param("id")
-  if (!canEditJob(userId, jobId)) return c.json({ error: "Not found" }, 404)
-  const d = body.data
-  db.prepare(
-    `INSERT INTO work_entry (id, job_id, date, hours, note) VALUES (?, ?, ?, ?, ?)`
-  ).run(randomUUID(), jobId, d.date, round2(d.hours), clean(d.note))
-  return c.json({ job: viewJob(userId, jobId) })
-})
+work.post(
+  "/work/jobs/:id/entries",
+  validate("param", jobIdParam),
+  validate("json", entryBody),
+  async (c) => {
+    const body = c.req.valid("json")
+    const userId = c.var.user.id
+    const { id: jobId } = c.req.valid("param")
+    if (!canEditJob(userId, jobId)) return c.json({ error: "Not found" }, 404)
+    const d = body
+    db.prepare(
+      `INSERT INTO work_entry (id, job_id, date, hours, note) VALUES (?, ?, ?, ?, ?)`
+    ).run(randomUUID(), jobId, d.date, roundHours(d.hours), clean(d.note))
+    return c.json({ job: viewJob(userId, jobId) })
+  }
+)
 
-work.delete("/work/entries/:id", (c) => {
+work.delete("/work/entries/:id", validate("param", idParam), (c) => {
   const userId = c.var.user.id
+  const { id: entryId } = c.req.valid("param")
   const row = db
     .prepare(`SELECT job_id AS jobId FROM work_entry WHERE id = ?`)
-    .get(c.req.param("id")) as { jobId: string } | undefined
-  if (!row || !canEditJob(userId, row.jobId))
-    return c.json({ error: "Not found" }, 404)
-  db.prepare(`DELETE FROM work_entry WHERE id = ?`).run(c.req.param("id"))
+    .get(entryId) as { jobId: string } | undefined
+  const denied = row && ownerDeleteDenied(userId, row.jobId)
+  if (!row || denied === 404) return c.json({ error: "Not found" }, 404)
+  if (denied) return c.json({ error: ONLY_OWNER }, denied)
+  db.prepare(`DELETE FROM work_entry WHERE id = ?`).run(entryId)
   return c.json({ job: viewJob(userId, row.jobId) })
 })
 
@@ -245,167 +303,177 @@ work.delete("/work/entries/:id", (c) => {
 const invoiceBody = z.object({
   date: isoDate,
   hours,
-  rate: z.number().positive().max(100_000),
-  /** Defaults to hours × rate. */
-  total: z.number().min(0).max(MAX_MONEY).optional(),
+  rate: money.refine((n) => n > 0 && n <= 100_000, "Rate out of range"),
+  total: money
+    .refine((n) => n >= 0 && n <= MAX_MONEY, "Total out of range")
+    .optional(),
   counterHours: z.number().min(0).max(1_000_000).nullable().optional(),
   proofUrl,
   note,
   /** Logged shifts this bill covers; they stop counting as unbilled. */
-  entryIds: z.array(z.string().max(80)).max(500).optional(),
+  entryIds: boundedArray(id, 500).optional(),
 })
+const patchInvoiceBody = invoiceBody.omit({ entryIds: true }).partial()
 
-work.post("/work/jobs/:id/invoices", async (c) => {
-  const body = invoiceBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success)
-    return c.json(
-      {
-        error:
-          body.error.issues.find((i) => i.path[0] === "proofUrl")?.message ??
-          "Check the bill details.",
-      },
-      400
-    )
-  const userId = c.var.user.id
-  const jobId = c.req.param("id")
-  if (!canEditJob(userId, jobId)) return c.json({ error: "Not found" }, 404)
-  const d = body.data
-  const id = randomUUID()
-  db.exec("BEGIN")
-  try {
-    db.prepare(
-      `INSERT INTO work_invoice (id, job_id, date, hours, rate, total, counter_hours, proof_url, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      id,
-      jobId,
-      d.date,
-      round2(d.hours),
-      d.rate,
-      round2(d.total ?? d.hours * d.rate),
-      d.counterHours ?? null,
-      clean(d.proofUrl),
-      clean(d.note)
-    )
-    const attach = db.prepare(
-      `UPDATE work_entry SET invoice_id = ? WHERE id = ? AND job_id = ? AND invoice_id IS NULL`
-    )
-    for (const entryId of d.entryIds ?? []) attach.run(id, entryId, jobId)
-    db.exec("COMMIT")
-  } catch (e) {
-    db.exec("ROLLBACK")
-    throw e
+work.post(
+  "/work/jobs/:id/invoices",
+  validate("param", jobIdParam),
+  validate("json", invoiceBody),
+  async (c) => {
+    const body = c.req.valid("json")
+    const userId = c.var.user.id
+    const { id: jobId } = c.req.valid("param")
+    if (!canEditJob(userId, jobId)) return c.json({ error: "Not found" }, 404)
+    const d = body
+    const invoiceId = randomUUID()
+    db.exec("BEGIN")
+    try {
+      db.prepare(
+        `INSERT INTO work_invoice (id, job_id, date, hours, rate, total, counter_hours, proof_url, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        invoiceId,
+        jobId,
+        d.date,
+        roundHours(d.hours),
+        toCents(d.rate),
+        d.total === undefined
+          ? mulCents(toCents(d.rate), roundHours(d.hours))
+          : toCents(d.total),
+        d.counterHours ?? null,
+        clean(d.proofUrl),
+        clean(d.note)
+      )
+      const attach = db.prepare(
+        `UPDATE work_entry SET invoice_id = ? WHERE id = ? AND job_id = ? AND invoice_id IS NULL`
+      )
+      for (const entryId of d.entryIds ?? [])
+        attach.run(invoiceId, entryId, jobId)
+      db.exec("COMMIT")
+    } catch (e) {
+      db.exec("ROLLBACK")
+      throw e
+    }
+    return c.json({ job: viewJob(userId, jobId) })
   }
-  return c.json({ job: viewJob(userId, jobId) })
-})
+)
 
-work.patch("/work/invoices/:id", async (c) => {
-  const body = invoiceBody
-    .omit({ entryIds: true })
-    .partial()
-    .safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success)
-    return c.json(
-      {
-        error:
-          body.error.issues.find((i) => i.path[0] === "proofUrl")?.message ??
-          "Check the bill details.",
-      },
-      400
-    )
+work.patch(
+  "/work/invoices/:id",
+  validate("param", idParam),
+  validate("json", patchInvoiceBody),
+  async (c) => {
+    const body = c.req.valid("json")
+    const userId = c.var.user.id
+    const { id: invoiceId } = c.req.valid("param")
+    const jobId = invoiceJob(userId, invoiceId)
+    if (!jobId) return c.json({ error: "Not found" }, 404)
+    const cols: Record<string, string> = {
+      date: "date",
+      hours: "hours",
+      rate: "rate",
+      total: "total",
+      counterHours: "counter_hours",
+      proofUrl: "proof_url",
+      note: "note",
+    }
+    const sets: string[] = []
+    const vals: (string | number | null)[] = []
+    for (const [k, col] of Object.entries(cols)) {
+      const v = (body as Record<string, unknown>)[k]
+      if (v === undefined) continue
+      sets.push(`${col} = ?`)
+      vals.push(
+        k === "note" || k === "proofUrl"
+          ? clean(v as string | null)
+          : k === "rate" || k === "total"
+            ? toCents(v as number)
+            : (k === "hours" || k === "counterHours") && v !== null
+              ? roundHours(v as number)
+              : (v as string | number | null)
+      )
+    }
+    if (sets.length)
+      db.prepare(`UPDATE work_invoice SET ${sets.join(", ")} WHERE id = ?`).run(
+        ...vals,
+        invoiceId
+      )
+    return c.json({ job: viewJob(userId, jobId) })
+  }
+)
+
+work.delete("/work/invoices/:id", validate("param", idParam), (c) => {
   const userId = c.var.user.id
-  const jobId = invoiceJob(userId, c.req.param("id"))
+  const { id: invoiceId } = c.req.valid("param")
+  const jobId = invoiceJob(userId, invoiceId)
   if (!jobId) return c.json({ error: "Not found" }, 404)
-  const cols: Record<string, string> = {
-    date: "date",
-    hours: "hours",
-    rate: "rate",
-    total: "total",
-    counterHours: "counter_hours",
-    proofUrl: "proof_url",
-    note: "note",
-  }
-  const sets: string[] = []
-  const vals: (string | number | null)[] = []
-  for (const [k, col] of Object.entries(cols)) {
-    const v = (body.data as Record<string, unknown>)[k]
-    if (v === undefined) continue
-    sets.push(`${col} = ?`)
-    vals.push(
-      k === "note" || k === "proofUrl"
-        ? clean(v as string | null)
-        : typeof v === "number" && k !== "rate"
-          ? round2(v)
-          : (v as string | number | null)
-    )
-  }
-  if (sets.length)
-    db.prepare(`UPDATE work_invoice SET ${sets.join(", ")} WHERE id = ?`).run(
-      ...vals,
-      c.req.param("id")
-    )
-  return c.json({ job: viewJob(userId, jobId) })
-})
-
-/** Deleting a bill puts its shifts back into "unbilled" and drops its payments. */
-work.delete("/work/invoices/:id", (c) => {
-  const userId = c.var.user.id
-  const jobId = invoiceJob(userId, c.req.param("id"))
-  if (!jobId) return c.json({ error: "Not found" }, 404)
-  db.prepare(`DELETE FROM work_invoice WHERE id = ?`).run(c.req.param("id"))
+  const denied = ownerDeleteDenied(userId, jobId)
+  if (denied) return c.json({ error: ONLY_OWNER }, denied)
+  db.prepare(`DELETE FROM work_invoice WHERE id = ?`).run(invoiceId)
   return c.json({ job: viewJob(userId, jobId) })
 })
 
 // ---------------------------------------------------------------- payments
 
 const paymentBody = z.object({
-  amount: z.number().positive().max(MAX_MONEY),
+  amount: money.refine((n) => n > 0 && n <= MAX_MONEY, "Amount out of range"),
   date: isoDate,
   note,
-  /** The deposit in your bank this payment arrived as. */
-  transactionId: z.string().max(80).nullable().optional(),
-  /** What actually landed, when you were paid in one currency and it arrived converted to another. */
-  receivedAmount: z.number().positive().max(MAX_MONEY).nullable().optional(),
+  transactionId: id.nullable().optional(),
+  receivedAmount: money
+    .refine((n) => n > 0 && n <= MAX_MONEY, "Amount out of range")
+    .nullable()
+    .optional(),
   receivedCurrency: currencyCode.nullable().optional(),
 })
 
-work.post("/work/invoices/:id/payments", async (c) => {
-  const body = paymentBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: "Check the payment details." }, 400)
-  const userId = c.var.user.id
-  const invoiceId = c.req.param("id")
-  const jobId = invoiceJob(userId, invoiceId)
-  if (!jobId) return c.json({ error: "Not found" }, 404)
-  const d = body.data
-  if (d.transactionId && !ownsTransaction(userId, d.transactionId))
-    return c.json({ error: "Unknown transaction" }, 400)
-  const received =
-    d.receivedAmount && d.receivedCurrency
-      ? { amount: round2(d.receivedAmount), currency: d.receivedCurrency }
-      : null
-  db.prepare(
-    `INSERT INTO work_payment (id, invoice_id, amount, date, note, transaction_id, received_amount, received_currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    randomUUID(),
-    invoiceId,
-    round2(d.amount),
-    d.date,
-    clean(d.note),
-    d.transactionId ?? null,
-    received?.amount ?? null,
-    received?.currency ?? null
-  )
-  return c.json({ job: viewJob(userId, jobId) })
-})
+work.post(
+  "/work/invoices/:id/payments",
+  validate("param", idParam),
+  validate("json", paymentBody),
+  async (c) => {
+    const d = c.req.valid("json")
+    const userId = c.var.user.id
+    const { id: invoiceId } = c.req.valid("param")
+    const jobId = invoiceJob(userId, invoiceId)
+    if (!jobId) return c.json({ error: "Not found" }, 404)
+    // Only the owner's bank can be linked: an editor's transaction would be a foreign reference.
+    if (d.transactionId) {
+      if (access(userId, "job", jobId)?.role !== "owner")
+        return c.json({ error: ONLY_OWNER_LINKS }, 403)
+      if (!ownsTransaction(userId, d.transactionId))
+        return c.json({ error: "Unknown transaction" }, 400)
+    }
+    const received =
+      d.receivedAmount && d.receivedCurrency
+        ? { amount: toCents(d.receivedAmount), currency: d.receivedCurrency }
+        : null
+    db.prepare(
+      `INSERT INTO work_payment (id, invoice_id, amount, date, note, transaction_id, received_amount, received_currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      randomUUID(),
+      invoiceId,
+      toCents(d.amount),
+      d.date,
+      clean(d.note),
+      d.transactionId ?? null,
+      received?.amount ?? null,
+      received?.currency ?? null
+    )
+    return c.json({ job: viewJob(userId, jobId) })
+  }
+)
 
-work.delete("/work/payments/:id", (c) => {
+work.delete("/work/payments/:id", validate("param", idParam), (c) => {
   const userId = c.var.user.id
+  const { id: paymentId } = c.req.valid("param")
   const row = db
     .prepare(
       `SELECT i.job_id AS jobId FROM work_payment p JOIN work_invoice i ON i.id = p.invoice_id WHERE p.id = ?`
     )
-    .get(c.req.param("id")) as { jobId: string } | undefined
-  if (!row || !canEditJob(userId, row.jobId))
-    return c.json({ error: "Not found" }, 404)
-  db.prepare(`DELETE FROM work_payment WHERE id = ?`).run(c.req.param("id"))
+    .get(paymentId) as { jobId: string } | undefined
+  const denied = row && ownerDeleteDenied(userId, row.jobId)
+  if (!row || denied === 404) return c.json({ error: "Not found" }, 404)
+  if (denied) return c.json({ error: ONLY_OWNER }, denied)
+  db.prepare(`DELETE FROM work_payment WHERE id = ?`).run(paymentId)
   return c.json({ job: viewJob(userId, row.jobId) })
 })

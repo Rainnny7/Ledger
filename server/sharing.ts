@@ -2,14 +2,16 @@ import { db } from "./db.ts"
 
 /**
  * Sharing a goal, subscription or job with another account. The owner keeps it; people it's shared
- * with see it in their own lists ("view") and can also update it ("edit"). Deleting, archiving and
- * changing who it's shared with stay with the owner.
+ * with see it in their own lists ("view") and can also update it ("edit"), once they accept the
+ * invitation. Deleting (the item, or its bills, shifts and payments), archiving, linking bank
+ * transactions and changing who it's shared with stay with the owner.
  */
 export const SHARE_KINDS = ["goal", "subscription", "job"] as const
 export type ShareKind = (typeof SHARE_KINDS)[number]
 export const PERMISSIONS = ["view", "edit"] as const
 export type Permission = (typeof PERMISSIONS)[number]
 export type Role = "owner" | Permission
+export type ShareStatus = "pending" | "accepted"
 
 const TABLE: Record<ShareKind, string> = {
   goal: "goal",
@@ -38,7 +40,7 @@ export function access(
   if (row.ownerId === userId) return { ownerId: row.ownerId, role: "owner" }
   const share = db
     .prepare(
-      `SELECT permission FROM share WHERE kind = ? AND item_id = ? AND recipient_id = ?`
+      `SELECT permission FROM share WHERE kind = ? AND item_id = ? AND recipient_id = ? AND status = 'accepted'`
     )
     .get(kind, itemId, userId) as { permission: Permission } | undefined
   return share ? { ownerId: row.ownerId, role: share.permission } : null
@@ -53,6 +55,7 @@ export interface ShareRow {
   /** Your contact name for them, if you've given one. */
   name: string | null
   permission: Permission
+  status: ShareStatus
 }
 
 export interface Sharing {
@@ -68,7 +71,7 @@ export interface Sharing {
 function sharesByItem(ownerId: string, kind: ShareKind) {
   const rows = db
     .prepare(
-      `SELECT s.id, s.item_id AS itemId, u.email, c.name, s.permission
+      `SELECT s.id, s.item_id AS itemId, u.email, c.name, s.permission, s.status
          FROM share s JOIN user u ON u.id = s.recipient_id
          LEFT JOIN contact c ON c.user_id = s.owner_id AND c.email = lower(u.email)
         WHERE s.owner_id = ? AND s.kind = ? ORDER BY s.created_at`
@@ -80,7 +83,7 @@ function sharesByItem(ownerId: string, kind: ShareKind) {
   return map
 }
 
-function ownerOf(ownerId: string) {
+export function ownerOf(ownerId: string) {
   return (
     (db.prepare(`SELECT name, email FROM user WHERE id = ?`).get(ownerId) as
       | { name: string; email: string }
@@ -110,7 +113,7 @@ export function listWithShared<T extends { id: string }>(
   }))
   const incoming = db
     .prepare(
-      `SELECT item_id AS itemId, owner_id AS ownerId, permission FROM share WHERE recipient_id = ? AND kind = ? ORDER BY created_at`
+      `SELECT item_id AS itemId, owner_id AS ownerId, permission FROM share WHERE recipient_id = ? AND kind = ? AND status = 'accepted' ORDER BY created_at`
     )
     .all(userId, kind) as {
     itemId: string
@@ -153,6 +156,17 @@ export function viewOne<T extends { id: string }>(
       }
     : { ...item, access: a.role, owner: ownerOf(a.ownerId), sharedWith: [] }
 }
+
+/** The name of an item, whoever owns it. */
+export function itemName(kind: ShareKind, itemId: string) {
+  const row = db
+    .prepare(`SELECT name FROM ${TABLE[kind]} WHERE id = ?`)
+    .get(itemId) as { name: string } | undefined
+  return row?.name ?? null
+}
+
+/** Whether this access is the owner's (an item merely shared with you doesn't count). */
+export const isOwner = (a: Access | null): a is Access => a?.role === "owner"
 
 /** Drops every share of an item (when it's deleted). */
 export function forgetItem(kind: ShareKind, itemId: string) {

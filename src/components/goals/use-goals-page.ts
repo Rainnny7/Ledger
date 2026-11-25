@@ -11,6 +11,33 @@ import { useConverter } from "@/lib/currency"
 import { useGoals } from "@/lib/queries"
 import { useIntent } from "@/lib/url-state"
 
+async function removeGoal(g: Goal) {
+  if (
+    !(await confirmDialog({
+      title: `Delete “${g.name}”?`,
+      description: `Its ${g.payments.length} payment${g.payments.length === 1 ? "" : "s"} are deleted too. This can’t be undone.`,
+      action: "Delete goal",
+      destructive: true,
+    }))
+  )
+    return
+  try {
+    await api.deleteGoal(g.id)
+    toast.success("Goal deleted")
+  } catch (err) {
+    toast.error((err as Error).message)
+  }
+}
+
+async function setGoalArchived(g: Goal, value: boolean) {
+  try {
+    await api.updateGoal(g.id, { archived: value })
+    toast.success(value ? `${g.name} archived` : `${g.name} restored`)
+  } catch (err) {
+    toast.error((err as Error).message)
+  }
+}
+
 export function useGoalsPage() {
   const { data, loading, error } = useGoals()
   const [creating, setCreating] = useState<Partial<GoalInput> | null>(null)
@@ -33,10 +60,12 @@ export function useGoalsPage() {
     () => splitShared(data?.goals ?? []),
     [data]
   )
-  const sharedOpen = shared.filter((g) => !g.archived).sort(byUrgency)
+  const sharedOpen = shared.filter((g) => !g.archived).toSorted(byUrgency)
   const open = useMemo(
     () =>
-      goals.filter((g) => !g.archived && g.status !== "done").sort(byUrgency),
+      goals
+        .filter((g) => !g.archived && g.status !== "done")
+        .toSorted(byUrgency),
     [goals]
   )
   const reached = goals.filter((g) => !g.archived && g.status === "done")
@@ -60,38 +89,11 @@ export function useGoalsPage() {
   const startNew = (preset: Partial<GoalInput> = {}) => setCreating(preset)
   useIntent("new", () => startNew())
 
-  async function remove(g: Goal) {
-    if (
-      !(await confirmDialog({
-        title: `Delete “${g.name}”?`,
-        description: `Its ${g.payments.length} payment${g.payments.length === 1 ? "" : "s"} are deleted too. This can’t be undone.`,
-        action: "Delete goal",
-        destructive: true,
-      }))
-    )
-      return
-    try {
-      await api.deleteGoal(g.id)
-      toast.success("Goal deleted")
-    } catch (err) {
-      toast.error((err as Error).message)
-    }
-  }
-
-  async function setArchived(g: Goal, value: boolean) {
-    try {
-      await api.updateGoal(g.id, { archived: value })
-      toast.success(value ? `${g.name} archived` : `${g.name} restored`)
-    } catch (err) {
-      toast.error((err as Error).message)
-    }
-  }
-
   const actions = {
     onPay: (goal: Goal) => setPaying({ goal }),
     onEdit: setEditing,
-    onDelete: (g: Goal) => void remove(g),
-    onArchive: (g: Goal) => void setArchived(g, !g.archived),
+    onDelete: (g: Goal) => void removeGoal(g),
+    onArchive: (g: Goal) => void setGoalArchived(g, !g.archived),
     onShare: (g: Goal) => setSharing(g),
     onLeave: (g: Goal) => void leaveShared("goal", g),
   }

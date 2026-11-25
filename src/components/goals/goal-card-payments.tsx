@@ -8,14 +8,14 @@ export function GoalCardPayments({
   goal: g,
   payments,
   showAll,
-  canEdit,
+  canRemove,
   onToggleShowAll,
   onRemove,
 }: {
   goal: Goal
   payments: Goal["payments"]
   showAll: boolean
-  canEdit: boolean
+  canRemove: boolean
   onToggleShowAll: () => void
   onRemove: (id: string) => void
 }) {
@@ -63,7 +63,7 @@ export function GoalCardPayments({
             >
               <Money value={p.amount} currency={g.currency} sign />
             </span>
-            {canEdit && (
+            {canRemove && (
               <button
                 type="button"
                 aria-label="Remove payment"

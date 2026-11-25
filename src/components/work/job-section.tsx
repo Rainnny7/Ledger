@@ -46,6 +46,16 @@ const fail = (err: unknown) => toast.error((err as Error).message)
 const readOnly = () =>
   toast.error("Demo mode is read-only. Exit demo mode to make changes.")
 
+async function removeEntry(id: string) {
+  if (demoMode) return readOnly()
+  try {
+    await api.deleteWorkEntry(id)
+    toast.success("Shift removed")
+  } catch (err) {
+    fail(err)
+  }
+}
+
 export function JobSection({
   job: j,
   ...actions
@@ -55,16 +65,6 @@ export function JobSection({
   const paidBills = j.invoices.filter((i) => i.status === "paid")
   const owner = j.access === "owner"
   const readonly = j.access === "view"
-
-  async function removeEntry(id: string) {
-    if (demoMode) return readOnly()
-    try {
-      await api.deleteWorkEntry(id)
-      toast.success("Shift removed")
-    } catch (err) {
-      fail(err)
-    }
-  }
 
   const menuProps = { job: j, readonly, owner, actions }
 
@@ -180,7 +180,7 @@ export function JobSection({
                     <span className="tabular-nums">
                       {formatDuration(e.hours)}
                     </span>
-                    {!readonly && (
+                    {owner && (
                       <button
                         type="button"
                         aria-label="Remove shift"

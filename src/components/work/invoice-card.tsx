@@ -32,6 +32,16 @@ const fail = (err: unknown) => toast.error((err as Error).message)
 const readOnly = () =>
   toast.error("Demo mode is read-only. Exit demo mode to make changes.")
 
+async function removePayment(id: string) {
+  if (demoMode) return readOnly()
+  try {
+    await api.deleteWorkPayment(id)
+    toast.success("Payment removed")
+  } catch (err) {
+    fail(err)
+  }
+}
+
 const STATUS: Record<InvoiceStatus, { label: string; className: string }> = {
   unpaid: {
     label: "Unpaid",
@@ -56,9 +66,10 @@ export function InvoiceCard({
   const money = (n: number) => formatMoney(n, j.currency)
   const status = STATUS[inv.status]
   const [showAll, setShowAll] = useState(false)
-  const payments = [...inv.payments].reverse()
+  const payments = inv.payments.toReversed()
   const shown = showAll ? payments : payments.slice(0, 4)
   const readonly = j.access === "view"
+  const owner = j.access === "owner"
 
   async function remove() {
     const n = inv.payments.length
@@ -79,22 +90,12 @@ export function InvoiceCard({
     }
   }
 
-  async function removePayment(id: string) {
-    if (demoMode) return readOnly()
-    try {
-      await api.deleteWorkPayment(id)
-      toast.success("Payment removed")
-    } catch (err) {
-      fail(err)
-    }
-  }
-
   const billMenuProps = {
     job: j,
     invoice: inv,
     onPay,
     onBill,
-    onRemove: () => void remove(),
+    onRemove: owner ? () => void remove() : undefined,
   }
 
   const contextMenu = (
@@ -283,7 +284,7 @@ export function InvoiceCard({
                         <Copy className="size-3.5" />
                       </button>
                     </Hint>
-                    {!readonly && (
+                    {owner && (
                       <button
                         type="button"
                         aria-label="Remove payment"

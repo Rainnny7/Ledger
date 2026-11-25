@@ -29,7 +29,7 @@ export function GoalsSpotlight() {
         .filter(
           (g) => !g.archived && g.status !== "done" && g.access !== "view"
         )
-        .sort(compareOpenGoals),
+        .toSorted(compareOpenGoals),
     [data]
   )
   if (open.length === 0) return null

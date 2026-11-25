@@ -1,10 +1,20 @@
 import { randomBytes, randomUUID } from "node:crypto"
 import { Hono } from "hono"
 import { z } from "zod"
-import { currencyCode, isoDate } from "../../validation.ts"
+import {
+  boundedArray,
+  boundedString,
+  currencyCode,
+  id,
+  isoDate,
+  money,
+  validate,
+} from "../../validation.ts"
+import { toCents } from "../../../shared/money.ts"
 import { auth } from "../../auth/index.ts"
 import { db } from "../../db.ts"
 import {
+  itemsToJson,
   loadInvoices,
   loadPaymentMethods,
   loadProfile,
@@ -30,7 +40,9 @@ const THEMES = [
   "vivid",
 ] as const
 
-const text = (max: number) => z.string().trim().max(max).default("")
+const text = (max: number) => boundedString(max).trim().default("")
+const idParam = z.object({ id: id })
+const invoicePaymentParam = z.object({ id: id, paymentId: id })
 const party = z.object({
   name: text(120),
   email: text(200),
@@ -41,10 +53,13 @@ const party = z.object({
 const item = z.object({
   description: z.string().trim().min(1).max(300),
   quantity: z.number().min(0).max(1_000_000),
-  unitPrice: z.number().min(-MAX_MONEY).max(MAX_MONEY),
+  unitPrice: money.refine(
+    (n) => n >= -MAX_MONEY && n <= MAX_MONEY,
+    "Price out of range"
+  ),
 })
 const invoiceBody = z.object({
-  number: z.string().trim().min(1).max(40),
+  number: boundedString(40).trim().min(1),
   status: z.enum(["draft", "sent", "void"]).default("draft"),
   template: z.enum(TEMPLATES).default("modern"),
   theme: z.enum(THEMES).default("professional"),
@@ -55,13 +70,24 @@ const invoiceBody = z.object({
   client: party,
   items: z.array(item).min(1).max(100),
   taxRate: z.number().min(0).max(100).default(0),
-  taxLabel: z.string().trim().min(1).max(30).default("Tax"),
-  discount: z.number().min(0).max(MAX_MONEY).default(0),
-  notes: z.string().trim().max(2000).nullable().default(null),
-  terms: z.string().trim().max(2000).nullable().default(null),
-  methodIds: z.array(z.string().max(80)).max(20).default([]),
-  workInvoiceId: z.string().max(80).nullable().default(null),
+  taxLabel: boundedString(30).trim().min(1).default("Tax"),
+  discount: money
+    .refine((n) => n >= 0 && n <= MAX_MONEY, "Discount out of range")
+    .default(0),
+  notes: boundedString(2000).trim().nullable().default(null),
+  terms: boundedString(2000).trim().nullable().default(null),
+  methodIds: boundedArray(id, 20).default([]),
+  workInvoiceId: id.nullable().default(null),
 })
+
+const patchInvoiceBody = z.object(
+  Object.fromEntries(
+    Object.entries(invoiceBody.shape).map(([k, v]) => [
+      k,
+      (v as z.ZodType).optional(),
+    ])
+  )
+)
 type InvoiceBody = z.infer<typeof invoiceBody>
 
 const newToken = () => randomBytes(18).toString("base64url")
@@ -113,7 +139,9 @@ function nextNumber(userId: string) {
 function sanitize(userId: string, d: Partial<InvoiceBody>) {
   if (d.methodIds) {
     const mine = new Set(loadPaymentMethods(userId).map((m) => m.id))
-    d.methodIds = [...new Set(d.methodIds)].filter((id) => mine.has(id))
+    d.methodIds = [...new Set(d.methodIds)].filter((methodId) =>
+      mine.has(methodId)
+    )
   }
   if (d.workInvoiceId && !ownsBill(userId, d.workInvoiceId))
     d.workInvoiceId = null
@@ -148,18 +176,16 @@ invoices.get("/invoices", (c) => {
   })
 })
 
-invoices.post("/invoices", async (c) => {
-  const body = invoiceBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: describe(body.error) }, 400)
+invoices.post("/invoices", validate("json", invoiceBody), async (c) => {
   const userId = c.var.user.id
-  const d = sanitize(userId, body.data) as InvoiceBody
-  const id = randomUUID()
+  const d = sanitize(userId, c.req.valid("json")) as InvoiceBody
+  const invoiceId = randomUUID()
   db.prepare(
     `INSERT INTO invoice (id, user_id, number, token, status, template, theme, currency, issue_date, due_date, from_json, client_json,
        items_json, tax_rate, tax_label, discount, notes, terms, methods_json, work_invoice_id, sent_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${d.status === "sent" ? "datetime('now')" : "NULL"})`
   ).run(
-    id,
+    invoiceId,
     userId,
     d.number,
     newToken(),
@@ -171,17 +197,17 @@ invoices.post("/invoices", async (c) => {
     d.dueDate,
     JSON.stringify(d.from),
     JSON.stringify(d.client),
-    JSON.stringify(d.items),
+    itemsToJson(d.items),
     d.taxRate,
     d.taxLabel,
-    d.discount,
+    toCents(d.discount),
     d.notes || null,
     d.terms || null,
     JSON.stringify(d.methodIds),
     d.workInvoiceId
   )
   rememberDefaults(userId, d)
-  return c.json({ invoice: loadInvoices(userId, id)[0] })
+  return c.json({ invoice: loadInvoices(userId, invoiceId)[0] })
 })
 
 const COLUMNS: Record<string, string> = {
@@ -204,145 +230,144 @@ const COLUMNS: Record<string, string> = {
   workInvoiceId: "work_invoice_id",
 }
 
-invoices.patch("/invoices/:id", async (c) => {
-  // No defaults on an update: only what was sent changes.
-  const partial = z.object(
-    Object.fromEntries(
-      Object.entries(invoiceBody.shape).map(([k, v]) => [
-        k,
-        (v as z.ZodType).optional(),
-      ])
-    )
-  )
-  const body = partial.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: describe(body.error) }, 400)
-  const userId = c.var.user.id
-  const id = c.req.param("id")
-  const [before] = loadInvoices(userId, id)
-  if (!before) return c.json({ error: "Not found" }, 404)
-  const d = sanitize(userId, body.data as Partial<InvoiceBody>)
-  const sets: string[] = []
-  const vals: (string | number | null)[] = []
-  for (const [k, col] of Object.entries(COLUMNS)) {
-    const v = (d as Record<string, unknown>)[k]
-    if (v === undefined) continue
-    sets.push(`${col} = ?`)
-    vals.push(
-      v !== null && typeof v === "object"
-        ? JSON.stringify(v)
-        : v === "" && (k === "notes" || k === "terms")
-          ? null
-          : (v as string | number | null)
-    )
+invoices.patch(
+  "/invoices/:id",
+  validate("param", idParam),
+  validate("json", patchInvoiceBody),
+  async (c) => {
+    const userId = c.var.user.id
+    const { id: invoiceId } = c.req.valid("param")
+    const [before] = loadInvoices(userId, invoiceId)
+    if (!before) return c.json({ error: "Not found" }, 404)
+    const d = sanitize(userId, c.req.valid("json") as Partial<InvoiceBody>)
+    const sets: string[] = []
+    const vals: (string | number | null)[] = []
+    for (const [k, col] of Object.entries(COLUMNS)) {
+      const v = (d as Record<string, unknown>)[k]
+      if (v === undefined) continue
+      sets.push(`${col} = ?`)
+      vals.push(
+        k === "items"
+          ? itemsToJson(v as InvoiceBody["items"])
+          : k === "discount"
+            ? toCents(v as number)
+            : v !== null && typeof v === "object"
+              ? JSON.stringify(v)
+              : v === "" && (k === "notes" || k === "terms")
+                ? null
+                : (v as string | number | null)
+      )
+    }
+    if (d.status === "sent" && before.status === "draft")
+      sets.push(`sent_at = COALESCE(sent_at, datetime('now'))`)
+    if (sets.length) {
+      sets.push(`updated_at = datetime('now')`)
+      db.prepare(
+        `UPDATE invoice SET ${sets.join(", ")} WHERE id = ? AND user_id = ?`
+      ).run(...vals, invoiceId, userId)
+    }
+    const [invoice] = loadInvoices(userId, invoiceId)
+    if (d.from && d.template)
+      rememberDefaults(userId, { ...invoice, ...d } as unknown as InvoiceBody)
+    return c.json({ invoice })
   }
-  if (d.status === "sent" && before.status === "draft")
-    sets.push(`sent_at = COALESCE(sent_at, datetime('now'))`)
-  if (sets.length) {
-    sets.push(`updated_at = datetime('now')`)
-    db.prepare(
-      `UPDATE invoice SET ${sets.join(", ")} WHERE id = ? AND user_id = ?`
-    ).run(...vals, id, userId)
-  }
-  const [invoice] = loadInvoices(userId, id)
-  if (d.from && d.template)
-    rememberDefaults(userId, { ...invoice, ...d } as unknown as InvoiceBody)
-  return c.json({ invoice })
-})
+)
 
-invoices.delete("/invoices/:id", (c) => {
+invoices.delete("/invoices/:id", validate("param", idParam), (c) => {
+  const { id: invoiceId } = c.req.valid("param")
   const r = db
     .prepare(`DELETE FROM invoice WHERE id = ? AND user_id = ?`)
-    .run(c.req.param("id"), c.var.user.id)
+    .run(invoiceId, c.var.user.id)
   return r.changes ? c.json({ ok: true }) : c.json({ error: "Not found" }, 404)
 })
 
-/** A new share link; the old one stops working. */
-invoices.post("/invoices/:id/reset-link", (c) => {
+invoices.post("/invoices/:id/reset-link", validate("param", idParam), (c) => {
   const userId = c.var.user.id
+  const { id: invoiceId } = c.req.valid("param")
   const r = db
     .prepare(
       `UPDATE invoice SET token = ?, viewed_at = NULL WHERE id = ? AND user_id = ?`
     )
-    .run(newToken(), c.req.param("id"), userId)
+    .run(newToken(), invoiceId, userId)
   return r.changes
-    ? c.json({ invoice: loadInvoices(userId, c.req.param("id"))[0] })
+    ? c.json({ invoice: loadInvoices(userId, invoiceId)[0] })
     : c.json({ error: "Not found" }, 404)
 })
 
 const paymentBody = z.object({
-  /** Negative for a refund. */
-  amount: z
-    .number()
-    .min(-MAX_MONEY)
-    .max(MAX_MONEY)
-    .refine((n) => n !== 0),
+  amount: money
+    .refine((n) => n >= -MAX_MONEY && n <= MAX_MONEY, "Amount out of range")
+    .refine((n) => n !== 0, "Amount can’t be zero"),
   date: isoDate,
-  method: z.string().trim().max(60).nullable().optional(),
-  note: z.string().trim().max(300).nullable().optional(),
-  transactionId: z.string().max(80).nullable().optional(),
+  method: boundedString(60).trim().nullable().optional(),
+  note: boundedString(300).trim().nullable().optional(),
+  transactionId: id.nullable().optional(),
 })
 
-invoices.post("/invoices/:id/payments", async (c) => {
-  const body = paymentBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: "Check the payment details." }, 400)
-  const userId = c.var.user.id
-  const [invoice] = loadInvoices(userId, c.req.param("id"))
-  if (!invoice) return c.json({ error: "Not found" }, 404)
-  const d = body.data
-  if (d.transactionId && !ownsTransaction(userId, d.transactionId))
-    return c.json({ error: "Unknown transaction" }, 400)
-  recordInvoicePayment(invoice, {
-    ...d,
-    method: d.method || null,
-    note: d.note || null,
-  })
-  if (invoice.status === "draft")
-    db.prepare(
-      `UPDATE invoice SET status = 'sent', sent_at = COALESCE(sent_at, datetime('now')) WHERE id = ?`
-    ).run(invoice.id)
-  return c.json({ invoice: loadInvoices(userId, invoice.id)[0] })
-})
+invoices.post(
+  "/invoices/:id/payments",
+  validate("param", idParam),
+  validate("json", paymentBody),
+  async (c) => {
+    const userId = c.var.user.id
+    const { id: invoiceId } = c.req.valid("param")
+    const [invoice] = loadInvoices(userId, invoiceId)
+    if (!invoice) return c.json({ error: "Not found" }, 404)
+    const d = c.req.valid("json")
+    if (d.transactionId && !ownsTransaction(userId, d.transactionId))
+      return c.json({ error: "Unknown transaction" }, 400)
+    recordInvoicePayment(invoice, {
+      ...d,
+      method: d.method || null,
+      note: d.note || null,
+    })
+    if (invoice.status === "draft")
+      db.prepare(
+        `UPDATE invoice SET status = 'sent', sent_at = COALESCE(sent_at, datetime('now')) WHERE id = ?`
+      ).run(invoice.id)
+    return c.json({ invoice: loadInvoices(userId, invoice.id)[0] })
+  }
+)
 
-invoices.delete("/invoices/:id/payments/:paymentId", (c) => {
-  const userId = c.var.user.id
-  const [invoice] = loadInvoices(userId, c.req.param("id"))
-  const payment = invoice?.payments.find(
-    (p) => p.id === c.req.param("paymentId")
-  )
-  if (!invoice || !payment) return c.json({ error: "Not found" }, 404)
-  if (payment.source === "manual" || !invoice.workInvoiceId)
-    db.prepare(
-      `DELETE FROM invoice_payment WHERE id = ? AND invoice_id = ?`
-    ).run(payment.id, invoice.id)
-  if (invoice.workInvoiceId)
-    db.prepare(`DELETE FROM work_payment WHERE id = ? AND invoice_id = ?`).run(
-      payment.id,
-      invoice.workInvoiceId
-    )
-  return c.json({ invoice: loadInvoices(userId, invoice.id)[0] })
-})
-
-// ---------------------------------------------------------------- your details & payment methods
+invoices.delete(
+  "/invoices/:id/payments/:paymentId",
+  validate("param", invoicePaymentParam),
+  (c) => {
+    const userId = c.var.user.id
+    const { id: invoiceId, paymentId } = c.req.valid("param")
+    const [invoice] = loadInvoices(userId, invoiceId)
+    const payment = invoice?.payments.find((p) => p.id === paymentId)
+    if (!invoice || !payment) return c.json({ error: "Not found" }, 404)
+    if (payment.source === "manual" || !invoice.workInvoiceId)
+      db.prepare(
+        `DELETE FROM invoice_payment WHERE id = ? AND invoice_id = ?`
+      ).run(payment.id, invoice.id)
+    if (invoice.workInvoiceId)
+      db.prepare(
+        `DELETE FROM work_payment WHERE id = ? AND invoice_id = ?`
+      ).run(payment.id, invoice.workInvoiceId)
+    return c.json({ invoice: loadInvoices(userId, invoice.id)[0] })
+  }
+)
 
 const profileBody = z.object({
   from: party,
-  prefix: z.string().max(20).default("INV-"),
+  prefix: boundedString(20).default("INV-"),
   template: z.enum(TEMPLATES),
   theme: z.enum(THEMES),
   currency: currencyCode,
   taxRate: z.number().min(0).max(100),
-  taxLabel: z.string().trim().min(1).max(30),
+  taxLabel: boundedString(30).trim().min(1),
   dueDays: z.number().int().min(0).max(365).nullable(),
-  notes: z.string().max(2000),
-  terms: z.string().max(2000),
+  notes: boundedString(2000),
+  terms: boundedString(2000),
 })
 
-invoices.put("/invoice-profile", async (c) => {
-  const body = profileBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: "Check your details." }, 400)
+invoices.put("/invoice-profile", validate("json", profileBody), (c) => {
+  const body = c.req.valid("json")
   saveProfile(c.var.user.id, {
-    ...body.data,
-    currency: body.data.currency.toUpperCase(),
+    ...body,
+    currency: body.currency.toUpperCase(),
   })
   return c.json({
     profile: loadProfile(c.var.user.id),
@@ -352,9 +377,9 @@ invoices.put("/invoice-profile", async (c) => {
 
 const methodBody = z.object({
   kind: z.enum(PAYMENT_METHOD_KINDS),
-  label: z.string().trim().min(1).max(60),
+  label: boundedString(60).trim().min(1),
   fields: z
-    .record(z.string().regex(/^[a-zA-Z]{1,24}$/), z.string().trim().max(500))
+    .record(boundedString(24).regex(/^[a-zA-Z]+$/), boundedString(500).trim())
     .refine((f) => Object.keys(f).length <= 16),
   isDefault: z.boolean().default(false),
 })
@@ -371,18 +396,16 @@ function checkMethod(userId: string, m: z.infer<typeof methodBody>) {
   return null
 }
 
-invoices.post("/payment-methods", async (c) => {
-  const body = methodBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: "Check the payment method." }, 400)
+invoices.post("/payment-methods", validate("json", methodBody), async (c) => {
   const userId = c.var.user.id
-  const problem = checkMethod(userId, body.data)
+  const d = c.req.valid("json")
+  const problem = checkMethod(userId, d)
   if (problem) return c.json({ error: problem }, 400)
-  const id = randomUUID()
-  const d = body.data
+  const newId = randomUUID()
   db.prepare(
     `INSERT INTO payment_method (id, user_id, kind, label, fields_json, is_default) VALUES (?, ?, ?, ?, ?, ?)`
   ).run(
-    id,
+    newId,
     userId,
     d.kind,
     d.label,
@@ -392,51 +415,45 @@ invoices.post("/payment-methods", async (c) => {
   const methods = loadPaymentMethods(userId)
   const byId = new Map(methods.map((m) => [m.id, m]))
   return c.json({
-    method: byId.get(id),
+    method: byId.get(newId),
     methods,
   })
 })
 
-invoices.put("/payment-methods/:id", async (c) => {
-  const body = methodBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: "Check the payment method." }, 400)
-  const userId = c.var.user.id
-  const problem = checkMethod(userId, body.data)
-  if (problem) return c.json({ error: problem }, 400)
-  const d = body.data
-  const r = db
-    .prepare(
-      `UPDATE payment_method SET kind = ?, label = ?, fields_json = ?, is_default = ? WHERE id = ? AND user_id = ?`
-    )
-    .run(
-      d.kind,
-      d.label,
-      JSON.stringify(d.fields),
-      d.isDefault ? 1 : 0,
-      c.req.param("id"),
-      userId
-    )
-  if (!r.changes) return c.json({ error: "Not found" }, 404)
-  return c.json({ methods: loadPaymentMethods(userId) })
-})
+invoices.put(
+  "/payment-methods/:id",
+  validate("param", idParam),
+  validate("json", methodBody),
+  async (c) => {
+    const userId = c.var.user.id
+    const d = c.req.valid("json")
+    const { id: methodId } = c.req.valid("param")
+    const problem = checkMethod(userId, d)
+    if (problem) return c.json({ error: problem }, 400)
+    const r = db
+      .prepare(
+        `UPDATE payment_method SET kind = ?, label = ?, fields_json = ?, is_default = ? WHERE id = ? AND user_id = ?`
+      )
+      .run(
+        d.kind,
+        d.label,
+        JSON.stringify(d.fields),
+        d.isDefault ? 1 : 0,
+        methodId,
+        userId
+      )
+    if (!r.changes) return c.json({ error: "Not found" }, 404)
+    return c.json({ methods: loadPaymentMethods(userId) })
+  }
+)
 
-invoices.delete("/payment-methods/:id", (c) => {
+invoices.delete("/payment-methods/:id", validate("param", idParam), (c) => {
   const userId = c.var.user.id
+  const { id: methodId } = c.req.valid("param")
   const r = db
     .prepare(`DELETE FROM payment_method WHERE id = ? AND user_id = ?`)
-    .run(c.req.param("id"), userId)
+    .run(methodId, userId)
   return r.changes
     ? c.json({ methods: loadPaymentMethods(userId) })
     : c.json({ error: "Not found" }, 404)
 })
-
-function describe(error: z.ZodError) {
-  const issue = error.issues[0]
-  const path = issue?.path.join(".") ?? ""
-  if (path.startsWith("items"))
-    return issue?.code === "too_small" && path === "items"
-      ? "Add at least one line item."
-      : "Every line item needs a description."
-  if (path === "number") return "Give the invoice a number."
-  return "Check the invoice details."
-}

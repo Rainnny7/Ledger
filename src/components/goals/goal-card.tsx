@@ -144,7 +144,7 @@ export function GoalCard({
             goal={g}
             payments={payments}
             showAll={showAll}
-            canEdit={canEdit}
+            canRemove={owner}
             onToggleShowAll={() => setShowAll((v) => !v)}
             onRemove={(id) => void removePayment(id)}
           />

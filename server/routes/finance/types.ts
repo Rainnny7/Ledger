@@ -4,6 +4,7 @@ import type { TaxTag } from "../../../shared/categories.ts"
 
 export type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
 
+/** A stored transaction row: `amount` and `runningBalance` are cents. */
 export interface TxRow {
   id: string
   accountId: string
@@ -19,6 +20,7 @@ export interface TxRow {
   institution: string
 }
 
+/** A transaction as the API shows it: decimal `amount` and `runningBalance`. */
 export interface EnrichedTx extends Omit<
   TxRow,
   "pending" | "categoryOverride" | "taxTagRaw" | "institution"

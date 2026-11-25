@@ -48,7 +48,7 @@ export function TransactionSheet({
   const form = useTransactionForm(t, transactions, onUpdated)
   const goals = useGoals().data?.goals
   const openGoals = (goals ?? []).filter(
-    (g) => !g.archived && g.status !== "done" && g.access !== "view"
+    (g) => !g.archived && g.status !== "done" && g.access === "owner"
   )
   const linked = t
     ? (goals ?? []).filter((g) =>
