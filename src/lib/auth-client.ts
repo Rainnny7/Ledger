@@ -13,6 +13,8 @@ export const authClient = createAuthClient({
         mustChangePassword: { type: 'boolean', required: false, input: false },
         // Settings → Preferences; balances add the overdraft you can draw on when this is on.
         includeOverdraft: { type: 'boolean', required: false, input: true },
+        // Settings → Preferences; the currency totals are converted to.
+        currency: { type: 'string', required: false, input: true },
       },
     }),
   ],

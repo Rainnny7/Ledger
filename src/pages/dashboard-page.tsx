@@ -10,6 +10,7 @@ import { BalanceLabel, BalanceValue, CreditMeter, OverdraftMeter, overdraftAllow
 import { BalanceChart, CashflowChart } from '@/components/charts'
 import { ConnectDialog } from '@/components/connect-dialog'
 import { GoalsSpotlight } from '@/components/goals-spotlight'
+import { AccountDetailsButton } from '@/components/account-details-dialog'
 import { InstitutionBadge, isProviderId, PROVIDERS } from '@/components/institution'
 import { RangePicker, type RangeKey, rangeStart } from '@/components/range-picker'
 import { TransactionSheet } from '@/components/transaction-sheet'
@@ -26,7 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { type Account, api, type Connection, type Subscription, type Transaction } from '@/lib/api'
-import { balanceSeries, lastMonths, monthlyCashflow, onAccounts, pendingSpent, startOfMonth, totalDebtPaid, totalSpent } from '@/lib/finance'
+import { balanceSeries, lastMonths, monthlyCashflow, pendingSpent, startOfMonth, totalDebtPaid, totalSpent } from '@/lib/finance'
 import {
   ACCOUNT_TYPE_LABEL,
   daysFromToday,
@@ -36,6 +37,7 @@ import {
   isoDate,
 } from '@/lib/format'
 import { useSession } from '@/lib/auth-client'
+import { inHomeCurrency, useConverter } from '@/lib/currency'
 import { DEMO_IDENTITY, demoMode } from '@/lib/demo'
 import { useDashboardTransactions, useOverview, useSubscriptions } from '@/lib/queries'
 import { cn } from '@/lib/utils'
@@ -65,7 +67,10 @@ export function DashboardPage() {
   const connections = data?.connections ?? []
   const accounts = useMemo(() => data?.accounts ?? [], [data])
   const transactions = useMemo(() => txq.data?.transactions ?? [], [txq.data])
-  const cad = useMemo(() => accounts.filter((a) => a.currency === 'CAD'), [accounts])
+  // Totals add up across currencies by restating every account in the home currency (today's rates).
+  const converter = useConverter()
+  const home = useMemo(() => inHomeCurrency(accounts, transactions, converter), [accounts, transactions, converter])
+  const cad = home.accounts
   const deposit = cad.filter((a) => a.type === 'chequing' || a.type === 'savings' || a.type === 'wallet')
 
   const includeOverdraft = useIncludeOverdraft()
@@ -77,8 +82,7 @@ export function DashboardPage() {
     cad.filter((a) => a.type === 'credit' || a.type === 'loan').reduce((s, a) => s + Math.abs(a.balance ?? 0), 0) +
     deposit.reduce((s, a) => s + Math.max(0, -(a.balance ?? 0)), 0)
 
-  // Totals only add up within one currency: every figure below uses the CAD accounts.
-  const cadTx = useMemo(() => onAccounts(transactions, cad), [transactions, cad])
+  const cadTx = home.transactions
 
   const spend = useMemo(() => {
     const today = isoDate()
@@ -96,12 +100,12 @@ export function DashboardPage() {
     }
   }, [cadTx])
 
-  const series = useMemo(() => balanceSeries(cad, transactions, rangeStart(range), includeOverdraft), [cad, transactions, range, includeOverdraft])
+  const series = useMemo(() => balanceSeries(cad, cadTx, rangeStart(range), includeOverdraft), [cad, cadTx, range, includeOverdraft])
   const flow = useMemo(() => monthlyCashflow(cadTx, lastMonths(6)), [cadTx])
   const upcoming = useMemo(
     () =>
       (subq.data?.subscriptions ?? [])
-        .filter((s) => s.active && daysFromToday(s.nextDue) <= 14)
+        .filter((s) => s.active && s.access === 'owner' && daysFromToday(s.nextDue) <= 14)
         .sort((a, b) => a.nextDue.localeCompare(b.nextDue)),
     [subq.data],
   )
@@ -170,6 +174,13 @@ export function DashboardPage() {
                 overdraftTotal > 0
                   ? `Includes ${formatMoney(overdraftTotal)} of overdraft · ${cad.length} account${cad.length === 1 ? '' : 's'}`
                   : `What you have minus what you owe, ${cad.length} account${cad.length === 1 ? '' : 's'}`
+              }
+              note={
+                home.skipped.length > 0
+                  ? `Leaves out ${home.skipped.join(', ')} accounts (no exchange rate yet)`
+                  : home.mixed
+                    ? `In ${converter.home}, other currencies at today’s rates`
+                    : undefined
               }
             />
             <Stat
@@ -247,7 +258,9 @@ export function DashboardPage() {
                 {txq.data && transactions.length === 0 && (
                   <p className="py-6 text-center text-sm text-muted-foreground">No transactions yet.</p>
                 )}
-                {transactions.slice(0, 6).map((t) => (
+                {transactions.slice(0, 6).map((t) => {
+                  const account = accounts.find((a) => a.id === t.accountId)
+                  return (
                   <button
                     key={t.id}
                     type="button"
@@ -258,14 +271,15 @@ export function DashboardPage() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{t.merchant}</span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        <RelativeDate date={t.date} seenAt={t.createdAt} /> · {accounts.find((a) => a.id === t.accountId)?.name}
+                        <RelativeDate date={t.date} seenAt={t.createdAt} /> · {account?.name}
                       </span>
                     </span>
                     <span className={cn('font-medium tabular-nums', t.amount > 0 && 'text-emerald-600 dark:text-emerald-400')}>
-                      {formatMoney(t.amount, 'CAD', { sign: true })}
+                      {formatMoney(t.amount, account?.currency, { sign: true })}
                     </span>
                   </button>
-                ))}
+                  )
+                })}
               </CardContent>
             </Card>
           </div>
@@ -390,13 +404,14 @@ function canForget(c: Connection) {
   return c.savedCredentials && !(isProviderId(c.institution) && PROVIDERS[c.institution].keepsSecret)
 }
 
-function Stat({ label, value, negative, hint }: { label: string; value: ReactNode; negative?: boolean; hint?: string }) {
+function Stat({ label, value, negative, hint, note }: { label: string; value: ReactNode; negative?: boolean; hint?: string; note?: string }) {
   return (
     <Card size="sm">
       <CardHeader>
         <CardDescription>{label}</CardDescription>
         <CardTitle className={`text-2xl! font-semibold tabular-nums ${negative ? 'text-destructive' : ''}`}>{value}</CardTitle>
         {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+        {note && <p className="text-xs text-muted-foreground/80">{note}</p>}
       </CardHeader>
     </Card>
   )
@@ -448,8 +463,9 @@ function UpcomingList({ items, empty, suggestions }: { items: Subscription[]; em
 }
 
 function AccountCard({ account: a }: { account: Account }) {
+  // The whole card opens the account (a link stretched over it); the deposit-details button sits above that link.
   return (
-    <Link to={`/accounts/${a.id}`} className="group rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
+    <div className="group relative rounded-xl has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50">
       <Card className="h-full transition-colors group-hover:bg-muted/50">
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
@@ -480,9 +496,15 @@ function AccountCard({ account: a }: { account: Account }) {
           </div>
           <OverdraftMeter account={a} compact />
           <CreditMeter account={a} />
+          {a.type !== 'wallet' && (
+            <div className="relative z-10 -mb-1 flex">
+              <AccountDetailsButton account={a} size="xs" variant="ghost" className="-ml-2 text-muted-foreground hover:text-foreground" />
+            </div>
+          )}
         </CardContent>
       </Card>
-    </Link>
+      <Link to={`/accounts/${a.id}`} aria-label={`Open ${a.name}`} className="absolute inset-0 rounded-xl focus-visible:outline-none" />
+    </div>
   )
 }
 

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react'
-import { formatMoney } from '@/lib/format'
+import { formatMoney, getDisplayCurrency } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -66,7 +66,7 @@ export function CountUp({
 /** formatMoney, counting up. */
 export function AnimatedMoney({
   value,
-  currency = 'CAD',
+  currency = getDisplayCurrency(),
   sign,
   className,
 }: {

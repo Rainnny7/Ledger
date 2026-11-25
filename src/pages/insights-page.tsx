@@ -12,8 +12,9 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Category, Transaction } from '@/lib/api'
 import { CATEGORY_META } from '@/lib/categories'
-import { isSpend, lastMonths, monthlyCashflow, onAccounts, spendByCategory, topMerchants, totalDebtPaid, totalIncome, totalSpent } from '@/lib/finance'
+import { isSpend, lastMonths, monthlyCashflow, spendByCategory, topMerchants, totalDebtPaid, totalIncome, totalSpent } from '@/lib/finance'
 import { daysFromToday, formatMoney, isoDate } from '@/lib/format'
+import { inHomeCurrency, useConverter } from '@/lib/currency'
 import { useOverview, useTransactions } from '@/lib/queries'
 
 const PAGE = 50
@@ -28,11 +29,13 @@ export function InsightsPage() {
   const [limit, setLimit] = useState(PAGE)
 
   const accounts = useMemo(() => overview.data?.accounts ?? [], [overview.data])
-  // Totals only add up within one currency, so Insights covers the CAD accounts.
-  const all = useMemo(
-    () => onAccounts(txq.data?.transactions ?? [], accounts.filter((a) => a.currency === 'CAD')),
-    [txq.data, accounts],
-  )
+  // Figures add up across currencies by restating every transaction in the home currency; the list
+  // itself still shows each transaction as the bank recorded it.
+  const converter = useConverter()
+  const home = useMemo(() => inHomeCurrency(accounts, txq.data?.transactions ?? [], converter), [accounts, txq.data, converter])
+  const all = home.transactions
+  const original = useMemo(() => new Map((txq.data?.transactions ?? []).map((t) => [t.id, t])), [txq.data])
+  const asRecorded = (t: Transaction) => original.get(t.id) ?? t
   const from = rangeStart(range)
   const inPeriod = useMemo(() => all.filter((t) => !from || t.date >= from), [all, from])
 
@@ -90,6 +93,12 @@ export function InsightsPage() {
         />
         <Stat label="Average spend / day" value={<AnimatedMoney value={stats.perDay} />} hint={`Over ${stats.days} days`} loading={loading} />
       </div>
+      {(home.mixed || home.skipped.length > 0) && (
+        <p className="-mt-6 text-xs text-muted-foreground">
+          Figures in {converter.home}, other currencies converted at today’s rates
+          {home.skipped.length > 0 && ` · ${home.skipped.join(', ')} accounts left out until rates load`}.
+        </p>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-3">
@@ -195,7 +204,7 @@ export function InsightsPage() {
           {list.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">No transactions in this period.</p>
           ) : (
-            <TransactionsTable transactions={list.slice(0, limit)} accounts={accounts} onSelect={setSelected} showAccount />
+            <TransactionsTable transactions={list.slice(0, limit).map(asRecorded)} accounts={accounts} onSelect={setSelected} showAccount />
           )}
           {list.length > limit && (
             <div className="border-t p-3 text-center">
@@ -209,7 +218,7 @@ export function InsightsPage() {
 
       <TransactionSheet
         transaction={selected}
-        transactions={all}
+        transactions={txq.data?.transactions ?? []}
         accounts={accounts}
         onClose={() => setSelected(null)}
         onSelect={setSelected}

@@ -34,4 +34,6 @@ export const env = {
   allowRegistration: process.env.ALLOW_REGISTRATION === 'true',
   /** Behind a reverse proxy (nginx, Caddy, Cloudflare Tunnel…), trust its X-Forwarded-For for the client's address. */
   trustProxy: process.env.TRUST_PROXY === 'true',
+  /** Where daily exchange rates come from (Frankfurter's ECB reference rates by default). */
+  fxRatesUrl: process.env.FX_RATES_URL ?? 'https://api.frankfurter.dev/v1/latest',
 }

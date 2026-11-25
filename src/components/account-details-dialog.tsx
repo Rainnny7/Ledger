@@ -9,11 +9,21 @@ import { formatMoney, formatRelative } from '@/lib/format'
 import { useAccountDetails } from '@/lib/queries'
 
 /** "Direct deposit & limits": institution / transit / account number plus TD's daily limits. */
-export function AccountDetailsButton({ account }: { account: Account }) {
+export function AccountDetailsButton({
+  account,
+  size = 'sm',
+  variant = 'outline',
+  className,
+}: {
+  account: Account
+  size?: 'sm' | 'xs'
+  variant?: 'outline' | 'ghost' | 'secondary'
+  className?: string
+}) {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button variant={variant} size={size} className={className} onClick={() => setOpen(true)}>
         <Landmark /> Direct deposit & limits
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>

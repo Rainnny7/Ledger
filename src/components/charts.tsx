@@ -3,7 +3,7 @@ import { type ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, Char
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { Category } from '@/lib/api'
 import { CATEGORY_META } from '@/lib/categories'
-import { addDays, formatLongDate, formatMoney, formatMoneyCompact, formatMonth, formatShortDate } from '@/lib/format'
+import { addDays, formatLongDate, formatMoney, formatMoneyCompact, getDisplayCurrency, formatMonth, formatShortDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 /** Tooltip card shared by the charts: label on top, then one row per series. Text stays in ink colours. */
@@ -27,7 +27,7 @@ const balanceConfig = { balance: { label: 'Balance', color: 'var(--chart-1)' } }
 /** Single-series balance over time: 2px line, faint fill, hairline grid. */
 export function BalanceChart({
   data,
-  currency = 'CAD',
+  currency = getDisplayCurrency(),
   className,
   from,
 }: {
@@ -65,7 +65,7 @@ export function BalanceChart({
           tickLine={false}
           axisLine={false}
           width={52}
-          tickFormatter={(v: number) => formatMoneyCompact(v)}
+          tickFormatter={(v: number) => formatMoneyCompact(v, currency)}
           domain={[min < 0 ? 'auto' : 0, 'auto']}
         />
         <ChartTooltip
@@ -130,7 +130,7 @@ export function CashflowChart({
                   { color: 'var(--color-in)', name: 'Money in', value: formatMoney(row.in) },
                   { color: 'var(--color-out)', name: 'Money out', value: formatMoney(row.out) },
                   ...(row.debt > 0 ? [{ color: 'transparent', name: '  incl. loan payments', value: formatMoney(row.debt) }] : []),
-                  { color: 'transparent', name: 'Net', value: formatMoney(row.net, 'CAD', { sign: true }) },
+                  { color: 'transparent', name: 'Net', value: formatMoney(row.net, undefined, { sign: true }) },
                 ]}
               />
             )

@@ -49,6 +49,9 @@ export interface WorkPaymentRow {
   date: string
   note: string | null
   transactionId: string | null
+  /** Set when the money arrived converted: the amount and currency that landed. */
+  receivedAmount?: number | null
+  receivedCurrency?: string | null
   createdAt: string
 }
 

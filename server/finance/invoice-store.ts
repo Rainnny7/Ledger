@@ -240,7 +240,9 @@ export const DEFAULT_PROFILE: InvoiceProfile = {
 export function loadProfile(userId: string): InvoiceProfile {
   const row = db.prepare(`SELECT json FROM invoice_profile WHERE user_id = ?`).get(userId) as { json: string } | undefined
   const saved = parse<Partial<InvoiceProfile>>(row?.json ?? null, {})
-  return { ...DEFAULT_PROFILE, ...saved, from: { ...EMPTY_PARTY, ...saved.from } }
+  // Until a currency is saved here, invoices start in the account's home currency.
+  const home = (db.prepare(`SELECT currency FROM user WHERE id = ?`).get(userId) as { currency?: string | null } | undefined)?.currency
+  return { ...DEFAULT_PROFILE, ...(home ? { currency: home } : {}), ...saved, from: { ...EMPTY_PARTY, ...saved.from } }
 }
 
 export function saveProfile(userId: string, profile: InvoiceProfile) {

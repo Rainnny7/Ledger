@@ -8,13 +8,13 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { CurrencySelect } from '@/components/currency-select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { api, type Invoice, type InvoiceInput, type InvoiceParty, type InvoicesData, type PaymentMethod, type WorkJob } from '@/lib/api'
 import { demoMode } from '@/lib/demo'
 import { addDays, daysFromToday, formatShortDate, isoDate } from '@/lib/format'
-import { CURRENCIES, EMPTY_PARTY, invoiceMoney, invoiceTotals, methodKind, methodLines, round2, shareUrl, TEMPLATES, THEMES } from '@/lib/invoice'
+import { EMPTY_PARTY, invoiceMoney, invoiceTotals, methodKind, methodLines, round2, shareUrl, TEMPLATES, THEMES } from '@/lib/invoice'
 import type { InvoicePdfSource } from '@/lib/invoice-pdf'
 import { useInvoices, useWork } from '@/lib/queries'
 import { cn } from '@/lib/utils'
@@ -408,19 +408,7 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
                   />
                 </Field>
                 <Field id="inv-currency" label="Currency">
-                  <Select items={CURRENCIES.map((c) => ({ value: c, label: c }))} value={d.currency} onValueChange={(v) => v && set('currency', v)}>
-                    <SelectTrigger id="inv-currency" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(CURRENCIES as readonly string[]).includes(d.currency) ? null : <SelectItem value={d.currency}>{d.currency}</SelectItem>}
-                      {CURRENCIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <CurrencySelect id="inv-currency" value={d.currency} onChange={(v) => set('currency', v)} />
                 </Field>
               </div>
               <div className="grid gap-2">

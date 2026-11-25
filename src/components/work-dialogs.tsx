@@ -1,6 +1,7 @@
 import { Clock, Copy, Loader2, Timer } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { CurrencySelect } from '@/components/currency-select'
 import { GOAL_COLORS, accentStyle } from '@/components/goal-bits'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -11,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { api, type WorkInvoice, type WorkJob, type WorkJobInput } from '@/lib/api'
-import { formatMoney, formatShortDate, isoDate } from '@/lib/format'
+import { convertAmount, useFx } from '@/lib/currency'
+import { formatMoney, formatShortDate, getDisplayCurrency, isoDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { copyText, EVERY_PRESETS, formatDuration, formatHours, hoursInput, parseHours, paymentLine } from '@/lib/work'
 
@@ -25,6 +27,7 @@ const fail = (err: unknown) => toast.error((err as Error).message)
 export function WorkJobDialog({ open, job, onClose }: { open: boolean; job?: WorkJob | null; onClose: () => void }) {
   const [name, setName] = useState('')
   const [rate, setRate] = useState('')
+  const [currency, setCurrency] = useState(getDisplayCurrency)
   const [payAmount, setPayAmount] = useState('')
   const [every, setEvery] = useState('7')
   const [customDays, setCustomDays] = useState('10')
@@ -36,6 +39,7 @@ export function WorkJobDialog({ open, job, onClose }: { open: boolean; job?: Wor
     if (!open) return
     setName(job?.name ?? '')
     setRate(job ? String(job.rate) : '')
+    setCurrency(job?.currency ?? getDisplayCurrency())
     setPayAmount(job?.payAmount ? String(job.payAmount) : '')
     const days = job?.payEveryDays ?? 7
     const preset = EVERY_PRESETS.some((p) => p.days === days)
@@ -69,6 +73,7 @@ export function WorkJobDialog({ open, job, onClose }: { open: boolean; job?: Wor
     const body: WorkJobInput = {
       name: name.trim(),
       rate: round2(rateN),
+      currency,
       payAmount: payN > 0 && days ? round2(payN) : null,
       payEveryDays: payN > 0 ? days : null,
       color,
@@ -94,10 +99,14 @@ export function WorkJobDialog({ open, job, onClose }: { open: boolean; job?: Wor
           <DialogDescription>An hourly gig you bill yourself. Set how you usually get paid to see when it’ll be cleared.</DialogDescription>
         </DialogHeader>
         <form className="grid gap-4" onSubmit={(e) => void save(e)}>
-          <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
+          <div className="grid min-w-0 gap-2">
+            <Label htmlFor="job-name">Name</Label>
+            <Input id="job-name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="Client or job name" required autoFocus />
+          </div>
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
             <div className="grid min-w-0 gap-2">
-              <Label htmlFor="job-name">Name</Label>
-              <Input id="job-name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="Client or job name" required autoFocus />
+              <Label htmlFor="job-currency">Paid in</Label>
+              <CurrencySelect id="job-currency" value={currency} onChange={setCurrency} />
             </div>
             <div className="grid min-w-0 gap-2">
               <Label htmlFor="job-rate">Rate / hr</Label>
@@ -490,7 +499,12 @@ export function WorkPaymentDialog({ draft, onClose }: { draft: WorkPaymentDraft 
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(isoDate())
   const [note, setNote] = useState('')
+  // Paid in one currency, landed in another (billed in USD, deposited as CAD): what actually arrived.
+  const [converted, setConverted] = useState(false)
+  const [received, setReceived] = useState('')
+  const [receivedCurrency, setReceivedCurrency] = useState(getDisplayCurrency)
   const [saving, setSaving] = useState(false)
+  const fx = useFx()
   const invoice = open.find((i) => i.id === invoiceId) ?? job?.invoices.find((i) => i.id === invoiceId)
 
   useEffect(() => {
@@ -501,10 +515,17 @@ export function WorkPaymentDialog({ draft, onClose }: { draft: WorkPaymentDraft 
     setAmount(draft.amount ? String(Math.abs(draft.amount)) : usual ? String(usual) : '')
     setDate(draft.date ?? isoDate())
     setNote(draft.note ?? '')
+    const home = getDisplayCurrency()
+    setConverted(draft.job.currency !== home)
+    setReceived('')
+    setReceivedCurrency(home !== draft.job.currency ? home : draft.job.currency === 'USD' ? 'CAD' : 'USD')
   }, [draft])
 
   const value = Number(amount)
-  const valid = !!invoice && Number.isFinite(value) && value > 0 && validDate(date)
+  const receivedN = Number(received)
+  const receivedValid = !converted || !received || (Number.isFinite(receivedN) && receivedN > 0)
+  const estimate = job && value > 0 ? convertAmount(value, job.currency, receivedCurrency, fx) : null
+  const valid = !!invoice && Number.isFinite(value) && value > 0 && validDate(date) && receivedValid
   const after = invoice ? round2(invoice.remaining - (value || 0)) : 0
   const items = open.map((i) => ({
     value: i.id,
@@ -528,6 +549,9 @@ export function WorkPaymentDialog({ draft, onClose }: { draft: WorkPaymentDraft 
         date,
         note: note.trim() || null,
         transactionId: draft?.transactionId ?? null,
+        ...(converted && receivedN > 0 && receivedCurrency !== job.currency
+          ? { receivedAmount: round2(receivedN), receivedCurrency }
+          : {}),
       })
       const inv = updated.invoices.find((i) => i.id === invoice.id)
       const added = inv?.payments.find((p) => !before.has(p.id))
@@ -624,6 +648,39 @@ export function WorkPaymentDialog({ draft, onClose }: { draft: WorkPaymentDraft 
                 <Input id="wp-note" value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} placeholder="e-Transfer" />
               </div>
             </div>
+
+            {converted ? (
+              <div className="grid min-w-0 gap-2 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="wp-received">Landed in your account as</Label>
+                  <button type="button" className="text-xs font-medium text-primary hover:underline" onClick={() => setConverted(false)}>
+                    Same currency
+                  </button>
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-3">
+                  <Input
+                    id="wp-received"
+                    inputMode="decimal"
+                    value={received}
+                    onChange={(e) => setReceived(money(e.target.value))}
+                    placeholder={estimate !== null ? estimate.toFixed(2) : '0.00'}
+                    className="tabular-nums"
+                  />
+                  <CurrencySelect id="wp-received-currency" value={receivedCurrency} onChange={setReceivedCurrency} />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {receivedN > 0 && value > 0 && job
+                    ? `1 ${job.currency} = ${(receivedN / value).toFixed(4)} ${receivedCurrency} after fees and conversion`
+                    : estimate !== null && job
+                      ? `About ${formatMoney(estimate, receivedCurrency)} at today’s rate. Optional — enter what the bank shows.`
+                      : 'Optional — enter what the bank shows.'}
+                </p>
+              </div>
+            ) : (
+              <button type="button" className="justify-self-start text-xs font-medium text-primary hover:underline" onClick={() => setConverted(true)}>
+                Arrived in another currency?
+              </button>
+            )}
 
             {invoice && valid && (
               <div className="grid gap-1.5 rounded-lg border bg-muted/40 p-3 text-sm animate-in fade-in-0 duration-200">

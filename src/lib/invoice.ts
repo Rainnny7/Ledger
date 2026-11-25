@@ -19,7 +19,6 @@ export const THEMES = [
 ] as const
 export type InvoiceTheme = (typeof THEMES)[number]['id']
 
-export const CURRENCIES = ['CAD', 'USD', 'EUR', 'GBP', 'AUD', 'NZD', 'MXN', 'JPY', 'INR', 'CHF'] as const
 
 export interface MethodField {
   key: string

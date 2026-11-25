@@ -2,7 +2,17 @@ import type { AccountType } from './api'
 
 const money = new Map<string, Intl.NumberFormat>()
 
-export function formatMoney(value: number | null | undefined, currency = 'CAD', opts: { sign?: boolean } = {}) {
+/**
+ * The currency used when a figure doesn't name one: totals, which pages convert into the person's
+ * home currency. The app shell sets it from the account's preference before pages render.
+ */
+let displayCurrency = 'CAD'
+export const getDisplayCurrency = () => displayCurrency
+export function setDisplayCurrency(code: string) {
+  displayCurrency = code
+}
+
+export function formatMoney(value: number | null | undefined, currency = displayCurrency, opts: { sign?: boolean } = {}) {
   if (value === null || value === undefined) return '—'
   let f = money.get(currency)
   if (!f) {
@@ -111,12 +121,31 @@ export function formatMonth(key: string, style: 'short' | 'long' = 'short') {
 }
 
 /** Compact axis money: $1.2k, $15k, $850. */
-export function formatMoneyCompact(value: number) {
+export function formatMoneyCompact(value: number, currency = displayCurrency) {
   const abs = Math.abs(value)
   const sign = value < 0 ? '−' : ''
-  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
-  if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(abs >= 10_000 ? 0 : 1).replace(/\.0$/, '')}k`
-  return `${sign}$${Math.round(abs)}`
+  return `${sign}${currencySymbol(currency)}${compactNumber(abs)}`
+}
+
+function compactNumber(abs: number) {
+  if (abs >= 1_000_000) return `${(abs / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+  if (abs >= 1000) return `${(abs / 1000).toFixed(abs >= 10_000 ? 0 : 1).replace(/\.0$/, '')}k`
+  return String(Math.round(abs))
+}
+
+const symbols = new Map<string, string>()
+/** "$" for CAD, "US$" for USD, "€" for EUR — as en-CA writes them, so CAD stays the plain "$". */
+export function currencySymbol(currency: string) {
+  let s = symbols.get(currency)
+  if (s === undefined) {
+    try {
+      s = new Intl.NumberFormat('en-CA', { style: 'currency', currency }).formatToParts(0).find((p) => p.type === 'currency')?.value ?? currency
+    } catch {
+      s = currency
+    }
+    symbols.set(currency, s)
+  }
+  return s
 }
 
 /** Date-group heading: "Today", "Yesterday", "Tuesday, November 24" (year added when it isn't this year). */

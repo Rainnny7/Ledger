@@ -1,6 +1,7 @@
 import { Loader2, Minus, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { CurrencySelect } from '@/components/currency-select'
 import { GOAL_COLORS, GOAL_ICONS, GoalIcon, accentStyle } from '@/components/goal-bits'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -9,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { api, type Goal, type GoalInput, type GoalKind } from '@/lib/api'
-import { formatMoney, isoDate } from '@/lib/format'
+import { formatMoney, getDisplayCurrency, isoDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 const money = (s: string) => s.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1')
@@ -43,6 +44,7 @@ export function GoalDialog({
   const [name, setName] = useState('')
   const [kind, setKind] = useState<GoalKind>('save')
   const [target, setTarget] = useState('')
+  const [currency, setCurrency] = useState(getDisplayCurrency)
   const [starting, setStarting] = useState('')
   const [hasDate, setHasDate] = useState(false)
   const [date, setDate] = useState('')
@@ -57,6 +59,7 @@ export function GoalDialog({
     setName(src.name ?? '')
     setKind(src.kind ?? 'save')
     setTarget(src.target ? String(src.target) : '')
+    setCurrency(src.currency ?? getDisplayCurrency())
     setStarting('')
     setHasDate(!!src.targetDate)
     const inSixMonths = new Date()
@@ -85,6 +88,7 @@ export function GoalDialog({
       name: name.trim(),
       kind,
       target: Math.round(targetN * 100) / 100,
+      currency,
       targetDate: hasDate ? date : null,
       icon,
       color,
@@ -146,7 +150,7 @@ export function GoalDialog({
             </div>
           </div>
 
-          <div className={cn('grid gap-3', !goal && 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)]')}>
+          <div className={cn('grid gap-3', goal ? 'grid-cols-[minmax(0,1fr)_6.5rem]' : 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_6.5rem]')}>
             <div className="grid min-w-0 gap-2">
               <Label htmlFor="goal-target">{kind === 'payoff' ? 'Amount owed' : 'Target'}</Label>
               <Input id="goal-target" inputMode="decimal" value={target} onChange={(e) => setTarget(money(e.target.value))} placeholder="3000" required />
@@ -157,6 +161,10 @@ export function GoalDialog({
                 <Input id="goal-start" inputMode="decimal" value={starting} onChange={(e) => setStarting(money(e.target.value))} placeholder="0" />
               </div>
             )}
+            <div className="grid min-w-0 gap-2">
+              <Label htmlFor="goal-currency">Currency</Label>
+              <CurrencySelect id="goal-currency" value={currency} onChange={setCurrency} />
+            </div>
           </div>
 
           <div className="grid min-w-0 gap-2">
