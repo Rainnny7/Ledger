@@ -12,9 +12,6 @@ export type Flow = "all" | "in" | "out"
 /** Shape for `TagFilter` used across this module. */
 export type TagFilter = "all" | TaxTag | "untagged"
 
-/** `TRANSACTIONS_PAGE` helper or constant for this feature area. */
-export const TRANSACTIONS_PAGE = 100
-
 /** `transactionPeriodItems:` helper or constant for this feature area. */
 export const transactionPeriodItems: { value: RangeKey; label: string }[] = [
 	{ value: "30d", label: "Last 30 days" },

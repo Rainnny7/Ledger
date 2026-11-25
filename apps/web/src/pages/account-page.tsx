@@ -28,6 +28,7 @@ import type { Account, Category, Transaction } from "@/lib/api"
 import { CATEGORY_LIST, CATEGORY_META } from "@/lib/categories"
 import { balanceSeries, downloadCsv, spendByCategory } from "@/lib/finance"
 import { ACCOUNT_TYPE_LABEL, formatRelative } from "@/lib/format"
+import { usePagination } from "@/components/transactions/use-pagination"
 import { useAccount } from "@/lib/queries"
 import { useUrlState } from "@/lib/url-state"
 
@@ -67,8 +68,6 @@ export function AccountPage() {
 	)
 }
 
-const PAGE = 100
-
 function AccountView({
 	account,
 	transactions,
@@ -91,7 +90,6 @@ function AccountView({
 	)
 	const [period, setPeriod] = useUrlState<RangeKey>("period", "90d", ranges)
 	const [chartRange, setChartRange] = useRangeState("chart", "90d")
-	const [limit, setLimit] = useState(PAGE)
 	const [selected, setSelected] = useState<Transaction | null>(null)
 	const includeOverdraft = useIncludeOverdraft()
 
@@ -113,6 +111,16 @@ function AccountView({
 					Math.abs(transaction.amount).toFixed(2).includes(needle))
 		)
 	}, [transactions, query, flow, category, from])
+
+	const {
+		page,
+		perPage,
+		totalPages,
+		setPage,
+		setPerPage,
+		resetPage,
+	} = usePagination(filtered.length)
+	const shown = filtered.slice((page - 1) * perPage, page * perPage)
 
 	const totals = useMemo(() => {
 		let moneyIn = 0
@@ -148,9 +156,6 @@ function AccountView({
 	)
 
 	const debt = isDebtAccount(account)
-	function resetLimit() {
-		setLimit(PAGE)
-	}
 
 	function exportCsv() {
 		downloadCsv(
@@ -261,7 +266,7 @@ function AccountView({
 										? "all"
 										: pickedCategory
 								)
-								resetLimit()
+								resetPage()
 							}}
 						/>
 					</CardContent>
@@ -272,6 +277,7 @@ function AccountView({
 				account={account}
 				transactions={transactions}
 				filtered={filtered}
+				shown={shown}
 				totals={totals}
 				query={query}
 				setQuery={setQuery}
@@ -281,10 +287,13 @@ function AccountView({
 				setCategory={setCategory}
 				period={period}
 				setPeriod={setPeriod}
-				limit={limit}
-				setLimit={setLimit}
+				page={page}
+				perPage={perPage}
+				totalPages={totalPages}
+				setPage={setPage}
+				setPerPage={setPerPage}
+				resetPage={resetPage}
 				setSelected={setSelected}
-				pageSize={PAGE}
 				onExport={exportCsv}
 			/>
 

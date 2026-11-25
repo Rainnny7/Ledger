@@ -5,6 +5,7 @@ import {
 	accountPeriodItems,
 } from "@/components/accounts/account-filter-items"
 import { SearchInput } from "@/components/common/search-input"
+import { TransactionsPagination } from "@/components/transactions/transactions-pagination"
 import { TransactionsTable } from "@/components/transactions/transactions-table"
 import { Button } from "@/components/ui/button"
 import {
@@ -33,6 +34,7 @@ export function AccountTransactionsCard({
 	account,
 	transactions,
 	filtered,
+	shown,
 	totals,
 	query,
 	setQuery,
@@ -42,15 +44,19 @@ export function AccountTransactionsCard({
 	setCategory,
 	period,
 	setPeriod,
-	limit,
-	setLimit,
+	page,
+	perPage,
+	totalPages,
+	setPage,
+	setPerPage,
+	resetPage,
 	setSelected,
-	pageSize,
 	onExport,
 }: {
 	account: Account
 	transactions: Transaction[]
 	filtered: Transaction[]
+	shown: Transaction[]
 	totals: { moneyIn: number; moneyOut: number }
 	query: string
 	setQuery: (value: string) => void
@@ -60,17 +66,16 @@ export function AccountTransactionsCard({
 	setCategory: (value: Category | "all") => void
 	period: RangeKey
 	setPeriod: (value: RangeKey) => void
-	limit: number
-	setLimit: (value: number | ((limit: number) => number)) => void
+	page: number
+	perPage: number
+	totalPages: number
+	setPage: (page: number) => void
+	setPerPage: (perPage: number) => void
+	resetPage: () => void
 	setSelected: (transaction: Transaction | null) => void
-	pageSize: number
 	onExport: () => void
 }) {
 	const earliest = transactions.at(-1)?.date
-
-	function resetLimit() {
-		setLimit(pageSize)
-	}
 
 	return (
 		<Card>
@@ -131,7 +136,7 @@ export function AccountTransactionsCard({
 						value={query}
 						onChange={(next) => {
 							setQuery(next)
-							resetLimit()
+							resetPage()
 						}}
 					/>
 					<Select
@@ -141,7 +146,7 @@ export function AccountTransactionsCard({
 							if (next) {
 								setPeriod(next as RangeKey)
 							}
-							resetLimit()
+							resetPage()
 						}}
 					>
 						<SelectTrigger className="w-36">
@@ -165,7 +170,7 @@ export function AccountTransactionsCard({
 							if (next) {
 								setCategory(next as Category | "all")
 							}
-							resetLimit()
+							resetPage()
 						}}
 					>
 						<SelectTrigger className="w-44">
@@ -186,7 +191,7 @@ export function AccountTransactionsCard({
 						value={flow}
 						onValueChange={(next) => {
 							setFlow(next as Flow)
-							resetLimit()
+							resetPage()
 						}}
 					>
 						<TabsList>
@@ -205,28 +210,24 @@ export function AccountTransactionsCard({
 							: "No transactions match."}
 					</p>
 				) : (
-					<TransactionsTable
-						transactions={filtered.slice(0, limit)}
-						accounts={[account]}
-						onSelect={setSelected}
-						showBalance={transactions.some(
-							(row) => row.runningBalance !== null
-						)}
-					/>
-				)}
-				{filtered.length > limit && (
-					<div className="flex justify-center pt-4">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() =>
-								setLimit((current) => current + pageSize)
-							}
-						>
-							Show {Math.min(pageSize, filtered.length - limit)}{" "}
-							more
-						</Button>
-					</div>
+					<>
+						<TransactionsTable
+							transactions={shown}
+							accounts={[account]}
+							onSelect={setSelected}
+							showBalance={transactions.some(
+								(row) => row.runningBalance !== null
+							)}
+						/>
+						<TransactionsPagination
+							page={page}
+							totalPages={totalPages}
+							totalCount={filtered.length}
+							perPage={perPage}
+							onPageChange={setPage}
+							onPerPageChange={setPerPage}
+						/>
+					</>
 				)}
 			</CardContent>
 		</Card>

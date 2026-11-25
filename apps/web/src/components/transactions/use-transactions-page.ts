@@ -4,11 +4,11 @@ import {
 } from "@/components/transactions/transactions-page-bulk"
 import { filterTransactions } from "@/components/transactions/transactions-page-filter"
 import {
-	TRANSACTIONS_PAGE,
 	transactionCategoryItems,
 	transactionPeriodItems,
 	transactionTagItems,
 } from "@/components/transactions/transactions-filter-items"
+import { usePagination } from "@/components/transactions/use-pagination"
 import { useTransactionsUrl } from "@/components/transactions/use-transactions-url"
 import { type Transaction } from "@/lib/api"
 import { CATEGORY_META, TAX_TAG_META } from "@/lib/categories"
@@ -46,7 +46,6 @@ export function useTransactionsPage() {
 		until,
 	} = url
 
-	const [limit, setLimit] = useState(TRANSACTIONS_PAGE)
 	const [selected, setSelected] = useState<Transaction | null>(null)
 	const [picked, setPicked] = useState<ReadonlySet<string>>(new Set())
 	const [applying, setApplying] = useState(false)
@@ -109,7 +108,10 @@ export function useTransactionsPage() {
 		return { moneyIn, moneyOut, mixed: home.mixed }
 	}, [accounts, filtered, converter])
 
-	const shown = filtered.slice(0, limit)
+	const pagination = usePagination(filtered.length)
+	const { page, perPage, totalPages, setPage, setPerPage, resetPage } =
+		pagination
+	const shown = filtered.slice((page - 1) * perPage, page * perPage)
 	const pickedShown = shown.filter((row) => picked.has(row.id))
 	const allShownPicked =
 		shown.length > 0 && pickedShown.length === shown.length
@@ -141,7 +143,7 @@ export function useTransactionsPage() {
 		: transactionPeriodItems
 
 	function changed() {
-		setLimit(TRANSACTIONS_PAGE)
+		resetPage()
 		setPicked(new Set())
 		lastPicked.current = null
 	}
@@ -281,8 +283,11 @@ export function useTransactionsPage() {
 		links,
 		setLinks,
 		since,
-		limit,
-		setLimit,
+		page,
+		perPage,
+		totalPages,
+		setPage,
+		setPerPage,
 		selected,
 		setSelected,
 		picked,

@@ -1,8 +1,8 @@
 import type { useTransactionsPage } from "@/components/transactions/use-transactions-page"
 import { TransactionsBulkToolbar } from "@/components/transactions/transactions-bulk-toolbar"
 import { TransactionsFilterSelect } from "@/components/transactions/transactions-filter-select"
+import { TransactionsPagination } from "@/components/transactions/transactions-pagination"
 import { TransactionsTable } from "@/components/transactions/transactions-table"
-import { TRANSACTIONS_PAGE } from "@/components/transactions/transactions-filter-items"
 import { SearchInput } from "@/components/common/search-input"
 import { Button } from "@/components/ui/button"
 import {
@@ -39,8 +39,11 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 		setTag,
 		setLinks,
 		since,
-		limit,
-		setLimit,
+		page,
+		perPage,
+		totalPages,
+		setPage,
+		setPerPage,
 		setSelected,
 		picked,
 		setPicked,
@@ -245,34 +248,23 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							: "No transactions match."}
 					</p>
 				) : (
-					<TransactionsTable
-						transactions={shown}
-						accounts={accounts}
-						onSelect={setSelected}
-						showAccount={accounts.length > 1}
-						selection={{ ids: picked, toggle }}
-					/>
-				)}
-				{filtered.length > limit && (
-					<div className="border-t p-3 text-center">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() =>
-								setLimit(
-									(currentLimit) =>
-										currentLimit + TRANSACTIONS_PAGE
-								)
-							}
-						>
-							Show{" "}
-							{Math.min(
-								TRANSACTIONS_PAGE,
-								filtered.length - limit
-							)}{" "}
-							more
-						</Button>
-					</div>
+					<>
+						<TransactionsTable
+							transactions={shown}
+							accounts={accounts}
+							onSelect={setSelected}
+							showAccount={accounts.length > 1}
+							selection={{ ids: picked, toggle }}
+						/>
+						<TransactionsPagination
+							page={page}
+							totalPages={totalPages}
+							totalCount={filtered.length}
+							perPage={perPage}
+							onPageChange={setPage}
+							onPerPageChange={setPerPage}
+						/>
+					</>
 				)}
 			</CardContent>
 		</Card>
