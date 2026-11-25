@@ -139,7 +139,6 @@ All optional. See [`.env.example`](.env.example). For deployment details see [SE
 | `FX_LIVE_URL`        | `https://api.coinbase.com/v2/exchange-rates?currency=USD` | Where live exchange rates are fetched from (Coinbase-compatible; `off` to turn off)               |
 | `FX_RATES_URL`       | `https://api.frankfurter.dev/v1/latest`                   | Fallback daily ECB rates (Frankfurter-compatible)                                                 |
 | `PAYPAL_ENV`         | `live`                                                    | `sandbox` to test against PayPal's sandbox                                                        |
-| `UPDATE_REPO`        | `rainnny7/ledger`                                         | GitHub `owner/repo` checked for newer releases (private repos fail quietly)                       |
 | `UPDATE_CHECK`       | `true` (`false` disables)                                 | Poll GitHub for releases (~every 6 hours) for the admin update banner                             |
 | `LEDGER_INSTALL`     | `source` (`docker` in the image)                          | Whether the admin UI suggests Docker or source upgrade commands                                   |
 | `BACKUPS_KEPT`       | `14`                                                      | How many scheduled backup files to keep in `DATA_DIR/backups`                                     |

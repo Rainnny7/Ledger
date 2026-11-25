@@ -623,6 +623,7 @@ export type UpdateInfo = {
 	url: string | null
 	notes: string | null
 	publishedAt: string | null
+	checkEnabled: boolean
 	install: "docker" | "source"
 	commands: string[]
 }

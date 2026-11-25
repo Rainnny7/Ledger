@@ -4,6 +4,15 @@ import { useUpdate } from "@/lib/queries"
 /** Running version and whether GitHub reports something newer. */
 export function UpdateStatus() {
 	const { data, isError, isPending } = useUpdate(true)
+	if (data && !data.checkEnabled) {
+		return (
+			<Hint label="Update checks are turned off on this server (UPDATE_CHECK=false)">
+				<span className="cursor-default text-xs text-muted-foreground">
+					v{data.current} · update checks off
+				</span>
+			</Hint>
+		)
+	}
 	if (isPending) {
 		return (
 			<span className="text-xs text-muted-foreground">

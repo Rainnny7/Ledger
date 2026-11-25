@@ -31,7 +31,7 @@ import { formatRelative, formatTimestamp } from "@/lib/format"
 export function BackupsCard() {
 	const backups = useQuery({
 		queryKey: backupsKey,
-		queryFn: () => adminFetch<{ backups: BackupInfo[] }>("backups"),
+		queryFn: () => adminFetch<{ backups: BackupInfo[]; kept: number }>("backups"),
 	})
 	const list = backups.data?.backups ?? []
 	const [open, setOpen] = useState(false)
@@ -44,7 +44,7 @@ export function BackupsCard() {
 				</CardTitle>
 				<CardDescription>
 					A copy of the whole database is made every day; the most
-					recent ones are kept. Download one to keep it somewhere else
+					recent {backups.data?.kept ?? ""} are kept. Download one to keep it somewhere else
 					too.
 				</CardDescription>
 				<CardAction>

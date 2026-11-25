@@ -96,8 +96,6 @@ export const env = createEnv({
 		FX_RATES_URL: z.url().default("https://api.frankfurter.dev/v1/latest"),
 		/** `live` (default) or `sandbox`, to test the PayPal connection against PayPal's sandbox. */
 		PAYPAL_ENV: z.enum(["live", "sandbox"]).default("live"),
-		/** GitHub `owner/repo` checked for newer releases (private repos fail quietly). */
-		UPDATE_REPO: z.string().default("rainnny7/ledger"),
 		/** Set UPDATE_CHECK=false to skip polling GitHub. */
 		UPDATE_CHECK: stringBoolean(true),
 		/** How this copy was installed; the Docker image sets `docker`. */

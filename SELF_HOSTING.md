@@ -153,7 +153,7 @@ For Docker, the database is `./data/app.db` on the host mount. Copy backups off 
 
 ## Updating
 
-**In-app notice (admins).** When `UPDATE_CHECK` is not `false`, the server polls GitHub’s latest release for `UPDATE_REPO` (default `rainnny7/ledger`) about every **6 hours** (cached). Admins see a banner with release notes and copy-paste upgrade commands. Set `UPDATE_CHECK=false` to disable. Set `LEDGER_INSTALL=docker` or rely on the Docker image’s default so the UI suggests Docker commands instead of source.
+**In-app notice (admins).** When `UPDATE_CHECK` is not `false`, the server polls GitHub’s latest release for `rainnny7/ledger` about every **6 hours** (cached). Admins see a banner with release notes and copy-paste upgrade commands. Set `UPDATE_CHECK=false` to disable. Set `LEDGER_INSTALL=docker` or rely on the Docker image’s default so the UI suggests Docker commands instead of source.
 
 **Docker Compose:**
 
@@ -203,6 +203,6 @@ Review release notes before auto-upgrading production; database migrations are f
 | Everyone logged out / saved bank passwords invalid | Usually a new or changed `APP_SECRET`. Restore `data/.secret` or the previous env value; otherwise re-enter bank credentials.                                        |
 | PayPal webhooks never arrive                       | `PUBLIC_URL` must be a reachable public `https://` URL; reverse proxy must forward to Ledger.                                                                        |
 | Rate limits wrong behind a proxy                   | Set `TRUST_PROXY=true` only when clients cannot bypass the proxy.                                                                                                    |
-| Update check never shows a release                 | Repo must be public or GitHub must allow the request; set `UPDATE_REPO` if you fork. Use `UPDATE_CHECK=false` to silence failures.                                   |
+| Update check never shows a release                 | GitHub must allow the request. Use `UPDATE_CHECK=false` to silence failures.                                   |
 
 For app behaviour and bank connections, see the main [README](README.md).

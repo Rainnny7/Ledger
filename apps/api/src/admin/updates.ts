@@ -21,6 +21,8 @@ export type UpdateInfo = {
 	url: string | null
 	notes: string | null
 	publishedAt: string | null
+	/** False when the server has UPDATE_CHECK=false, so nothing is polled. */
+	checkEnabled: boolean
 	install: UpdateInstall
 	commands: string[]
 }
@@ -83,6 +85,7 @@ function baseInfo(): Omit<
 	const install: UpdateInstall = env.LEDGER_INSTALL
 	return {
 		current: readCurrentVersion(),
+		checkEnabled: env.UPDATE_CHECK,
 		install,
 		commands: installCommands(install),
 	}
@@ -107,7 +110,7 @@ async function fetchLatest(): Promise<UpdateInfo> {
 			publishedAt: null,
 		}
 	}
-	const url = `https://api.github.com/repos/${env.UPDATE_REPO}/releases/latest`
+	const url = "https://api.github.com/repos/rainnny7/ledger/releases/latest"
 	try {
 		const response = await fetch(url, {
 			headers: {

@@ -131,7 +131,7 @@ admin.get("/backups", ({ user, status }) => {
 			error: "Only the instance owner can view backups.",
 		})
 	}
-	return { backups: listBackups() }
+	return { backups: listBackups(), kept: env.BACKUPS_KEPT }
 })
 /** Back up now, with an optional note on why. Quick (one VACUUM INTO), so it waits for the copy. */
 admin.post(
