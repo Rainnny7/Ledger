@@ -322,7 +322,8 @@ export function AppShell() {
               <NavItem
                 key={item.to}
                 {...item}
-                count={item.count ? counts[item.count] : null}
+                // Counted links always show their badge (0 while loading) so the nav doesn't shift.
+                count={item.count ? (counts[item.count] ?? 0) : null}
                 // Account detail pages live under Bank Accounts.
                 active={
                   item.to === "/"
