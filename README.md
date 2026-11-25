@@ -49,6 +49,14 @@ Ledger currently connects to **TD EasyWeb** and **PayPal**.
 
 <table>
   <tr>
+    <td><img src="assets/screenshots/accounts.png" alt="Bank accounts"></td>
+    <td><img src="assets/screenshots/transactions.png" alt="Transactions"></td>
+  </tr>
+  <tr>
+    <td align="center">Bank accounts</td>
+    <td align="center">Transactions</td>
+  </tr>
+  <tr>
     <td><img src="assets/screenshots/insights.png" alt="Insights"></td>
     <td><img src="assets/screenshots/subscriptions.png" alt="Subscriptions"></td>
   </tr>
@@ -58,11 +66,25 @@ Ledger currently connects to **TD EasyWeb** and **PayPal**.
   </tr>
   <tr>
     <td><img src="assets/screenshots/goals.png" alt="Goals"></td>
-    <td><img src="assets/screenshots/work.png" alt="Work"></td>
+    <td><img src="assets/screenshots/advisor.png" alt="Advisor"></td>
   </tr>
   <tr>
     <td align="center">Goals</td>
+    <td align="center">Advisor</td>
+  </tr>
+  <tr>
+    <td><img src="assets/screenshots/work.png" alt="Work"></td>
+    <td><img src="assets/screenshots/invoices.png" alt="Invoices"></td>
+  </tr>
+  <tr>
     <td align="center">Work</td>
+    <td align="center">Invoices</td>
+  </tr>
+  <tr>
+    <td><img src="assets/screenshots/taxes.png" alt="Taxes"></td>
+  </tr>
+  <tr>
+    <td align="center">Taxes</td>
   </tr>
 </table>
 
