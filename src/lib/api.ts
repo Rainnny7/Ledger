@@ -88,7 +88,35 @@ export type CycleUnit = 'weeks' | 'months' | 'years'
 /** A preset billing period, or a custom one like `every-5-years`. */
 export type Cycle = PresetCycle | `every-${number}-${CycleUnit}`
 
-export interface Subscription {
+export type ShareKind = 'goal' | 'subscription' | 'job'
+export type SharePermission = 'view' | 'edit'
+export type ShareRole = 'owner' | SharePermission
+
+export interface Share {
+  id: string
+  email: string
+  /** Your contact name for them. */
+  name: string | null
+  permission: SharePermission
+}
+
+/** Who can see a goal, subscription or job, and what you can do with it. */
+export interface Shared {
+  access: ShareRole
+  /** Set when someone else owns it and shared it with you. */
+  owner: { name: string; email: string } | null
+  /** Who you've shared it with (your own items only). */
+  sharedWith: Share[]
+}
+
+export interface Contact {
+  id: string
+  email: string
+  name: string | null
+  createdAt: string
+}
+
+export interface Subscription extends Shared {
   id: string
   name: string
   amount: number
@@ -104,7 +132,8 @@ export interface Subscription {
   nextDue: string
   monthly: number
   lastCharge: { date: string; amount: number } | null
-  payments: { id: string; date: string; amount: number; accountId: string; pending: boolean }[]
+  /** accountId is null on someone else's subscription. */
+  payments: { id: string; date: string; amount: number; accountId: string | null; pending: boolean }[]
 }
 
 export interface RecurringSuggestion {
@@ -148,7 +177,7 @@ export interface GoalPayment {
   createdAt: string
 }
 
-export interface Goal {
+export interface Goal extends Shared {
   id: string
   name: string
   kind: GoalKind
@@ -199,6 +228,9 @@ export interface WorkPayment {
   date: string
   note: string | null
   transactionId: string | null
+  /** Set when the money arrived converted: the amount and currency that landed. */
+  receivedAmount?: number | null
+  receivedCurrency?: string | null
   createdAt: string
   /** Still owed on the bill after this payment. */
   remainingAfter: number
@@ -235,7 +267,7 @@ export interface WorkEntry {
   createdAt: string
 }
 
-export interface WorkJob {
+export interface WorkJob extends Shared {
   id: string
   name: string
   rate: number
@@ -286,7 +318,22 @@ export type WorkInvoiceInput = {
   entryIds?: string[]
 }
 
-export type WorkPaymentInput = { amount: number; date: string; note?: string | null; transactionId?: string | null }
+export type WorkPaymentInput = {
+  amount: number
+  date: string
+  note?: string | null
+  transactionId?: string | null
+  receivedAmount?: number | null
+  receivedCurrency?: string | null
+}
+
+/** Daily reference rates: 1 `base` = `rates[code]` of that currency. */
+export interface FxRates {
+  base: string
+  date: string
+  rates: Record<string, number>
+  fetchedAt: string | null
+}
 
 // ---------------------------------------------------------------- invoices
 
@@ -466,6 +513,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  fx: () => request<FxRates>('/fx'),
   overview: () => request<{ connections: Connection[]; accounts: Account[] }>('/connections'),
   account: (id: string) => request<{ account: Account; transactions: Transaction[] }>(`/accounts/${id}`),
   accountDetails: (id: string) =>
@@ -525,6 +573,21 @@ export const api = {
   addWorkPayment: (invoiceId: string, body: WorkPaymentInput) =>
     request<{ job: WorkJob }>(`/work/invoices/${invoiceId}/payments`, { method: 'POST', body: JSON.stringify(body) }),
   deleteWorkPayment: (id: string) => request<{ job: WorkJob }>(`/work/payments/${id}`, { method: 'DELETE' }),
+
+  contacts: () => request<{ contacts: Contact[] }>('/contacts'),
+  addContact: (body: { email: string; name?: string | null }) =>
+    request<{ contact: Contact }>('/contacts', { method: 'POST', body: JSON.stringify(body) }),
+  updateContact: (id: string, body: { name: string | null }) =>
+    request<{ contact: Contact }>(`/contacts/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteContact: (id: string) => request<{ ok: true }>(`/contacts/${id}`, { method: 'DELETE' }),
+
+  shares: (kind: ShareKind, itemId: string) => request<{ shares: Share[] }>(`/shares/${kind}/${itemId}`),
+  share: (kind: ShareKind, itemId: string, body: { email: string; permission: SharePermission }) =>
+    request<{ shares: Share[] }>(`/shares/${kind}/${itemId}`, { method: 'POST', body: JSON.stringify(body) }),
+  updateShare: (id: string, permission: SharePermission) =>
+    request<{ ok: true }>(`/shares/${id}`, { method: 'PATCH', body: JSON.stringify({ permission }) }),
+  unshare: (id: string) => request<{ ok: true }>(`/shares/${id}`, { method: 'DELETE' }),
+  leaveShare: (kind: ShareKind, itemId: string) => request<{ ok: true }>(`/shares/${kind}/${itemId}/me`, { method: 'DELETE' }),
 
   invoices: () => request<InvoicesData>('/invoices'),
   createInvoice: (body: InvoiceInput) => request<{ invoice: Invoice }>('/invoices', { method: 'POST', body: JSON.stringify(body) }),

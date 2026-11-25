@@ -12,10 +12,13 @@ import {
   HandCoins,
   Link2,
   MoreHorizontal,
+  LogOut,
   Pencil,
   Plus,
   ReceiptText,
+  Share2,
   Trash2,
+  Users,
   X,
 } from 'lucide-react'
 import { AnimatedMoney } from '@/components/count-up'
@@ -23,6 +26,8 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { accentStyle, tintStyle } from '@/components/goal-bits'
+import { ShareBadge, ShareDialog } from '@/components/share-bits'
+import { leaveShared, shortName, splitShared } from '@/lib/sharing'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -44,6 +49,7 @@ import {
 import { api, type InvoiceStatus, type WorkInvoice, type WorkJob } from '@/lib/api'
 import { demoMode } from '@/lib/demo'
 import { formatDate, formatMoney, formatRelativeDate, formatShortDate, isoDate } from '@/lib/format'
+import { useConverter } from '@/lib/currency'
 import { useWork } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 import { copyText, formatDuration, formatHours, invoiceText, paymentLine, scheduleLabel } from '@/lib/work'
@@ -63,15 +69,30 @@ export function WorkPage() {
   const [billing, setBilling] = useState<InvoiceDraft | null>(null)
   const [paying, setPaying] = useState<WorkPaymentDraft | null>(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [sharing, setSharing] = useState<WorkJob | null>(null)
 
-  const jobs = useMemo(() => data?.jobs ?? [], [data])
+  // Totals are your own jobs; ones shared with you get their own section.
+  const { own: jobs, shared } = useMemo(() => splitShared(data?.jobs ?? []), [data])
+  const sharedActive = shared.filter((j) => !j.archived)
   const active = jobs.filter((j) => !j.archived)
   const archived = jobs.filter((j) => j.archived)
 
-  const owed = active.reduce((s, j) => s + j.owed, 0)
+  // Jobs can pay in different currencies; the totals are in the home currency. Money that arrived
+  // converted (billed in USD, landed as CAD) counts at what actually landed.
+  const fx = useConverter()
+  const owed = fx.sum(active.map((j) => [j.owed, j.currency]))
   const unbilledHours = active.reduce((s, j) => s + j.unbilledHours, 0)
-  const unbilledValue = active.reduce((s, j) => s + j.unbilledValue, 0)
-  const paidThisMonth = active.reduce((s, j) => s + j.paidThisMonth, 0)
+  const unbilledValue = fx.sum(active.map((j) => [j.unbilledValue, j.currency]))
+  const month = isoDate().slice(0, 7)
+  const paidThisMonth = fx.sum(
+      active.flatMap((j) =>
+        j.invoices.flatMap((inv) =>
+          inv.payments
+            .filter((p) => p.date.startsWith(month))
+            .map((p) => (p.receivedAmount && p.receivedCurrency ? ([p.receivedAmount, p.receivedCurrency] as const) : ([p.amount, j.currency] as const))),
+        ),
+      ),
+  )
   const next = active
     .filter((j) => j.nextPaymentDate)
     .sort((a, b) => a.nextPaymentDate!.localeCompare(b.nextPaymentDate!))[0]
@@ -114,6 +135,8 @@ export function WorkPage() {
     onEdit: guard((j) => setJobDialog({ job: j })),
     onArchive: guard((j) => void setArchived(j, !j.archived)),
     onDelete: guard((j) => void removeJob(j)),
+    onShare: guard((j) => setSharing(j)),
+    onLeave: (j) => void leaveShared('job', j),
   }
 
   return (
@@ -141,7 +164,7 @@ export function WorkPage() {
           </div>
           <Skeleton className="h-72 rounded-xl" />
         </div>
-      ) : jobs.length === 0 ? (
+      ) : jobs.length === 0 && sharedActive.length === 0 ? (
         <EmptyWork onAdd={guard(() => setJobDialog({ job: null }))} />
       ) : (
         <>
@@ -161,6 +184,17 @@ export function WorkPage() {
           {active.map((j) => (
             <JobSection key={j.id} job={j} {...actions} />
           ))}
+
+          {sharedActive.length > 0 && (
+            <section className="grid gap-4">
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
+                <Users className="size-4 text-primary" /> Shared with you
+              </h2>
+              {sharedActive.map((j) => (
+                <JobSection key={j.id} job={j} {...actions} />
+              ))}
+            </section>
+          )}
 
           {archived.length > 0 && (
             <section className="grid gap-3">
@@ -188,6 +222,7 @@ export function WorkPage() {
       <WorkEntryDialog job={logging} onClose={() => setLogging(null)} />
       <WorkInvoiceDialog draft={billing} onClose={() => setBilling(null)} />
       <WorkPaymentDialog draft={paying} onClose={() => setPaying(null)} />
+      <ShareDialog kind="job" item={sharing} onClose={() => setSharing(null)} />
     </div>
   )
 }
@@ -199,6 +234,8 @@ interface JobActions {
   onEdit: (j: WorkJob) => void
   onArchive: (j: WorkJob) => void
   onDelete: (j: WorkJob) => void
+  onShare: (j: WorkJob) => void
+  onLeave: (j: WorkJob) => void
 }
 
 function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
@@ -207,6 +244,9 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
   const schedule = scheduleLabel(j, money)
   const openBills = j.invoices.filter((i) => i.status !== 'paid')
   const paidBills = j.invoices.filter((i) => i.status === 'paid')
+  const owner = j.access === 'owner'
+  // Demo mode, or a job someone shared with you to look at only.
+  const readonly = demoMode || j.access === 'view'
 
   async function removeEntry(id: string) {
     if (demoMode) return readOnly()
@@ -225,7 +265,10 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
           <Briefcase className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <CardTitle className="truncate">{j.name}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <span className="truncate">{j.name}</span>
+            <ShareBadge item={j} onClick={() => actions.onShare(j)} />
+          </CardTitle>
           <CardDescription className="truncate">
             {money(j.rate)}/hr
             {schedule && ` · paid ${schedule}`}
@@ -237,16 +280,29 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
               <MoreHorizontal />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => actions.onEdit(j)}>
-                <Pencil /> Edit job
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => actions.onArchive(j)}>
-                {j.archived ? <ArchiveRestore /> : <Archive />} {j.archived ? 'Restore' : 'Archive'}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => actions.onDelete(j)}>
-                <Trash2 /> Delete
-              </DropdownMenuItem>
+              {!readonly && (
+                <DropdownMenuItem onClick={() => actions.onEdit(j)}>
+                  <Pencil /> Edit job
+                </DropdownMenuItem>
+              )}
+              {owner ? (
+                <>
+                  <DropdownMenuItem onClick={() => actions.onShare(j)}>
+                    <Share2 /> Share
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => actions.onArchive(j)}>
+                    {j.archived ? <ArchiveRestore /> : <Archive />} {j.archived ? 'Restore' : 'Archive'}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onClick={() => actions.onDelete(j)}>
+                    <Trash2 /> Delete
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem variant="destructive" onClick={() => actions.onLeave(j)}>
+                  <LogOut /> Remove from my jobs
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -255,11 +311,11 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
       <CardContent className="grid gap-5 pt-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase">Owed to you</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase">{j.owner ? `Owed to ${shortName(j.owner)}` : 'Owed to you'}</p>
             <p className="text-3xl font-semibold tabular-nums">{money(j.owed)}</p>
             <p className="mt-0.5 text-sm text-muted-foreground">{jobNudge(j, money)}</p>
           </div>
-          {!demoMode && !j.archived && (
+          {!readonly && !j.archived && (
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => actions.onLog(j)}>
                 <Clock /> Log hours
@@ -291,7 +347,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
                   <span className="w-14 shrink-0 text-muted-foreground tabular-nums">{formatShortDate(e.date)}</span>
                   <span className="min-w-0 flex-1 truncate text-muted-foreground">{e.note}</span>
                   <span className="tabular-nums">{formatDuration(e.hours)}</span>
-                  {!demoMode && (
+                  {!readonly && (
                     <button
                       type="button"
                       aria-label="Remove shift"
@@ -367,6 +423,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
   // Newest first on screen, like a feed.
   const payments = [...inv.payments].reverse()
   const shown = showAll ? payments : payments.slice(0, 4)
+  const readonly = demoMode || j.access === 'view'
 
   async function remove() {
     const n = inv.payments.length
@@ -406,7 +463,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
         <Button variant="ghost" size="icon-xs" aria-label="Copy for chat" title="Copy as a message" onClick={() => void copy(invoiceText(inv), 'Bill')}>
           <Copy />
         </Button>
-        {!demoMode && (
+        {!readonly && (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label="Bill options" />}>
               <MoreHorizontal />
@@ -417,9 +474,12 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
                   <HandCoins /> Record payment
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem render={<Link to={`/invoices/new?fromBill=${inv.id}`} />}>
-                <FileText /> Make an invoice
-              </DropdownMenuItem>
+              {/* Invoices go out under the owner's business details. */}
+              {j.access === 'owner' && (
+                <DropdownMenuItem render={<Link to={`/invoices/new?fromBill=${inv.id}`} />}>
+                  <FileText /> Make an invoice
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => onBill(j, inv)}>
                 <Pencil /> Edit bill
               </DropdownMenuItem>
@@ -463,6 +523,14 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
               <li key={p.id} className="group flex items-center gap-2 rounded-md px-2 py-1 odd:bg-muted/40">
                 <span className="w-14 shrink-0 text-muted-foreground tabular-nums">{formatShortDate(p.date)}</span>
                 <span className="text-emerald-600 tabular-nums dark:text-emerald-400">+{money(p.amount)}</span>
+                {p.receivedAmount && p.receivedCurrency && (
+                  <span
+                    className="shrink-0 text-xs text-muted-foreground tabular-nums"
+                    title={`Landed as ${formatMoney(p.receivedAmount, p.receivedCurrency)} · 1 = ${(p.receivedAmount / p.amount).toFixed(4)}`}
+                  >
+                    → {formatMoney(p.receivedAmount, p.receivedCurrency)}
+                  </span>
+                )}
                 <span className="flex min-w-0 flex-1 items-center justify-end gap-1 truncate text-xs text-muted-foreground tabular-nums">
                   {p.transactionId && <Link2 className="size-3 shrink-0" aria-label="Linked to a transaction" />}
                   {p.remainingAfter > 0 ? `${money(p.remainingAfter)} left` : 'cleared'}
@@ -476,7 +544,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
                 >
                   <Copy className="size-3.5" />
                 </button>
-                {!demoMode && (
+                {!readonly && (
                   <button
                     type="button"
                     aria-label="Remove payment"

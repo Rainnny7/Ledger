@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import type { auth } from '../auth.ts'
 import { db } from '../db.ts'
+import { access, canEdit, forgetItem, listWithShared, viewOne } from '../sharing.ts'
 import { summarizeJob, type WorkEntryRow, type WorkInvoiceRow, type WorkJobRow, type WorkPaymentRow } from '../finance/work.ts'
 
 type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
@@ -40,7 +41,8 @@ function loadJobs(userId: string, id?: string) {
     .all(userId) as unknown as WorkEntryRow[]
   const payments = db
     .prepare(
-      `SELECT p.id, p.invoice_id AS invoiceId, p.amount, p.date, p.note, p.transaction_id AS transactionId, p.created_at AS createdAt
+      `SELECT p.id, p.invoice_id AS invoiceId, p.amount, p.date, p.note, p.transaction_id AS transactionId,
+              p.received_amount AS receivedAmount, p.received_currency AS receivedCurrency, p.created_at AS createdAt
          FROM work_payment p JOIN work_invoice i ON i.id = p.invoice_id JOIN work_job j ON j.id = i.job_id WHERE j.user_id = ?`,
     )
     .all(userId) as unknown as WorkPaymentRow[]
@@ -48,13 +50,17 @@ function loadJobs(userId: string, id?: string) {
   return jobs.map((j) => summarizeJob({ ...j, archived: Boolean(j.archived) }, invoices, entries, payments, today))
 }
 
-const ownsJob = (userId: string, jobId: string) => !!db.prepare(`SELECT 1 FROM work_job WHERE id = ? AND user_id = ?`).get(jobId, userId)
+const jobFor = (ownerId: string, id: string) => loadJobs(ownerId, id)[0]
+/** A job as the caller sees it (theirs, or shared with them). */
+const viewJob = (userId: string, id: string) => viewOne('job', userId, id, jobFor)
 
-/** The job an invoice belongs to, if the caller owns it. */
+/** Owners and people a job is shared with for editing can log hours, bills and payments. */
+const canEditJob = (userId: string, jobId: string) => canEdit(access(userId, 'job', jobId))
+
+/** The job an invoice belongs to, if the caller can edit it. */
 function invoiceJob(userId: string, invoiceId: string) {
-  const row = db
-    .prepare(`SELECT i.job_id AS jobId FROM work_invoice i JOIN work_job j ON j.id = i.job_id WHERE i.id = ? AND j.user_id = ?`)
-    .get(invoiceId, userId) as { jobId: string } | undefined
+  const row = db.prepare(`SELECT job_id AS jobId FROM work_invoice WHERE id = ?`).get(invoiceId) as { jobId: string } | undefined
+  if (row && !canEditJob(userId, row.jobId)) return undefined
   return row?.jobId ?? null
 }
 
@@ -87,7 +93,7 @@ const proofUrl = z
   .optional()
 const hours = z.number().positive().max(10_000)
 
-work.get('/work', (c) => c.json({ jobs: loadJobs(c.var.user.id) }))
+work.get('/work', (c) => c.json({ jobs: listWithShared('job', c.var.user.id, (o) => loadJobs(o), jobFor) }))
 
 // ---------------------------------------------------------------- jobs
 
@@ -111,12 +117,16 @@ work.post('/work/jobs', async (c) => {
     `INSERT INTO work_job (id, user_id, name, rate, currency, pay_amount, pay_every_days, color, notes, archived)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(id, c.var.user.id, d.name, d.rate, d.currency.toUpperCase(), d.payAmount ?? null, d.payEveryDays ?? null, d.color, clean(d.notes), d.archived ? 1 : 0)
-  return c.json({ job: loadJobs(c.var.user.id, id)[0] })
+  return c.json({ job: viewJob(c.var.user.id, id) })
 })
 
 work.patch('/work/jobs/:id', async (c) => {
   const body = jobBody.partial().safeParse(await c.req.json().catch(() => ({})))
   if (!body.success) return c.json({ error: 'Check the job details.' }, 400)
+  const a = access(c.var.user.id, 'job', c.req.param('id'))
+  if (!a) return c.json({ error: 'Not found' }, 404)
+  if (!canEdit(a)) return c.json({ error: 'You can only view this job.' }, 403)
+  if (a.role !== 'owner') delete body.data.archived
   const cols: Record<string, string> = {
     name: 'name',
     rate: 'rate',
@@ -136,15 +146,15 @@ work.patch('/work/jobs/:id', async (c) => {
     vals.push(typeof v === 'boolean' ? (v ? 1 : 0) : k === 'notes' ? clean(v as string | null) : (v as string | number | null))
   }
   if (sets.length) {
-    const r = db.prepare(`UPDATE work_job SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`).run(...vals, c.req.param('id'), c.var.user.id)
-    if (!r.changes) return c.json({ error: 'Not found' }, 404)
+    db.prepare(`UPDATE work_job SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`).run(...vals, c.req.param('id'), a.ownerId)
   }
-  const [job] = loadJobs(c.var.user.id, c.req.param('id'))
+  const job = viewJob(c.var.user.id, c.req.param('id'))
   return job ? c.json({ job }) : c.json({ error: 'Not found' }, 404)
 })
 
 work.delete('/work/jobs/:id', (c) => {
   const r = db.prepare(`DELETE FROM work_job WHERE id = ? AND user_id = ?`).run(c.req.param('id'), c.var.user.id)
+  if (r.changes) forgetItem('job', c.req.param('id'))
   return r.changes ? c.json({ ok: true }) : c.json({ error: 'Not found' }, 404)
 })
 
@@ -157,7 +167,7 @@ work.post('/work/jobs/:id/entries', async (c) => {
   if (!body.success) return c.json({ error: 'Check the hours.' }, 400)
   const userId = c.var.user.id
   const jobId = c.req.param('id')
-  if (!ownsJob(userId, jobId)) return c.json({ error: 'Not found' }, 404)
+  if (!canEditJob(userId, jobId)) return c.json({ error: 'Not found' }, 404)
   const d = body.data
   db.prepare(`INSERT INTO work_entry (id, job_id, date, hours, note) VALUES (?, ?, ?, ?, ?)`).run(
     randomUUID(),
@@ -166,17 +176,17 @@ work.post('/work/jobs/:id/entries', async (c) => {
     round2(d.hours),
     clean(d.note),
   )
-  return c.json({ job: loadJobs(userId, jobId)[0] })
+  return c.json({ job: viewJob(userId, jobId) })
 })
 
 work.delete('/work/entries/:id', (c) => {
   const userId = c.var.user.id
   const row = db
-    .prepare(`SELECT e.job_id AS jobId FROM work_entry e JOIN work_job j ON j.id = e.job_id WHERE e.id = ? AND j.user_id = ?`)
-    .get(c.req.param('id'), userId) as { jobId: string } | undefined
-  if (!row) return c.json({ error: 'Not found' }, 404)
+    .prepare(`SELECT job_id AS jobId FROM work_entry WHERE id = ?`)
+    .get(c.req.param('id')) as { jobId: string } | undefined
+  if (!row || !canEditJob(userId, row.jobId)) return c.json({ error: 'Not found' }, 404)
   db.prepare(`DELETE FROM work_entry WHERE id = ?`).run(c.req.param('id'))
-  return c.json({ job: loadJobs(userId, row.jobId)[0] })
+  return c.json({ job: viewJob(userId, row.jobId) })
 })
 
 // ---------------------------------------------------------------- bills
@@ -199,7 +209,7 @@ work.post('/work/jobs/:id/invoices', async (c) => {
   if (!body.success) return c.json({ error: body.error.issues.find((i) => i.path[0] === 'proofUrl')?.message ?? 'Check the bill details.' }, 400)
   const userId = c.var.user.id
   const jobId = c.req.param('id')
-  if (!ownsJob(userId, jobId)) return c.json({ error: 'Not found' }, 404)
+  if (!canEditJob(userId, jobId)) return c.json({ error: 'Not found' }, 404)
   const d = body.data
   const id = randomUUID()
   db.exec('BEGIN')
@@ -214,7 +224,7 @@ work.post('/work/jobs/:id/invoices', async (c) => {
     db.exec('ROLLBACK')
     throw e
   }
-  return c.json({ job: loadJobs(userId, jobId)[0] })
+  return c.json({ job: viewJob(userId, jobId) })
 })
 
 work.patch('/work/invoices/:id', async (c) => {
@@ -241,7 +251,7 @@ work.patch('/work/invoices/:id', async (c) => {
     vals.push(k === 'note' || k === 'proofUrl' ? clean(v as string | null) : typeof v === 'number' && k !== 'rate' ? round2(v) : (v as string | number | null))
   }
   if (sets.length) db.prepare(`UPDATE work_invoice SET ${sets.join(', ')} WHERE id = ?`).run(...vals, c.req.param('id'))
-  return c.json({ job: loadJobs(userId, jobId)[0] })
+  return c.json({ job: viewJob(userId, jobId) })
 })
 
 /** Deleting a bill puts its shifts back into "unbilled" and drops its payments. */
@@ -250,7 +260,7 @@ work.delete('/work/invoices/:id', (c) => {
   const jobId = invoiceJob(userId, c.req.param('id'))
   if (!jobId) return c.json({ error: 'Not found' }, 404)
   db.prepare(`DELETE FROM work_invoice WHERE id = ?`).run(c.req.param('id'))
-  return c.json({ job: loadJobs(userId, jobId)[0] })
+  return c.json({ job: viewJob(userId, jobId) })
 })
 
 // ---------------------------------------------------------------- payments
@@ -261,6 +271,9 @@ const paymentBody = z.object({
   note,
   /** The deposit in your bank this payment arrived as. */
   transactionId: z.string().max(80).nullable().optional(),
+  /** What actually landed, when you were paid in one currency and it arrived converted to another. */
+  receivedAmount: z.number().positive().max(MAX_MONEY).nullable().optional(),
+  receivedCurrency: z.string().regex(/^[A-Z]{3}$/).nullable().optional(),
 })
 
 work.post('/work/invoices/:id/payments', async (c) => {
@@ -272,26 +285,21 @@ work.post('/work/invoices/:id/payments', async (c) => {
   if (!jobId) return c.json({ error: 'Not found' }, 404)
   const d = body.data
   if (d.transactionId && !ownsTransaction(userId, d.transactionId)) return c.json({ error: 'Unknown transaction' }, 400)
-  db.prepare(`INSERT INTO work_payment (id, invoice_id, amount, date, note, transaction_id) VALUES (?, ?, ?, ?, ?, ?)`).run(
-    randomUUID(),
-    invoiceId,
-    round2(d.amount),
-    d.date,
-    clean(d.note),
-    d.transactionId ?? null,
-  )
-  return c.json({ job: loadJobs(userId, jobId)[0] })
+  const received = d.receivedAmount && d.receivedCurrency ? { amount: round2(d.receivedAmount), currency: d.receivedCurrency } : null
+  db.prepare(
+    `INSERT INTO work_payment (id, invoice_id, amount, date, note, transaction_id, received_amount, received_currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(randomUUID(), invoiceId, round2(d.amount), d.date, clean(d.note), d.transactionId ?? null, received?.amount ?? null, received?.currency ?? null)
+  return c.json({ job: viewJob(userId, jobId) })
 })
 
 work.delete('/work/payments/:id', (c) => {
   const userId = c.var.user.id
   const row = db
     .prepare(
-      `SELECT i.job_id AS jobId FROM work_payment p JOIN work_invoice i ON i.id = p.invoice_id JOIN work_job j ON j.id = i.job_id
-        WHERE p.id = ? AND j.user_id = ?`,
+      `SELECT i.job_id AS jobId FROM work_payment p JOIN work_invoice i ON i.id = p.invoice_id WHERE p.id = ?`,
     )
-    .get(c.req.param('id'), userId) as { jobId: string } | undefined
-  if (!row) return c.json({ error: 'Not found' }, 404)
+    .get(c.req.param('id')) as { jobId: string } | undefined
+  if (!row || !canEditJob(userId, row.jobId)) return c.json({ error: 'Not found' }, 404)
   db.prepare(`DELETE FROM work_payment WHERE id = ?`).run(c.req.param('id'))
-  return c.json({ job: loadJobs(userId, row.jobId)[0] })
+  return c.json({ job: viewJob(userId, row.jobId) })
 })

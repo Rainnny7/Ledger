@@ -237,6 +237,27 @@ export function migrateAppTables() {
       received_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- People you share with. Email is lowercased; name is your label for them.
+    CREATE TABLE IF NOT EXISTS contact (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      name TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (user_id, email)
+    );
+    -- A goal, subscription or job shared by its owner with another account ('view' or 'edit').
+    CREATE TABLE IF NOT EXISTS share (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      item_id TEXT NOT NULL,
+      recipient_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+      permission TEXT NOT NULL DEFAULT 'view',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (kind, item_id, recipient_id)
+    );
+    CREATE INDEX IF NOT EXISTS share_recipient ON share (recipient_id, kind);
     -- Instance-wide switches an admin can flip (e.g. registration_open).
     CREATE TABLE IF NOT EXISTS app_setting (
       key TEXT PRIMARY KEY,
@@ -256,6 +277,9 @@ export function migrateAppTables() {
   addColumn('bank_connection', 'webhook_at', 'TEXT')
   // A PayPal capture id on bill payments too, so checkout payments are only counted once.
   addColumn('work_payment', 'external_id', 'TEXT')
+  // Paid in one currency, arrived in another (e.g. billed in USD, deposited as CAD).
+  addColumn('work_payment', 'received_amount', 'REAL')
+  addColumn('work_payment', 'received_currency', 'TEXT')
   db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_work_payment_external ON work_payment(external_id) WHERE external_id IS NOT NULL`)
 }
 

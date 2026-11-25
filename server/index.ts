@@ -17,6 +17,7 @@ import { banks } from './routes/banks.ts'
 import { finance } from './routes/finance.ts'
 import { invoices, publicInvoices } from './routes/invoices.ts'
 import { handlePaypalWebhook } from './banks/paypal/webhooks.ts'
+import { sharing } from './routes/sharing.ts'
 import { work } from './routes/work.ts'
 import { hasTask, listTasks, runTask, startScheduler } from './tasks.ts'
 
@@ -99,6 +100,7 @@ app.route('/api/banks', banks)
 app.route('/api/banks', finance)
 app.route('/api/banks', work)
 app.route('/api/banks', invoices)
+app.route('/api/banks', sharing)
 
 // Share links: anyone with the link can see that one invoice (and pay it), no sign-in.
 app.route('/api/public', publicInvoices)

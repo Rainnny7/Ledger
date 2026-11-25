@@ -17,6 +17,7 @@ const DashboardPage = lazy(() => import('@/pages/dashboard-page').then((m) => ({
 const AccountPage = lazy(() => import('@/pages/account-page').then((m) => ({ default: m.AccountPage })))
 const InsightsPage = lazy(() => import('@/pages/insights-page').then((m) => ({ default: m.InsightsPage })))
 const SubscriptionsPage = lazy(() => import('@/pages/subscriptions-page').then((m) => ({ default: m.SubscriptionsPage })))
+const ContactsPage = lazy(() => import('@/pages/contacts-page').then((m) => ({ default: m.ContactsPage })))
 const SettingsPage = lazy(() => import('@/pages/settings-page').then((m) => ({ default: m.SettingsPage })))
 const GoalsPage = lazy(() => import('@/pages/goals-page').then((m) => ({ default: m.GoalsPage })))
 const WorkPage = lazy(() => import('@/pages/work-page').then((m) => ({ default: m.WorkPage })))
@@ -97,6 +98,7 @@ export default function App() {
               <Route path="/invoices/:id" element={<Page><InvoiceEditorPage /></Page>} />
               <Route element={<NotInDemo />}>
                 <Route path="/settings" element={<Page><SettingsPage /></Page>} />
+                <Route path="/contacts" element={<Page><ContactsPage /></Page>} />
               </Route>
               <Route element={<RequireAdmin />}>
                 <Route path="/admin" element={<Page><AdminPage /></Page>} />

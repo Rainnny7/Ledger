@@ -16,6 +16,8 @@ import {
   monthlyEquivalent,
   nextDue,
 } from '../finance/categorize.ts'
+import { getRates } from '../fx.ts'
+import { access, canEdit, forgetItem, listWithShared, viewOne } from '../sharing.ts'
 import { GOAL_KINDS, type GoalPaymentRow, type GoalRow, summarizeGoal } from '../finance/goals.ts'
 
 type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
@@ -25,6 +27,11 @@ function todayIso() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
+
+// ---------------------------------------------------------------- exchange rates
+
+/** Daily reference rates, for showing mixed-currency totals in your own currency. */
+finance.get('/fx', async (c) => c.json(await getRates()))
 
 // ---------------------------------------------------------------- transactions
 
@@ -207,14 +214,14 @@ interface SubRow {
   createdAt: string
 }
 
-function loadSubscriptions(userId: string) {
+function loadSubscriptions(userId: string, only?: string) {
   const subs = db
     .prepare(
       `SELECT id, name, amount, currency, cycle, anchor_date AS anchorDate, category, account_id AS accountId,
               merchant_key AS merchantKey, notes, active, created_at AS createdAt
-         FROM subscription WHERE user_id = ? ORDER BY name COLLATE NOCASE`,
+         FROM subscription WHERE user_id = ? ${only ? 'AND id = ?' : ''} ORDER BY name COLLATE NOCASE`,
     )
-    .all(userId) as unknown as SubRow[]
+    .all(...(only ? [userId, only] : [userId])) as unknown as SubRow[]
   const txs = loadTransactions(userId)
   const today = todayIso()
 
@@ -226,7 +233,7 @@ function loadSubscriptions(userId: string) {
       ? txs
           .filter((t) => t.merchantKey === s.merchantKey && t.amount < 0 && !t.fundsPaypal && sameAmount(t.amount, s.amount))
           .slice(0, 24)
-          .map((t) => ({ id: t.id, date: t.date, amount: t.amount, accountId: t.accountId, pending: t.pending }))
+          .map((t) => ({ id: t.id, date: t.date, amount: t.amount, accountId: t.accountId as string | null, pending: t.pending }))
       : []
     const last = payments[0]
     // A charge on/after the anchor proves that cycle was billed; the next one follows it.
@@ -240,6 +247,8 @@ function loadSubscriptions(userId: string) {
       payments,
     }
   })
+
+  if (only) return { subscriptions, suggestions: [] }
 
   // Dismissals store a suggestion id ("merchant#amount"); older ones stored the bare merchant key.
   const dismissed = new Set(
@@ -268,7 +277,20 @@ function loadSubscriptions(userId: string) {
   return { subscriptions, suggestions }
 }
 
-finance.get('/subscriptions', (c) => c.json(loadSubscriptions(c.var.user.id)))
+/** Someone else's subscription as a person it's shared with sees it: without the owner's bank details. */
+function sharedSubscription(ownerId: string, id: string) {
+  const s = loadSubscriptions(ownerId, id).subscriptions[0]
+  return s && { ...s, accountId: null, payments: s.payments.map((p) => ({ ...p, accountId: null })) }
+}
+
+finance.get('/subscriptions', (c) => {
+  const userId = c.var.user.id
+  const { subscriptions, suggestions } = loadSubscriptions(userId)
+  return c.json({
+    subscriptions: listWithShared('subscription', userId, () => subscriptions, sharedSubscription),
+    suggestions,
+  })
+})
 
 const subBody = z.object({
   name: z.string().trim().min(1).max(80),
@@ -320,6 +342,14 @@ finance.patch('/subscriptions/:id', async (c) => {
   const body = subBody.partial().safeParse(await c.req.json().catch(() => ({})))
   if (!body.success) return c.json({ error: 'Check the subscription details.' }, 400)
   const d = body.data
+  const a = access(c.var.user.id, 'subscription', c.req.param('id'))
+  if (!a) return c.json({ error: 'Not found' }, 404)
+  if (!canEdit(a)) return c.json({ error: 'You can only view this subscription.' }, 403)
+  if (a.role !== 'owner') {
+    // Which account pays it, and the charges it matches, live in the owner's bank.
+    delete d.accountId
+    delete d.merchantKey
+  }
   if (!ownsAccount(c.var.user.id, d.accountId)) return c.json({ error: 'Unknown account' }, 400)
   const cols: Record<string, string> = {
     name: 'name',
@@ -344,12 +374,13 @@ finance.patch('/subscriptions/:id', async (c) => {
   if (sets.length === 0) return c.json({ ok: true })
   const r = db
     .prepare(`UPDATE subscription SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`)
-    .run(...vals, c.req.param('id'), c.var.user.id)
+    .run(...vals, c.req.param('id'), a.ownerId)
   return r.changes ? c.json({ ok: true }) : c.json({ error: 'Not found' }, 404)
 })
 
 finance.delete('/subscriptions/:id', (c) => {
   const r = db.prepare(`DELETE FROM subscription WHERE id = ? AND user_id = ?`).run(c.req.param('id'), c.var.user.id)
+  if (r.changes) forgetItem('subscription', c.req.param('id'))
   return r.changes ? c.json({ ok: true }) : c.json({ error: 'Not found' }, 404)
 })
 
@@ -391,7 +422,10 @@ function loadGoals(userId: string, id?: string) {
   )
 }
 
-finance.get('/goals', (c) => c.json({ goals: loadGoals(c.var.user.id) }))
+const goalFor = (ownerId: string, id: string) => loadGoals(ownerId, id)[0]
+const viewGoal = (userId: string, id: string) => viewOne('goal', userId, id, goalFor)
+
+finance.get('/goals', (c) => c.json({ goals: listWithShared('goal', c.var.user.id, (o) => loadGoals(o), goalFor) }))
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const goalBody = z.object({
@@ -426,12 +460,17 @@ finance.post('/goals', async (c) => {
       d.kind === 'payoff' ? 'Already paid' : 'Already saved',
     )
   }
-  return c.json({ goal: loadGoals(c.var.user.id, id)[0] })
+  return c.json({ goal: viewGoal(c.var.user.id, id) })
 })
 
 finance.patch('/goals/:id', async (c) => {
   const body = goalBody.omit({ startingAmount: true }).partial().safeParse(await c.req.json().catch(() => ({})))
   if (!body.success) return c.json({ error: 'Check the goal details.' }, 400)
+  const a = access(c.var.user.id, 'goal', c.req.param('id'))
+  if (!a) return c.json({ error: 'Not found' }, 404)
+  if (!canEdit(a)) return c.json({ error: 'You can only view this goal.' }, 403)
+  // Archiving hides it for everyone, so that's the owner's call.
+  if (a.role !== 'owner') delete body.data.archived
   const cols: Record<string, string> = {
     name: 'name',
     kind: 'kind',
@@ -452,15 +491,15 @@ finance.patch('/goals/:id', async (c) => {
     vals.push(typeof v === 'boolean' ? (v ? 1 : 0) : k === 'notes' ? (v as string | null)?.trim() || null : (v as string | number | null))
   }
   if (sets.length) {
-    const r = db.prepare(`UPDATE goal SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`).run(...vals, c.req.param('id'), c.var.user.id)
-    if (!r.changes) return c.json({ error: 'Not found' }, 404)
+    db.prepare(`UPDATE goal SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`).run(...vals, c.req.param('id'), a.ownerId)
   }
-  const [goal] = loadGoals(c.var.user.id, c.req.param('id'))
+  const goal = viewGoal(c.var.user.id, c.req.param('id'))
   return goal ? c.json({ goal }) : c.json({ error: 'Not found' }, 404)
 })
 
 finance.delete('/goals/:id', (c) => {
   const r = db.prepare(`DELETE FROM goal WHERE id = ? AND user_id = ?`).run(c.req.param('id'), c.var.user.id)
+  if (r.changes) forgetItem('goal', c.req.param('id'))
   return r.changes ? c.json({ ok: true }) : c.json({ error: 'Not found' }, 404)
 })
 
@@ -476,16 +515,15 @@ const paymentBody = z.object({
   transactionId: z.string().max(80).nullable().optional(),
 })
 
-function ownsGoal(userId: string, goalId: string) {
-  return !!db.prepare(`SELECT 1 FROM goal WHERE id = ? AND user_id = ?`).get(goalId, userId)
-}
+/** Owners and people it's shared with for editing can log payments. */
+const canEditGoal = (userId: string, goalId: string) => canEdit(access(userId, 'goal', goalId))
 
 finance.post('/goals/:id/payments', async (c) => {
   const body = paymentBody.safeParse(await c.req.json().catch(() => ({})))
   if (!body.success) return c.json({ error: 'Check the payment details.' }, 400)
   const userId = c.var.user.id
   const goalId = c.req.param('id')
-  if (!ownsGoal(userId, goalId)) return c.json({ error: 'Not found' }, 404)
+  if (!canEditGoal(userId, goalId)) return c.json({ error: 'Not found' }, 404)
   const d = body.data
   if (d.transactionId && loadTransactions(userId, { id: d.transactionId }).length === 0)
     return c.json({ error: 'Unknown transaction' }, 400)
@@ -497,13 +535,13 @@ finance.post('/goals/:id/payments', async (c) => {
     d.note?.trim() || null,
     d.transactionId ?? null,
   )
-  return c.json({ goal: loadGoals(userId, goalId)[0] })
+  return c.json({ goal: viewGoal(userId, goalId) })
 })
 
 finance.delete('/goals/:id/payments/:pid', (c) => {
   const userId = c.var.user.id
   const goalId = c.req.param('id')
-  if (!ownsGoal(userId, goalId)) return c.json({ error: 'Not found' }, 404)
+  if (!canEditGoal(userId, goalId)) return c.json({ error: 'Not found' }, 404)
   const r = db.prepare(`DELETE FROM goal_payment WHERE id = ? AND goal_id = ?`).run(c.req.param('pid'), goalId)
-  return r.changes ? c.json({ goal: loadGoals(userId, goalId)[0] }) : c.json({ error: 'Not found' }, 404)
+  return r.changes ? c.json({ goal: viewGoal(userId, goalId) }) : c.json({ error: 'Not found' }, 404)
 })

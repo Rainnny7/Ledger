@@ -6,6 +6,7 @@ import { GoalPaymentDialog, type PaymentDraft } from '@/components/goal-dialogs'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { demoMode } from '@/lib/demo'
 import { formatMoney } from '@/lib/format'
+import { useConverter } from '@/lib/currency'
 import { useGoals } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -15,18 +16,21 @@ const RANK = { overdue: 0, behind: 1, 'on-track': 2, ahead: 3, 'no-date': 4, don
 export function GoalsSpotlight() {
   const { data } = useGoals()
   const [paying, setPaying] = useState<PaymentDraft | null>(null)
+  const fx = useConverter()
   const open = useMemo(
     () =>
       (data?.goals ?? [])
-        .filter((g) => !g.archived && g.status !== 'done')
+        // Ones you can add money to: yours, or shared with you for editing.
+        .filter((g) => !g.archived && g.status !== 'done' && g.access !== 'view')
         .sort((a, b) => RANK[a.status] - RANK[b.status] || (a.targetDate ?? '9999').localeCompare(b.targetDate ?? '9999')),
     [data],
   )
   if (open.length === 0) return null
 
   const shown = open.slice(0, 3)
-  const saved = open.reduce((s, g) => s + g.saved, 0)
-  const target = open.reduce((s, g) => s + g.target, 0)
+  const saved = fx.sum(open.map((g) => [g.saved, g.currency]))
+  const target = fx.sum(open.map((g) => [g.target, g.currency]))
+  const left = fx.sum(open.map((g) => [g.remaining, g.currency]))
 
   return (
     <section aria-label="Your goals" className="rounded-xl border bg-card p-4 animate-[ledger-rise_420ms_ease-out_both] sm:p-5">
@@ -34,7 +38,7 @@ export function GoalsSpotlight() {
         <div className="flex items-baseline gap-2">
           <h2 className="font-semibold">Your goals</h2>
           <span className="text-sm text-muted-foreground tabular-nums">
-            {formatMoney(saved)} of {formatMoney(target)} · {formatMoney(open.reduce((s, g) => s + g.remaining, 0))} left
+            {formatMoney(saved)} of {formatMoney(target)} · {formatMoney(left)} left
           </span>
         </div>
         <Link to="/goals" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), '-mr-2 text-muted-foreground')}>

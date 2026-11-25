@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, MoreHorizontal, Pause, Pencil, Play, Plus, Repeat, Sparkles, Trash2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LogOut, MoreHorizontal, Pause, Pencil, Play, Plus, Repeat, Share2, Sparkles, Trash2, X } from 'lucide-react'
 import { AnimatedMoney } from '@/components/count-up'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
@@ -7,6 +7,8 @@ import { toast } from 'sonner'
 import { type SubscriptionDraft, SubscriptionDialog } from '@/components/subscription-dialog'
 import { CategoryIcon } from '@/components/tx-bits'
 import { Badge } from '@/components/ui/badge'
+import { ShareBadge, ShareDialog } from '@/components/share-bits'
+import { leaveShared, splitShared } from '@/lib/sharing'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -22,6 +24,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { api, type RecurringSuggestion, type Subscription } from '@/lib/api'
 import { cycleLabel, shiftCycle } from '@/lib/cycles'
 import { addDays, daysFromToday, formatLongDate, formatMoney, formatRelativeDate, isoDate, parseIso } from '@/lib/format'
+import { useConverter } from '@/lib/currency'
+import { demoMode } from '@/lib/demo'
 import { useOverview, useSubscriptions } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -53,15 +57,23 @@ export function SubscriptionsPage() {
   const [editing, setEditing] = useState<Subscription | null>(null)
 
   const accounts = overview.data?.accounts ?? []
-  const subs = useMemo(() => data?.subscriptions ?? [], [data])
+  const [sharing, setSharing] = useState<Subscription | null>(null)
+  // Totals, the calendar and "coming up" are your own bills; ones shared with you are listed below them.
+  const { own: subs, shared } = useMemo(() => splitShared(data?.subscriptions ?? []), [data])
   const suggestions = data?.suggestions ?? []
   const active = subs.filter((s) => s.active)
   const sorted = useMemo(
-    () => [...subs].sort((a, b) => Number(b.active) - Number(a.active) || a.nextDue.localeCompare(b.nextDue)),
-    [subs],
+    () => [
+      ...[...subs].sort((a, b) => Number(b.active) - Number(a.active) || a.nextDue.localeCompare(b.nextDue)),
+      ...[...shared].sort((a, b) => Number(b.active) - Number(a.active) || a.nextDue.localeCompare(b.nextDue)),
+    ],
+    [subs, shared],
   )
 
-  const monthly = active.reduce((s, x) => s + x.monthly, 0)
+  // Plans can be billed in different currencies; totals are in the home currency at today's rates.
+  const fx = useConverter()
+  const monthly = fx.sum(active.map((x) => [x.monthly, x.currency]))
+  const suggestionCurrency = (g: RecurringSuggestion) => accounts.find((a) => a.id === g.accountId)?.currency ?? fx.home
   const next = [...active].sort((a, b) => a.nextDue.localeCompare(b.nextDue))[0]
   const due30 = useMemo(() => {
     const today = isoDate()
@@ -89,6 +101,7 @@ export function SubscriptionsPage() {
   }, [params, setParams])
 
   function edit(s: Subscription) {
+    if (s.access === 'view') return
     setEditing(s)
     setDraft({
       id: s.id,
@@ -100,6 +113,7 @@ export function SubscriptionsPage() {
       accountId: s.accountId,
       merchantKey: s.merchantKey,
       notes: s.notes,
+      currency: s.currency,
     })
   }
 
@@ -132,6 +146,7 @@ export function SubscriptionsPage() {
         category: g.category,
         accountId: g.accountId,
         merchantKey: g.merchantKey,
+        currency: suggestionCurrency(g),
       })
       toast.success(`Tracking ${g.name}`)
     } catch (e) {
@@ -171,7 +186,7 @@ export function SubscriptionsPage() {
         <Stat label="Per year" value={<AnimatedMoney value={monthly * 12} />} loading={loading && !data} />
         <Stat
           label="Due in the next 30 days"
-          value={<AnimatedMoney value={due30.reduce((s, x) => s + x.s.amount, 0)} />}
+          value={<AnimatedMoney value={fx.sum(due30.map((x) => [x.s.amount, x.s.currency]))} />}
           hint={`${due30.length} payment${due30.length === 1 ? '' : 's'}`}
           loading={loading && !data}
         />
@@ -198,7 +213,7 @@ export function SubscriptionsPage() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{g.name}</div>
                   <div className="truncate text-xs text-muted-foreground">
-                    {formatMoney(g.amount)} · {cycleLabel(g.cycle).toLowerCase()} · seen {g.occurrences}×, next {dueLabel(g.nextDue)}
+                    {formatMoney(g.amount, suggestionCurrency(g))} · {cycleLabel(g.cycle).toLowerCase()} · seen {g.occurrences}×, next {dueLabel(g.nextDue)}
                   </div>
                 </div>
                 <Button size="sm" onClick={() => void track(g)}>
@@ -261,6 +276,7 @@ export function SubscriptionsPage() {
           <CardTitle>All subscriptions</CardTitle>
           <CardDescription>
             {active.length} active{subs.length > active.length ? ` · ${subs.length - active.length} paused` : ''}
+            {shared.length > 0 ? ` · ${shared.length} shared with you` : ''}
           </CardDescription>
         </CardHeader>
         <CardContent className="px-0">
@@ -270,7 +286,7 @@ export function SubscriptionsPage() {
                 <Skeleton key={i} className="h-10" />
               ))}
             </div>
-          ) : subs.length === 0 ? (
+          ) : sorted.length === 0 ? (
             <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
               <Repeat className="size-8 text-muted-foreground" />
               <div>
@@ -297,7 +313,11 @@ export function SubscriptionsPage() {
                   const account = accounts.find((a) => a.id === s.accountId)
                   const changed = s.lastCharge && Math.abs(Math.abs(s.lastCharge.amount) - s.amount) >= 0.01
                   return (
-                    <TableRow key={s.id} className={cn('cursor-pointer', !s.active && 'opacity-60')} onClick={() => edit(s)}>
+                    <TableRow
+                      key={s.id}
+                      className={cn(s.access !== 'view' && 'cursor-pointer', !s.active && 'opacity-60')}
+                      onClick={() => edit(s)}
+                    >
                       <TableCell className="w-full max-w-0 pl-4">
                         <div className="flex items-center gap-3">
                           <CategoryIcon category={s.category} className="hidden sm:flex" />
@@ -305,6 +325,9 @@ export function SubscriptionsPage() {
                             <div className="flex items-center gap-2">
                               <span className="truncate font-medium">{s.name}</span>
                               {!s.active && <Badge variant="outline">Paused</Badge>}
+                              <span onClick={(e) => e.stopPropagation()} className="contents">
+                                <ShareBadge item={s} onClick={() => setSharing(s)} />
+                              </span>
                             </div>
                             <div className="truncate text-xs text-muted-foreground">
                               {cycleLabel(s.cycle)}
@@ -353,17 +376,32 @@ export function SubscriptionsPage() {
                           <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`${s.name} options`} />}>
                             <MoreHorizontal />
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem onClick={() => edit(s)}>
-                              <Pencil /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => void toggle(s)}>
-                              {s.active ? <Pause /> : <Play />} {s.active ? 'Pause' : 'Resume'}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem variant="destructive" onClick={() => void remove(s)}>
-                              <Trash2 /> Delete
-                            </DropdownMenuItem>
+                          <DropdownMenuContent align="end" className="w-48">
+                            {s.access !== 'view' && (
+                              <>
+                                <DropdownMenuItem onClick={() => edit(s)}>
+                                  <Pencil /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => void toggle(s)}>
+                                  {s.active ? <Pause /> : <Play />} {s.active ? 'Pause' : 'Resume'}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {s.access === 'owner' ? (
+                              <>
+                                <DropdownMenuItem onClick={() => (demoMode ? toast.error('Demo mode is read-only. Exit demo mode to make changes.') : setSharing(s))}>
+                                  <Share2 /> Share
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem variant="destructive" onClick={() => void remove(s)}>
+                                  <Trash2 /> Delete
+                                </DropdownMenuItem>
+                              </>
+                            ) : (
+                              <DropdownMenuItem variant="destructive" onClick={() => void leaveShared('subscription', s)}>
+                                <LogOut /> Remove from my list
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -376,6 +414,7 @@ export function SubscriptionsPage() {
         </CardContent>
       </Card>
 
+      <ShareDialog kind="subscription" item={sharing} onClose={() => setSharing(null)} />
       <SubscriptionDialog
         draft={draft}
         existing={editing}
@@ -436,7 +475,8 @@ function CalendarCard({
     for (const s of subs) for (const d of occurrences(s, start, end)) map.set(d, [...(map.get(d) ?? []), s])
     return map
   }, [subs, start, end])
-  const total = [...byDay.values()].flat().reduce((sum, s) => sum + s.amount, 0)
+  const fx = useConverter()
+  const total = fx.sum([...byDay.values()].flat().map((s) => [s.amount, s.currency]))
 
   const cells: (string | null)[] = [
     ...Array.from({ length: first.getDay() }, () => null),

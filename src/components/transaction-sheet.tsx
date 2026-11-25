@@ -43,7 +43,7 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
   const [saving, setSaving] = useState(false)
   const [paying, setPaying] = useState<PaymentDraft | null>(null)
   const goals = useGoals().data?.goals
-  const openGoals = (goals ?? []).filter((g) => !g.archived && g.status !== 'done')
+  const openGoals = (goals ?? []).filter((g) => !g.archived && g.status !== 'done' && g.access !== 'view')
   // Goals this transaction has already been counted toward.
   const linked = t ? (goals ?? []).filter((g) => g.payments.some((p) => p.transactionId === t.id)) : []
 

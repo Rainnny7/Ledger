@@ -20,6 +20,8 @@ I wanted one place to see my transactions, how much I'm earning, what subscripti
 - **Goals**: save up for something or pay something off. Log payments as you go and it tells you what you need to put in each month to hit your deadline.
 - **Work**: log hours for side work, bill them, and track each payment until you're paid in full.
 - **Invoices**: make an invoice from scratch or from a Work bill in a few clicks, pick from three PDF designs, and choose how you want to be paid (e-Transfer, PayPal.me, PayPal checkout, crypto, bank transfer, cash and more). Share a link the client can open without signing in, or send them the PDF. Payments made through PayPal checkout are marked paid on the spot.
+- **Sharing**: share a goal, subscription or job with another Ledger user, as view-only or editable. Pick them from your **Contacts** (in the user menu) or type their email. They need an account on the same server; only the owner can delete, archive or change who it's shared with, and the owner's bank accounts are never shown.
+- **Any currency**: accounts, goals, subscriptions and bills can each have their own currency. Totals are converted into your default currency (picked in Settings, or guessed from your time zone) using daily ECB reference rates.
 - **Automatic refresh**: saved connections are refreshed every 6 hours in the background.
 - **Multi-user**: the first account is the admin. Admins can add users, open or close sign-ups, and see an audit log. Two-factor sign-in is supported.
 - **Demo mode**: fills every page with made-up data, handy for showing it off (the screenshots here use it).
@@ -81,6 +83,7 @@ bun run build && bun run start     # serves the app and API from one port
 
 - Your bank password is only saved if you tick **Save credentials**. Saved credentials, API keys and account numbers are encrypted with AES-256-GCM using `APP_SECRET` (generated into `data/.secret` if you don't set one).
 - Everything lives in a local SQLite database in `data/`. It's git-ignored; don't commit or share it.
+- Passwords need at least 10 characters with a lowercase and uppercase letter, a number and a symbol. The server enforces this too.
 - Sign-in is rate-limited, sign-ups are closed after the first account unless an admin opens them, and the server sends strict security headers.
 - Automated access may be against your bank's terms of service. Use it for your own accounts, at your own risk.
 
@@ -99,6 +102,7 @@ All optional. See [`.env.example`](.env.example).
 | `TD_BROWSER_CHANNEL` | | e.g. `chrome` to use your installed Chrome |
 | `ALLOW_REGISTRATION` | `false` | Whether sign-ups start open after the first account |
 | `TRUST_PROXY` | `false` | `true` behind a reverse proxy, so rate limits see the real client IP |
+| `FX_RATES_URL` | `https://api.frankfurter.dev/v1/latest` | Where exchange rates are fetched from (Frankfurter-compatible) |
 | `PAYPAL_ENV` | `live` | `sandbox` to test against PayPal's sandbox |
 
 ## Built with

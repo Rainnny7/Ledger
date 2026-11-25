@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react'
-import { Archive, ArchiveRestore, ChevronDown, Link2, MoreHorizontal, Pencil, Plus, Target, Trash2, Trophy, X } from 'lucide-react'
+import { Archive, ArchiveRestore, ChevronDown, Link2, LogOut, MoreHorizontal, Pencil, Plus, Share2, Target, Trash2, Trophy, Users, X } from 'lucide-react'
 import { AnimatedMoney } from '@/components/count-up'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { GoalBar, GoalIcon, goalNudge, GoalRing, GoalStatusPill } from '@/components/goal-bits'
 import { GoalDialog, GoalPaymentDialog, type PaymentDraft } from '@/components/goal-dialogs'
+import { ShareBadge, ShareDialog } from '@/components/share-bits'
+import { leaveShared, splitShared } from '@/lib/sharing'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -18,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { api, type Goal, type GoalInput } from '@/lib/api'
 import { demoMode } from '@/lib/demo'
 import { formatDate, formatMoney, formatShortDate, isoDate } from '@/lib/format'
+import { useConverter } from '@/lib/currency'
 import { useGoals } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -40,19 +43,24 @@ export function GoalsPage() {
   const [editing, setEditing] = useState<Goal | null>(null)
   const [paying, setPaying] = useState<PaymentDraft | null>(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [sharing, setSharing] = useState<Goal | null>(null)
 
-  const goals = useMemo(() => data?.goals ?? [], [data])
+  // Totals and sections are your own goals; ones shared with you get their own section.
+  const { own: goals, shared } = useMemo(() => splitShared(data?.goals ?? []), [data])
+  const sharedOpen = shared.filter((g) => !g.archived).sort(byUrgency)
   const open = useMemo(() => goals.filter((g) => !g.archived && g.status !== 'done').sort(byUrgency), [goals])
   const reached = goals.filter((g) => !g.archived && g.status === 'done')
   const archived = goals.filter((g) => g.archived)
 
-  const saved = open.reduce((s, g) => s + g.saved, 0)
-  const remaining = open.reduce((s, g) => s + g.remaining, 0)
-  const perMonth = open.reduce((s, g) => s + (g.neededPerMonth ?? 0), 0)
+  // Goals can be in different currencies; the totals are in the home currency at today's rates.
+  const fx = useConverter()
+  const saved = fx.sum(open.map((g) => [g.saved, g.currency]))
+  const remaining = fx.sum(open.map((g) => [g.remaining, g.currency]))
+  const perMonth = fx.sum(open.map((g) => [g.neededPerMonth ?? 0, g.currency]))
   const thisMonth = useMemo(() => {
     const prefix = isoDate().slice(0, 7)
-    return goals.flatMap((g) => g.payments).filter((p) => p.date.startsWith(prefix)).reduce((s, p) => s + p.amount, 0)
-  }, [goals])
+    return fx.sum(goals.flatMap((g) => g.payments.filter((p) => p.date.startsWith(prefix)).map((p) => [p.amount, g.currency] as const)))
+  }, [goals, fx])
 
   const startNew = (preset: Partial<GoalInput> = {}) => {
     if (demoMode) return toast.error('Demo mode is read-only. Exit demo mode to make changes.')
@@ -83,6 +91,8 @@ export function GoalsPage() {
     onEdit: setEditing,
     onDelete: (g: Goal) => void remove(g),
     onArchive: (g: Goal) => void setArchived(g, !g.archived),
+    onShare: (g: Goal) => (demoMode ? toast.error('Demo mode is read-only. Exit demo mode to make changes.') : setSharing(g)),
+    onLeave: (g: Goal) => void leaveShared('goal', g),
   }
 
   return (
@@ -104,7 +114,7 @@ export function GoalsPage() {
           <Skeleton className="h-56 rounded-xl" />
           <Skeleton className="h-56 rounded-xl" />
         </div>
-      ) : goals.length === 0 ? (
+      ) : goals.length === 0 && sharedOpen.length === 0 ? (
         <EmptyGoals onPick={startNew} />
       ) : (
         <>
@@ -131,6 +141,19 @@ export function GoalsPage() {
                 </Button>
               </CardContent>
             </Card>
+          )}
+
+          {sharedOpen.length > 0 && (
+            <section className="grid gap-3">
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
+                <Users className="size-4 text-primary" /> Shared with you
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                {sharedOpen.map((g) => (
+                  <GoalCard key={g.id} goal={g} {...actions} />
+                ))}
+              </div>
+            </section>
           )}
 
           {reached.length > 0 && (
@@ -173,6 +196,7 @@ export function GoalsPage() {
           setEditing(null)
         }} />
       <GoalPaymentDialog draft={paying} onClose={() => setPaying(null)} />
+      <ShareDialog kind="goal" item={sharing} onClose={() => setSharing(null)} />
     </div>
   )
 }
@@ -183,13 +207,19 @@ function GoalCard({
   onEdit,
   onDelete,
   onArchive,
+  onShare,
+  onLeave,
 }: {
   goal: Goal
   onPay: (g: Goal) => void
   onEdit: (g: Goal) => void
   onDelete: (g: Goal) => void
   onArchive: (g: Goal) => void
+  onShare: (g: Goal) => void
+  onLeave: (g: Goal) => void
 }) {
+  const owner = g.access === 'owner'
+  const canEdit = g.access !== 'view'
   const [showAll, setShowAll] = useState(false)
   const payments = showAll ? g.payments : g.payments.slice(0, 3)
   const done = g.status === 'done'
@@ -211,6 +241,7 @@ function GoalCard({
           <CardTitle className="flex items-center gap-2">
             <span className="truncate">{g.name}</span>
             <GoalStatusPill status={g.status} />
+            <ShareBadge item={g} onClick={() => onShare(g)} />
           </CardTitle>
           <CardDescription className="truncate">
             {g.kind === 'payoff' ? 'Paying off' : 'Saving up'}
@@ -223,16 +254,29 @@ function GoalCard({
             <MoreHorizontal />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(g)}>
-              <Pencil /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onArchive(g)}>
-              {g.archived ? <ArchiveRestore /> : <Archive />} {g.archived ? 'Restore' : 'Archive'}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => onDelete(g)}>
-              <Trash2 /> Delete
-            </DropdownMenuItem>
+            {canEdit && (
+              <DropdownMenuItem onClick={() => onEdit(g)}>
+                <Pencil /> Edit
+              </DropdownMenuItem>
+            )}
+            {owner ? (
+              <>
+                <DropdownMenuItem onClick={() => onShare(g)}>
+                  <Share2 /> Share
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onArchive(g)}>
+                  {g.archived ? <ArchiveRestore /> : <Archive />} {g.archived ? 'Restore' : 'Archive'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={() => onDelete(g)}>
+                  <Trash2 /> Delete
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem variant="destructive" onClick={() => onLeave(g)}>
+                <LogOut /> Remove from my goals
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
@@ -258,7 +302,7 @@ function GoalCard({
 
         {g.notes && <p className="rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground italic">“{g.notes}”</p>}
 
-        {!done && !g.archived && (
+        {!done && !g.archived && canEdit && (
           <Button variant="outline" size="sm" onClick={() => onPay(g)} className="w-fit">
             <Plus /> {g.kind === 'payoff' ? 'Log a payment' : 'Add money'}
           </Button>
@@ -283,6 +327,7 @@ function GoalCard({
                   <span className={cn('tabular-nums', p.amount < 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
                     {formatMoney(p.amount, g.currency, { sign: true })}
                   </span>
+                  {canEdit && (
                   <button
                     type="button"
                     aria-label="Remove payment"
@@ -291,6 +336,7 @@ function GoalCard({
                   >
                     <X className="size-3.5" />
                   </button>
+                  )}
                 </li>
               ))}
             </ul>
