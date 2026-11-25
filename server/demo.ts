@@ -15,7 +15,7 @@ import { merchantKeyOf } from './finance/categorize.ts'
 
 export const DEMO_USER_ID = 'ledger-demo'
 export const DEMO_EMAIL = 'demo@ledger.invalid'
-const SEED_VERSION = '4'
+const SEED_VERSION = '5'
 
 const iso = (d: Date) => d.toISOString().slice(0, 10)
 const round = (n: number) => Math.round(n * 100) / 100
@@ -191,7 +191,11 @@ function seed(today: Date) {
     usernameMasked: 'API app',
     credentialsEnc: null,
     browserStateEnc: null,
-    accounts: [account('paypal:CAD', 'PayPal balance', 'wallet', null, 80.18, paypal)],
+    accounts: [
+      account('paypal:CAD', 'PayPal balance', 'wallet', null, 80.18, paypal),
+      // US client payments land here (see seedWork); one was moved out and converted to CAD.
+      account('paypal:USD', 'PayPal balance (USD)', 'wallet', null, 0, usdWallet(today), () => ({ currency: 'USD' })),
+    ],
   })
 
   const visaId = (
@@ -200,24 +204,28 @@ function seed(today: Date) {
     ).get(DEMO_USER_ID) as { id: string }
   ).id
   const anchor = (dom: number) => iso(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, dom)))
-  const subs: [name: string, amount: number, cycle: string, anchor: string, category: string, merchant: string | null, account: string | null][] = [
-    ['Netflix', 18.99, 'monthly', anchor(4), 'subscriptions', 'Netflix', visaId],
-    ['Spotify', 11.99, 'monthly', anchor(9), 'subscriptions', 'Spotify', visaId],
-    ['GoodLife Fitness', 54.99, 'monthly', anchor(22), 'health', 'Goodlife Fitness', visaId],
-    ['Rogers Wireless', 85.4, 'monthly', anchor(8), 'bills', 'Rogers', null],
-    ['Domain renewal', 64, 'every-4-years', iso(new Date(Date.UTC(today.getUTCFullYear() - 2, 2, 17))), 'subscriptions', null, null],
-    ['Antivirus', 89.99, 'biennial', iso(new Date(Date.UTC(today.getUTCFullYear() - 1, 9, 2))), 'subscriptions', null, null],
+  const subs: [name: string, amount: number, currency: string, cycle: string, anchor: string, category: string, merchant: string | null, account: string | null][] = [
+    ['Netflix', 18.99, 'CAD', 'monthly', anchor(4), 'subscriptions', 'Netflix', visaId],
+    ['Spotify', 11.99, 'CAD', 'monthly', anchor(9), 'subscriptions', 'Spotify', visaId],
+    ['GoodLife Fitness', 54.99, 'CAD', 'monthly', anchor(22), 'health', 'Goodlife Fitness', visaId],
+    ['Rogers Wireless', 85.4, 'CAD', 'monthly', anchor(8), 'bills', 'Rogers', null],
+    ['ChatGPT Plus', 20, 'USD', 'monthly', anchor(26), 'subscriptions', 'OpenAI ChatGPT Subscr', visaId],
+    ['GitHub Copilot', 100, 'USD', 'yearly', iso(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 4, 11))), 'subscriptions', null, null],
+    ['Proton Mail', 47.88, 'EUR', 'yearly', iso(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 9, 3))), 'subscriptions', null, null],
+    ['Domain renewal', 64, 'CAD', 'every-4-years', iso(new Date(Date.UTC(today.getUTCFullYear() - 2, 2, 17))), 'subscriptions', null, null],
+    ['Antivirus', 89.99, 'CAD', 'biennial', iso(new Date(Date.UTC(today.getUTCFullYear() - 1, 9, 2))), 'subscriptions', null, null],
   ]
   const insert = db.prepare(
     `INSERT INTO subscription (id, user_id, name, amount, currency, cycle, anchor_date, category, account_id, merchant_key)
-     VALUES (?, ?, ?, ?, 'CAD', ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
-  for (const [name, amount, cycle, anchorDate, category, merchant, accountId] of subs) {
-    insert.run(randomUUID(), DEMO_USER_ID, name, amount, cycle, anchorDate, category, accountId, merchant ? merchantKeyOf(merchant) : null)
+  for (const [name, amount, currency, cycle, anchorDate, category, merchant, accountId] of subs) {
+    insert.run(randomUUID(), DEMO_USER_ID, name, amount, currency, cycle, anchorDate, category, accountId, merchant ? merchantKeyOf(merchant) : null)
   }
 
   seedGoals(today)
   seedWork(today)
+  seedUsdJob(today)
 }
 
 /** A few goals at different stages, with a history of partial payments. */
@@ -352,6 +360,54 @@ function seedWork(today: Date) {
   for (const [daysAgo, hours, note] of [[3, 3.5, 'Staff meeting + tickets'], [1, 2.25, null]] as const) {
     insertEntry.run(randomUUID(), jobId, ago(daysAgo), hours, note, `${ago(daysAgo)} 12:00:00`)
   }
+}
+
+/** A US client billed in USD through PayPal: one bill paid and converted to CAD on deposit, one part-paid, one open. */
+const USD_BILLS: [daysAgo: number, hours: number, payments: [daysAgo: number, amount: number, receivedCad: number | null][]][] = [
+  [58, 22, [[50, 990, 1361.45]]],
+  [30, 18, [[24, 400, null], [10, 210, null]]],
+  [5, 12.5, []],
+]
+const USD_RATE = 45
+
+/** The USD PayPal wallet: client payments in, the first one transferred out (converted) to the bank. */
+function usdWallet(today: Date): Draft[] {
+  const ago = (days: number) => iso(new Date(today.getTime() - days * 86_400_000))
+  const drafts: Draft[] = []
+  for (const [, , payments] of USD_BILLS) {
+    for (const [pAgo, amount, receivedCad] of payments) {
+      drafts.push({ date: ago(pAgo), description: 'Payment from Brightline Media LLC', amount })
+      if (receivedCad != null) drafts.push({ date: ago(pAgo - 1), description: 'Transfer to bank (converted to CAD)', amount: -amount })
+    }
+  }
+  return drafts.sort((a, b) => a.date.localeCompare(b.date))
+}
+
+function seedUsdJob(today: Date) {
+  const ago = (days: number) => iso(new Date(today.getTime() - days * 86_400_000))
+  const jobId = randomUUID()
+  db.prepare(
+    `INSERT INTO work_job (id, user_id, name, rate, currency, pay_amount, pay_every_days, color, notes, created_at)
+     VALUES (?, ?, 'Brightline Media (US)', ?, 'USD', NULL, NULL, 'ocean', 'Billed in USD, paid through PayPal.', ?)`,
+  ).run(jobId, DEMO_USER_ID, USD_RATE, `${ago(75)} 12:00:00`)
+  const insertInvoice = db.prepare(
+    `INSERT INTO work_invoice (id, job_id, date, hours, rate, total, counter_hours, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)`,
+  )
+  const insertPayment = db.prepare(
+    `INSERT INTO work_payment (id, invoice_id, amount, date, note, received_amount, received_currency, created_at) VALUES (?, ?, ?, ?, 'PayPal', ?, ?, ?)`,
+  )
+  let counter = 0
+  for (const [daysAgo, hours, payments] of USD_BILLS) {
+    const id = randomUUID()
+    counter += hours
+    insertInvoice.run(id, jobId, ago(daysAgo), hours, USD_RATE, round(hours * USD_RATE), counter, `${ago(daysAgo)} 12:00:00`)
+    for (const [pAgo, amount, receivedCad] of payments) {
+      insertPayment.run(randomUUID(), id, amount, ago(pAgo), receivedCad, receivedCad == null ? null : 'CAD', `${ago(pAgo)} 12:00:00`)
+    }
+  }
+  db.prepare(`INSERT INTO work_entry (id, job_id, date, hours, note, created_at) VALUES (?, ?, ?, ?, ?, ?)`).run(
+    randomUUID(), jobId, ago(2), 4, 'Landing page revisions', `${ago(2)} 12:00:00`,
+  )
 }
 
 /** Make sure today's demo data exists. Cheap after the first call of the day. */
