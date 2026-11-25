@@ -1,15 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ArrowRight, BellOff, EyeOff, Info, MoreHorizontal, PartyPopper, PiggyBank, type LucideIcon } from 'lucide-react'
-import { useMemo, useSyncExternalStore } from 'react'
-import { Link } from 'react-router'
-import { toast } from 'sonner'
 import { Button, buttonVariants } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { buildAdvice, type AdvisorReport, type Tip, type TipArea, type TipKind } from '@/lib/advisor'
 import { api } from '@/lib/api'
 import { inHomeCurrency, useConverter } from '@/lib/currency'
@@ -17,6 +7,11 @@ import { demoMode } from '@/lib/demo'
 import { formatMoney, isoDate } from '@/lib/format'
 import { useDashboardTransactions, useGoals, useOverview, useSubscriptions } from '@/lib/queries'
 import { cn } from '@/lib/utils'
+import { useQuery } from '@tanstack/react-query'
+import { AlertTriangle, ArrowRight, BellOff, EyeOff, Info, MoreHorizontal, PartyPopper, PiggyBank, type LucideIcon } from 'lucide-react'
+import { useMemo, useSyncExternalStore } from 'react'
+import { Link } from 'react-router'
+import { toast } from 'sonner'
 
 export const KIND_META: Record<TipKind, { label: string; icon: LucideIcon; className: string; card: string; text: string }> = {
   warn: {
@@ -117,6 +112,14 @@ export function useAdvice() {
   const hiddenIds = useMemo(() => new Set(hidden.map((h) => h.id)), [hidden])
   const tips = useMemo(() => (report?.tips ?? []).filter((t) => !hiddenIds.has(t.id)), [report, hiddenIds])
   const hiddenCount = (report?.tips.length ?? 0) - tips.length
+  // Each hidden tip with when it comes back (null: hidden for good), soonest first.
+  const hiddenTips = useMemo(() => {
+    const until = new Map(hidden.map((h) => [h.id, h.until]))
+    return (report?.tips ?? [])
+      .filter((t) => hiddenIds.has(t.id))
+      .map((tip) => ({ tip, until: until.get(tip.id) ?? null }))
+      .sort((a, b) => (a.until ?? '9').localeCompare(b.until ?? '9'))
+  }, [report, hiddenIds, hidden])
 
   async function dismiss(tip: Tip, days?: number) {
     const undo = async () => {
@@ -137,17 +140,18 @@ export function useAdvice() {
     }
   }
 
-  async function restore() {
+  /** Bring back one hidden tip, or all of them without an id. */
+  async function restore(id?: string) {
     try {
-      if (demoMode) demoStore.set([])
-      else await api.restoreAdvice()
-      toast.success('Hidden tips are back')
+      if (demoMode) demoStore.set(id ? demoHidden.filter((h) => h.id !== id) : [])
+      else await api.restoreAdvice(id)
+      toast.success(id ? 'Tip is back' : 'Hidden tips are back')
     } catch (e) {
       toast.error((e as Error).message)
     }
   }
 
-  return { report, tips, hiddenCount, loading: !ready, error: overview.error ?? txq.error, dismiss, restore }
+  return { report, tips, hiddenCount, hiddenTips, loading: !ready, error: overview.error ?? txq.error, dismiss, restore }
 }
 
 export function TipIcon({ kind, className }: { kind: TipKind; className?: string }) {
@@ -161,37 +165,29 @@ export function TipIcon({ kind, className }: { kind: TipKind; className?: string
 }
 
 /** One piece of advice: what's going on, what it's worth, and what to do about it. */
-export function TipCard({
-  tip,
-  onDismiss,
-  compact,
-}: {
-  tip: Tip
-  onDismiss: (tip: Tip, days?: number) => void
-  compact?: boolean
-}) {
+export function TipCard({ tip, onDismiss, compact }: { tip: Tip; onDismiss: (tip: Tip, days?: number) => void; compact?: boolean }) {
   const meta = KIND_META[tip.kind]
   const saving = tip.yearly !== undefined && tip.yearly >= 5 && tip.kind !== 'win' && (
-    <span className="shrink-0 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium tabular-nums text-emerald-700 dark:text-emerald-400">
+    <span className="shrink-0 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-700 tabular-nums dark:text-emerald-400">
       ~{perYear(tip.yearly)}
     </span>
   )
   const menu = (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant="ghost" size="icon" className="-mt-1 -mr-1 size-7 shrink-0 text-muted-foreground" aria-label="Tip options" />}
-            >
-              <MoreHorizontal />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => onDismiss(tip, 30)}>
-                <BellOff /> Snooze for 30 days
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDismiss(tip)}>
-                <EyeOff /> Not useful, hide it
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" size="icon" className="-mt-1 -mr-1 size-7 shrink-0 text-muted-foreground" aria-label="Tip options" />}
+      >
+        <MoreHorizontal />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onClick={() => onDismiss(tip, 30)}>
+          <BellOff /> Snooze for 30 days
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onDismiss(tip)}>
+          <EyeOff /> Not useful, hide it
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 
   // The dashboard's version: the finding in one sentence, then what to do about it.
@@ -200,17 +196,14 @@ export function TipCard({
       <article className={cn('flex flex-col gap-2 rounded-lg border p-3', meta.card)}>
         <div className="flex items-start gap-2.5">
           <TipIcon kind={tip.kind} className="size-8" />
-          <h3 className="min-w-0 flex-1 self-center text-sm font-medium leading-snug">{tip.title}</h3>
+          <h3 className="min-w-0 flex-1 self-center text-sm leading-snug font-medium">{tip.title}</h3>
           {menu}
         </div>
         <p className="text-sm text-muted-foreground">{headline(tip.body)}</p>
         {(tip.action || saving) && (
-          <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+          <div className="flex items-center justify-between gap-2 pt-1">
             {tip.action ? (
-              <Link
-                to={tip.action.to}
-                className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), '-ml-2 h-7 px-2 font-medium', meta.text)}
-              >
+              <Link to={tip.action.to} className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), '-ml-2 h-7 px-2 font-medium', meta.text)}>
                 {tip.action.label} <ArrowRight />
               </Link>
             ) : (
@@ -226,16 +219,16 @@ export function TipCard({
   return (
     <article className={cn('flex gap-3 rounded-lg border p-4', meta.card)}>
       <TipIcon kind={tip.kind} />
-      <div className="grid min-w-0 flex-1 gap-1.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex items-start gap-2">
-          <h3 className="min-w-0 flex-1 text-sm font-medium leading-snug">{tip.title}</h3>
+          <h3 className="min-w-0 flex-1 text-sm leading-snug font-medium">{tip.title}</h3>
           {saving}
           {menu}
         </div>
         <p className="text-sm text-muted-foreground">{tip.body}</p>
         {tip.action && (
-          <div>
-            <Link to={tip.action.to} className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'mt-1 bg-background/60')}>
+          <div className="flex justify-start pt-1">
+            <Link to={tip.action.to} className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'bg-background/60')}>
               {tip.action.label} <ArrowRight />
             </Link>
           </div>

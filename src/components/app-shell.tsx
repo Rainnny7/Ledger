@@ -32,6 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAdvice } from "@/components/advisor-bits";
 import { api } from "@/lib/api";
 import { authClient, signOut, useSession } from "@/lib/auth-client";
 import { detectCurrency, savedCurrency, useHomeCurrency } from "@/lib/currency";
@@ -65,7 +66,7 @@ const NAV: {
   to: string;
   label: string;
   icon: AnimatedIcon;
-  count?: "accounts" | "subscriptions" | "goals" | "work";
+  count?: "accounts" | "subscriptions" | "goals" | "work" | "advice";
 }[] = [
   { to: "/", label: "Bank Accounts", icon: WalletIcon, count: "accounts" },
   { to: "/transactions", label: "Transactions", icon: ReceiptIcon },
@@ -77,7 +78,7 @@ const NAV: {
     count: "subscriptions",
   },
   { to: "/goals", label: "Goals", icon: RocketIcon, count: "goals" },
-  { to: "/advisor", label: "Advisor", icon: LightbulbIcon },
+  { to: "/advisor", label: "Advisor", icon: LightbulbIcon, count: "advice" },
   { to: "/work", label: "Work", icon: BriefcaseBusinessIcon, count: "work" },
   { to: "/invoices", label: "Invoices", icon: FileTextIcon },
 ];
@@ -230,7 +231,9 @@ function useNavCounts() {
   const subs = useSubscriptions().data;
   const goals = useGoals().data;
   const work = useWork().data;
+  const advice = useAdvice();
   return {
+    advice: advice.report ? advice.tips.length : null,
     work: work ? work.jobs.filter((j) => !j.archived).length : null,
     goals: goals
       ? goals.goals.filter((g) => !g.archived && g.status !== "done").length
