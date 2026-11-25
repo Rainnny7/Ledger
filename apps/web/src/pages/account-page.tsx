@@ -29,6 +29,7 @@ import { CATEGORY_LIST, CATEGORY_META } from "@/lib/categories"
 import { balanceSeries, downloadCsv, spendByCategory } from "@/lib/finance"
 import { ACCOUNT_TYPE_LABEL, formatRelative } from "@/lib/format"
 import { usePagination } from "@/components/transactions/use-pagination"
+import { QueryError } from "@/components/ui/query-error"
 import { useAccount } from "@/lib/queries"
 import { useUrlState } from "@/lib/url-state"
 
@@ -37,13 +38,16 @@ type Flow = "all" | "in" | "out"
 /** One account: balance trend, category breakdown, and transaction history. */
 export function AccountPage() {
 	const { id = "" } = useParams({ strict: false })
-	const { data, error } = useAccount(id)
+	const { data, error, reload } = useAccount(id)
 
 	if (error && !data) {
 		return (
 			<div className="grid gap-4">
 				<AccountBackLink />
-				<p className="text-sm text-destructive">{error.message}</p>
+				<QueryError
+					message={error.message}
+					onRetry={() => void reload()}
+				/>
 			</div>
 		)
 	}
@@ -112,14 +116,8 @@ function AccountView({
 		)
 	}, [transactions, query, flow, category, from])
 
-	const {
-		page,
-		perPage,
-		totalPages,
-		setPage,
-		setPerPage,
-		resetPage,
-	} = usePagination(filtered.length)
+	const { page, perPage, totalPages, setPage, setPerPage, resetPage } =
+		usePagination(filtered.length)
 	const shown = filtered.slice((page - 1) * perPage, page * perPage)
 
 	const totals = useMemo(() => {

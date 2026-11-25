@@ -171,7 +171,9 @@ export function TransactionsPagination({
 							<Button
 								key={item.page}
 								type="button"
-								variant={item.page === page ? "default" : "outline"}
+								variant={
+									item.page === page ? "default" : "outline"
+								}
 								size="icon"
 								className="size-8 tabular-nums"
 								aria-label={`Page ${item.page}`}
@@ -220,7 +222,10 @@ export function TransactionsPagination({
 						}
 					}}
 				>
-					<SelectTrigger className="w-[5.5rem]" aria-label="Rows per page">
+					<SelectTrigger
+						className="w-[5.5rem]"
+						aria-label="Rows per page"
+					>
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
