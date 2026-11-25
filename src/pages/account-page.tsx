@@ -1,5 +1,5 @@
 import { Money } from '@/components/money'
-import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Download, History, Search } from 'lucide-react'
+import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Download, History } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { AccountDetailsButton } from '@/components/account-details-dialog'
@@ -11,7 +11,7 @@ import { TransactionsTable } from '@/components/transactions-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/search-input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -255,18 +255,14 @@ function AccountView({ account: a, transactions }: { account: Account; transacti
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-48 flex-1">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search merchant, description, note or amount"
-                className="pl-8"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value)
-                  resetLimit()
-                }}
-              />
-            </div>
+            <SearchInput
+              placeholder="Search merchant, description, note or amount"
+              value={query}
+              onChange={(v) => {
+                setQuery(v)
+                resetLimit()
+              }}
+            />
             <Select
               items={periodItems}
               value={period}

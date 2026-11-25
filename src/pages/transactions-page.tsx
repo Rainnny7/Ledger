@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, Download, Loader2, Search, Tags, X } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, Download, Loader2, Tags, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
@@ -8,7 +8,7 @@ import { TransactionSheet } from '@/components/transaction-sheet'
 import { TransactionsTable } from '@/components/transactions-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/search-input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -216,18 +216,14 @@ export function TransactionsPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-48 flex-1">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search merchant, description, note or amount"
-                className="pl-8"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value)
-                  changed()
-                }}
-              />
-            </div>
+            <SearchInput
+              placeholder="Search merchant, description, note or amount"
+              value={query}
+              onChange={(v) => {
+                setQuery(v)
+                changed()
+              }}
+            />
             <FilterSelect items={accountItems} value={accountId} onChange={(v) => (setAccountId(v), changed())} className="w-44" />
             <FilterSelect
               items={periodOptions}
