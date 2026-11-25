@@ -11,6 +11,8 @@ import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useSession } from '@/lib/auth-client'
 import { demoMode } from '@/lib/demo'
+import { THEME_CLASSES } from '@/lib/theme'
+import { THEME_IDS } from '../shared/themes.ts'
 import { queryClient } from '@/lib/queries'
 import { AuthPage } from '@/pages/auth-page'
 import { ChangeTemporaryPasswordPage } from '@/pages/temporary-password-page'
@@ -127,7 +129,7 @@ export default function App() {
   return (
     <ErrorBoundary fullScreen>
     <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" themes={THEME_IDS} value={THEME_CLASSES} defaultTheme="system" enableSystem disableTransitionOnChange>
       <TooltipProvider delay={300}>
         <RouterProvider router={router} />
       </TooltipProvider>

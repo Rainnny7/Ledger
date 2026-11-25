@@ -3,7 +3,6 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/component
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Brand } from "@/components/brand";
 import { CommandPalette, openCommandPalette } from "@/components/command-palette";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { BriefcaseBusinessIcon } from "@/components/icons/briefcase-business";
 import { CalculatorIcon } from "@/components/icons/calculator";
 import { ChartPieIcon } from "@/components/icons/chart-pie";
@@ -30,9 +29,22 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 import { useAdvice } from "@/components/advisor-bits";
 import { api } from "@/lib/api";
 import { authClient, signOut, useSession } from "@/lib/auth-client";
@@ -40,6 +52,7 @@ import { detectCurrency, savedCurrency, useHomeCurrency } from "@/lib/currency";
 import { DEMO_IDENTITY, demoMode, setDemoMode } from "@/lib/demo";
 import { setDisplayCurrency } from "@/lib/format";
 import { usePageTitle } from "@/lib/page-title";
+import { THEMES, type ThemeChoice, themeMeta, useAccountTheme, useAppTheme } from "@/lib/theme";
 import {
   queryClient,
   queryKeys,
@@ -50,7 +63,7 @@ import {
 } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { MonitorPlay, Search, X } from "lucide-react";
+import { Monitor, MonitorPlay, Palette, Search, X } from "lucide-react";
 import {
   type ForwardRefExoticComponent,
   type RefAttributes,
@@ -79,12 +92,17 @@ type AnimatedIcon = ForwardRefExoticComponent<
   { size?: number; className?: string } & RefAttributes<AnimatedIconHandle>
 >;
 
-const NAV: {
+type NavEntry = {
   to: string;
   label: string;
   icon: AnimatedIcon;
   count?: "accounts" | "subscriptions" | "goals" | "work" | "advice";
-}[] = [
+  /** One line under the label in a grouped menu. */
+  description?: string;
+};
+
+/** The everyday pages, always in the bar. */
+const NAV: NavEntry[] = [
   { to: "/", label: "Bank Accounts", icon: WalletIcon, count: "accounts" },
   { to: "/transactions", label: "Transactions", icon: ReceiptIcon },
   { to: "/insights", label: "Insights", icon: ChartPieIcon },
@@ -96,10 +114,50 @@ const NAV: {
   },
   { to: "/goals", label: "Goals", icon: RocketIcon, count: "goals" },
   { to: "/advisor", label: "Advisor", icon: LightbulbIcon, count: "advice" },
-  { to: "/work", label: "Work", icon: BriefcaseBusinessIcon, count: "work" },
-  { to: "/invoices", label: "Invoices", icon: FileTextIcon },
-  { to: "/taxes", label: "Taxes", icon: CalculatorIcon },
 ];
+
+/** Freelance and paperwork pages, folded into one "Business" menu to keep the bar short. */
+const BUSINESS_NAV: NavEntry[] = [
+  {
+    to: "/work",
+    label: "Work",
+    icon: BriefcaseBusinessIcon,
+    count: "work",
+    description: "Log hours, bill them and track payments",
+  },
+  {
+    to: "/invoices",
+    label: "Invoices",
+    icon: FileTextIcon,
+    description: "Make, send and follow up on invoices",
+  },
+  {
+    to: "/taxes",
+    label: "Taxes",
+    icon: CalculatorIcon,
+    description: "Income and deductions, ready for your accountant",
+  },
+];
+
+const ALL_NAV = [...NAV, ...BUSINESS_NAV];
+
+/** The shared look of a top-level nav entry, link or menu trigger. */
+const navEntryClass = (active: boolean) =>
+  cn(
+    "flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm sm:gap-2 sm:px-2.5 font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+    active && "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
+  );
+
+function NavCount({ count, active }: { count: number; active: boolean }) {
+  return (
+    <Badge
+      variant={active ? "default" : "secondary"}
+      className="h-4.5 min-w-4.5 px-1 text-[10px] tabular-nums"
+    >
+      {count}
+    </Badge>
+  );
+}
 
 /** A nav link whose icon plays its animation when the link is hovered or focused. */
 function NavItem({
@@ -124,26 +182,16 @@ function NavItem({
       onClick={() => scrollUpIfHere(to, pathname)}
       aria-label={count !== null ? `${label} (${count})` : label}
       aria-current={active ? "page" : undefined}
+      data-nav-active={active || undefined}
       {...icon.handlers}
-      className={cn(
-        "flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm sm:gap-2 sm:px-2.5 font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-        active &&
-          "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
-      )}
+      className={navEntryClass(active)}
     >
       <Icon ref={icon.ref} size={16} className="flex shrink-0" />
       {/* Every label from lg; below that only the page you're on, so you can still tell where you are. */}
       <span className={cn("hidden lg:inline", active && "sm:inline")}>
         {label}
       </span>
-      {count !== null && (
-        <Badge
-          variant={active ? "default" : "secondary"}
-          className="h-4.5 min-w-4.5 px-1 text-[10px] tabular-nums"
-        >
-          {count}
-        </Badge>
-      )}
+      {count !== null && <NavCount count={count} active={active} />}
     </NavLink>
   );
   // The link is the trigger for both its right-click menu and, while it shows only an icon, a tooltip.
@@ -159,6 +207,127 @@ function NavItem({
         {label}
       </TooltipContent>
     </Tooltip>
+  );
+}
+
+/** One page in a grouped nav menu: icon, name and a line about it. */
+function NavGroupLink({
+  item,
+  count,
+  active,
+}: {
+  item: NavEntry;
+  count: number | null;
+  active: boolean;
+}) {
+  const { icon: Icon } = item;
+  const icon = useAnimatedIcon<HTMLAnchorElement>();
+  const { pathname } = useLocation();
+  return (
+    <NavigationMenuLink
+      closeOnClick
+      active={active}
+      {...icon.handlers}
+      render={
+        <NavLink
+          to={item.to}
+          onClick={() => scrollUpIfHere(item.to, pathname)}
+          aria-current={active ? "page" : undefined}
+        />
+      }
+      className={cn(
+        "items-start gap-3 p-2.5",
+        active && "bg-primary/10 hover:bg-primary/15 focus:bg-primary/15",
+      )}
+    >
+      <span
+        className={cn(
+          "mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground",
+          active && "bg-primary/15 text-primary",
+        )}
+      >
+        <Icon ref={icon.ref} size={16} className="flex" />
+      </span>
+      <span className="grid min-w-0 flex-1 gap-0.5">
+        <span
+          className={cn(
+            "flex items-center gap-2 font-medium",
+            active && "text-primary",
+          )}
+        >
+          {item.label}
+          {count !== null && <NavCount count={count} active={active} />}
+        </span>
+        <span className="text-xs leading-snug text-muted-foreground">
+          {item.description}
+        </span>
+      </span>
+    </NavigationMenuLink>
+  );
+}
+
+/**
+ * Less-used pages folded into one menu. The trigger shows the page you're on when it's one of
+ * them, so you can still tell where you are, and adds up the group's badges.
+ */
+function NavGroup({
+  label,
+  icon: Icon,
+  items,
+  counts,
+  pathname,
+}: {
+  label: string;
+  icon: AnimatedIcon;
+  items: NavEntry[];
+  counts: ReturnType<typeof useNavCounts>;
+  pathname: string;
+}) {
+  const icon = useAnimatedIcon<HTMLButtonElement>();
+  const current = items.find((i) => pathname.startsWith(i.to));
+  const active = Boolean(current);
+  const ShownIcon = current?.icon ?? Icon;
+  const counted = items.filter((i) => i.count);
+  const total = counted.length
+    ? counted.reduce((s, i) => s + (counts[i.count!] ?? 0), 0)
+    : null;
+  return (
+    <NavigationMenu render={<div />} className="max-w-none flex-none">
+      <NavigationMenuList>
+        <NavigationMenuItem>
+          <NavigationMenuTrigger
+            {...icon.handlers}
+            data-nav-active={active || undefined}
+            aria-label={current ? `${label}: ${current.label}` : label}
+            className={cn(
+              navEntryClass(active),
+              "w-auto py-0 focus:bg-transparent data-popup-open:bg-muted data-popup-open:text-foreground",
+              active &&
+                "focus:bg-primary/10 data-popup-open:bg-primary/15 data-popup-open:text-primary",
+            )}
+          >
+            <ShownIcon ref={icon.ref} size={16} className="flex shrink-0" />
+            <span className={cn("hidden lg:inline", active && "sm:inline")}>
+              {current?.label ?? label}
+            </span>
+            {total !== null && <NavCount count={total} active={active} />}
+          </NavigationMenuTrigger>
+          <NavigationMenuContent>
+            <ul className="grid w-[min(20rem,calc(100vw-2rem))] gap-0.5">
+              {items.map((item) => (
+                <li key={item.to}>
+                  <NavGroupLink
+                    item={item}
+                    count={item.count ? (counts[item.count] ?? 0) : null}
+                    active={pathname.startsWith(item.to)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </NavigationMenuContent>
+        </NavigationMenuItem>
+      </NavigationMenuList>
+    </NavigationMenu>
   );
 }
 
@@ -200,7 +369,7 @@ function ScrollNav({
   // Bring the current page's link into view, without moving the page itself.
   useEffect(() => {
     const nav = ref.current;
-    const link = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    const link = nav?.querySelector<HTMLElement>("[data-nav-active]");
     if (!nav || !link) return;
     const pad = 24;
     const left = link.offsetLeft;
@@ -295,7 +464,7 @@ function useRouteTitle(pathname: string) {
     title = invoice ? `Invoice ${invoice.number}` : "Invoices";
   } else if (!title) {
     title =
-      NAV.find((n) =>
+      ALL_NAV.find((n) =>
         n.to === "/" ? pathname === "/" : pathname.startsWith(n.to),
       )?.label ?? null;
   }
@@ -317,6 +486,54 @@ function useHomeCurrencySetup(user: { id: string } | undefined) {
   }, [needsSaving]);
 }
 
+/** Theme picker in the account menu: follow the device, or one of the themes. */
+function ThemeMenu({ origin }: { origin: React.RefObject<HTMLElement | null> }) {
+  const { choice, resolved, change } = useAppTheme();
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>
+        <Palette /> Theme
+        <span className="ml-auto pl-3 text-xs text-muted-foreground">
+          {choice === "system" ? "System" : resolved.label}
+        </span>
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent className="w-48">
+        <DropdownMenuRadioGroup
+          value={choice}
+          onValueChange={(v) => void change(v as ThemeChoice, origin.current)}
+        >
+          <DropdownMenuRadioItem value="system">
+            <Monitor /> Match system
+          </DropdownMenuRadioItem>
+          <DropdownMenuSeparator />
+          {THEMES.map((t) => (
+            <DropdownMenuRadioItem key={t.id} value={t.id}>
+              <ThemeSwatch id={t.id} /> {t.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+}
+
+/** A small round preview of a theme: its background, split with its accent colour. */
+function ThemeSwatch({ id, className }: { id: string; className?: string }) {
+  const [bg, , accent] = themeMeta(id)!.swatch;
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "relative size-4 shrink-0 overflow-hidden rounded-full ring-1 ring-foreground/15",
+        className,
+      )}
+      style={{ background: bg }}
+    >
+      <span className="absolute inset-y-0 right-0 w-1/2" style={{ background: accent }} />
+    </span>
+  );
+}
+
 export function AppShell() {
   const { data } = useSession();
   useHomeCurrencySetup(data?.user);
@@ -325,6 +542,8 @@ export function AppShell() {
   const counts = useNavCounts();
   useRouteTitle(pathname);
   useScrollTopOnPageChange(pathname);
+  useAccountTheme();
+  const accountButton = useRef<HTMLButtonElement>(null);
   const user = demoMode ? DEMO_IDENTITY : data?.user;
   const isAdmin = data?.user.role === "admin";
   const initials = (user?.name || user?.email || "?")
@@ -381,6 +600,13 @@ export function AppShell() {
                 }
               />
             ))}
+            <NavGroup
+              label="Business"
+              icon={BriefcaseBusinessIcon}
+              items={BUSINESS_NAV}
+              counts={counts}
+              pathname={pathname}
+            />
           </ScrollNav>
           <div className="flex shrink-0 items-center gap-1">
             <Button
@@ -392,11 +618,11 @@ export function AppShell() {
             >
               <Search />
             </Button>
-            <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
                   <Button
+                    ref={accountButton}
                     variant="ghost"
                     size="icon"
                     className="rounded-full"
@@ -458,6 +684,7 @@ export function AppShell() {
                     )}
                   </>
                 )}
+                <ThemeMenu origin={accountButton} />
                 <DropdownMenuSeparator />
                 <MenuItem
                   icon={LogoutIcon}

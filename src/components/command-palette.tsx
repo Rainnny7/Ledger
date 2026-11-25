@@ -31,13 +31,13 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import type { Transaction } from '@/lib/api'
 import { signOut, useSession } from '@/lib/auth-client'
 import { demoMode, setDemoMode } from '@/lib/demo'
+import { THEMES, useAppTheme } from '@/lib/theme'
 import { formatMoney, formatShortDate } from '@/lib/format'
 import { queryClient, useGoals, useInvoices, useOverview, useSubscriptions, useWork } from '@/lib/queries'
 import { cn } from '@/lib/utils'
@@ -204,7 +204,7 @@ export const openCommandPalette = () => window.dispatchEvent(new Event(OPEN_EVEN
 
 function Palette({ onDone }: { onDone: () => void }) {
   const navigate = useNavigate()
-  const { setTheme, resolvedTheme } = useTheme()
+  const { choice, change } = useAppTheme()
   const isAdmin = useSession().data?.user.role === 'admin'
   const accounts = useOverview().data?.accounts
   const goals = useGoals().data?.goals
@@ -220,14 +220,15 @@ function Palette({ onDone }: { onDone: () => void }) {
 
   // Commands that do something right here rather than going to a page.
   const commands = useMemo<Item[]>(() => {
-    const theme = (mode: 'light' | 'dark' | 'system') => () => {
-      document.documentElement.classList.toggle('dark', mode === 'dark' || (mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches))
-      setTheme(mode)
-    }
     const list: Omit<Item, 'group'>[] = [
-      { id: 'c:light', label: 'Light theme', icon: Sun, run: theme('light'), keywords: 'appearance mode' },
-      { id: 'c:dark', label: 'Dark theme', icon: Moon, run: theme('dark'), keywords: 'appearance mode night' },
-      { id: 'c:system', label: 'Match system theme', icon: Monitor, run: theme('system'), keywords: 'appearance mode auto' },
+      ...THEMES.map((t) => ({
+        id: `c:theme-${t.id}`,
+        label: `${t.label} theme`,
+        icon: t.dark ? Moon : Sun,
+        run: () => void change(t.id),
+        keywords: `appearance mode colour color ${t.dark ? 'dark night' : 'light day'}`,
+      })),
+      { id: 'c:theme-system', label: 'Match system theme', icon: Monitor, run: () => void change('system'), keywords: 'appearance mode auto' },
       {
         id: 'c:demo',
         label: demoMode ? 'Exit demo mode' : 'Try demo mode',
@@ -249,9 +250,9 @@ function Palette({ onDone }: { onDone: () => void }) {
       },
     ]
     return list
-      .filter((c) => !(c.id === 'c:light' && resolvedTheme === 'light') && !(c.id === 'c:dark' && resolvedTheme === 'dark'))
+      .filter((c) => c.id !== `c:theme-${choice}`)
       .map((c) => ({ ...c, group: 'Actions' as const }))
-  }, [setTheme, resolvedTheme, navigate])
+  }, [choice, change, navigate])
 
   // Everything findable by name: pages, accounts and the things you've made.
   const pool = useMemo(() => {

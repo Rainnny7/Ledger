@@ -15,6 +15,8 @@ export const authClient = createAuthClient({
         includeOverdraft: { type: 'boolean', required: false, input: true },
         // Settings → Preferences; the currency totals are converted to.
         currency: { type: 'string', required: false, input: true },
+        // Settings → Appearance; the colour theme, applied on every device you sign in on.
+        theme: { type: 'string', required: false, input: true },
       },
     }),
   ],

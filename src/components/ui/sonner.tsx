@@ -1,6 +1,6 @@
 "use client"
 
-import { useTheme } from "next-themes"
+import { useAppTheme } from "@/lib/theme"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CheckIcon, InfoIcon, TriangleAlertIcon, XIcon, Loader2Icon } from "lucide-react"
 
@@ -10,11 +10,11 @@ import { CheckIcon, InfoIcon, TriangleAlertIcon, XIcon, Loader2Icon } from "luci
  * The finer styling lives in index.css under [data-sonner-toaster].
  */
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const { resolved } = useAppTheme()
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={resolved.dark ? "dark" : "light"}
       className="toaster group"
       position="bottom-center"
       offset={20}

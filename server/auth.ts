@@ -9,6 +9,7 @@ import { DEMO_EMAIL, DEMO_USER_ID } from './demo.ts'
 import { env } from './env.ts'
 import { PASSWORD_MAX, PASSWORD_MIN, passwordProblem } from '../shared/password.ts'
 import { isCurrencyCode } from './validation.ts'
+import { isThemeChoice } from '../shared/themes.ts'
 
 /** index.ts puts the caller's real address here, replacing anything the client sent. */
 export const CLIENT_IP_HEADER = 'x-ledger-client-ip'
@@ -199,6 +200,9 @@ export const auth = betterAuth({
         const currency = (ctx.body as { currency?: unknown }).currency
         if (!isCurrencyCode(currency)) throw new APIError('BAD_REQUEST', { message: 'Unknown currency.' })
       }
+      if (ctx.path === '/update-user' && (ctx.body as { theme?: unknown } | undefined)?.theme != null) {
+        if (!isThemeChoice((ctx.body as { theme?: unknown }).theme)) throw new APIError('BAD_REQUEST', { message: 'Unknown theme.' })
+      }
       if (ctx.path === '/update-user' || ctx.path === '/sign-up/email' || ctx.path === '/admin/create-user') {
         const name = (ctx.body as { name?: unknown } | undefined)?.name
         if (name !== undefined && (typeof name !== 'string' || name.trim().length > NAME_MAX)) {
@@ -277,6 +281,8 @@ export const auth = betterAuth({
       includeOverdraft: { type: 'boolean', defaultValue: true, input: true, required: false },
       // Settings → Preferences: the currency totals are shown in. Guessed from the browser at sign-up.
       currency: { type: 'string', input: true, required: false },
+      // Settings → Appearance: the colour theme, so it follows you to every device. Unset until picked.
+      theme: { type: 'string', input: true, required: false },
     },
   },
   databaseHooks: {
