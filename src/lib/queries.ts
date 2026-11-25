@@ -28,6 +28,7 @@ export const queryKeys = {
   subscriptions: ['subscriptions'] as const,
   goals: ['goals'] as const,
   work: ['work'] as const,
+  invoices: ['invoices'] as const,
   transactions: (from: string | null) => ['transactions', from ?? 'all'] as const,
   account: (id: string) => ['account', id] as const,
   accountDetails: (id: string) => ['account', id, 'details'] as const,
@@ -51,6 +52,7 @@ export const useSubscriptions = () => view(useQuery({ queryKey: queryKeys.subscr
 
 export const useGoals = () => view(useQuery({ queryKey: queryKeys.goals, queryFn: api.goals }))
 export const useWork = () => view(useQuery({ queryKey: queryKeys.work, queryFn: api.work }))
+export const useInvoices = () => view(useQuery({ queryKey: queryKeys.invoices, queryFn: api.invoices }))
 
 /** Dashboard window: enough history for every chart range (the 1-year view plus a month of slack). */
 export const DASHBOARD_FROM_DAYS = 400

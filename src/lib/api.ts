@@ -12,6 +12,9 @@ export interface Connection {
   lastError: string | null
   createdAt: string
   savedCredentials: boolean
+  /** PayPal webhooks registered: payments made through the app arrive right away. */
+  instantUpdates?: boolean
+  lastEventAt?: string | null
 }
 
 export interface Account {
@@ -285,6 +288,138 @@ export type WorkInvoiceInput = {
 
 export type WorkPaymentInput = { amount: number; date: string; note?: string | null; transactionId?: string | null }
 
+// ---------------------------------------------------------------- invoices
+
+export interface InvoiceParty {
+  name: string
+  email: string
+  phone: string
+  address: string
+  taxId: string
+}
+
+export interface InvoiceItem {
+  description: string
+  quantity: number
+  unitPrice: number
+}
+
+export type InvoiceDocStatus = 'draft' | 'sent' | 'void'
+export type InvoicePayState = 'unpaid' | 'partial' | 'paid'
+
+export type PaymentMethodKind =
+  | 'etransfer'
+  | 'paypal'
+  | 'paypal-checkout'
+  | 'crypto'
+  | 'bank'
+  | 'wise'
+  | 'venmo'
+  | 'cashapp'
+  | 'zelle'
+  | 'revolut'
+  | 'link'
+  | 'cheque'
+  | 'cash'
+  | 'other'
+
+export interface PaymentMethod {
+  id: string
+  kind: PaymentMethodKind
+  label: string
+  fields: Record<string, string>
+  isDefault: boolean
+}
+
+export type PaymentMethodInput = Omit<PaymentMethod, 'id'>
+
+/** A payment method as the person you bill sees it. */
+export type PublicPaymentMethod = Omit<PaymentMethod, 'isDefault'>
+
+export interface InvoicePayment {
+  id: string
+  amount: number
+  date: string
+  method: string | null
+  note: string | null
+  source: 'manual' | 'work' | 'paypal'
+  transactionId: string | null
+}
+
+/** What you fill in on an invoice. */
+export interface InvoiceInput {
+  number: string
+  status: InvoiceDocStatus
+  template: string
+  theme: string
+  currency: string
+  issueDate: string
+  dueDate: string | null
+  from: InvoiceParty
+  client: InvoiceParty
+  items: InvoiceItem[]
+  taxRate: number
+  taxLabel: string
+  discount: number
+  notes: string | null
+  terms: string | null
+  methodIds: string[]
+  workInvoiceId: string | null
+}
+
+export interface InvoiceTotalsView {
+  subtotal: number
+  tax: number
+  total: number
+  paid: number
+  balance: number
+  payState: InvoicePayState
+}
+
+export interface Invoice extends InvoiceInput, InvoiceTotalsView {
+  id: string
+  token: string
+  sentAt: string | null
+  viewedAt: string | null
+  createdAt: string
+  updatedAt: string
+  payments: InvoicePayment[]
+}
+
+/** The share-link view: no internal ids, payment methods resolved. */
+export type PublicInvoice = Omit<InvoiceInput, 'methodIds' | 'workInvoiceId'> & InvoiceTotalsView & { methods: PublicPaymentMethod[] }
+
+export interface InvoiceProfile {
+  from: InvoiceParty
+  prefix: string
+  template: string
+  theme: string
+  currency: string
+  taxRate: number
+  taxLabel: string
+  dueDays: number | null
+  notes: string
+  terms: string
+}
+
+export interface PaypalAppConnection {
+  id: string
+  label: string
+  usernameMasked: string
+  instantUpdates: boolean
+  lastEventAt: string | null
+}
+
+export interface InvoicesData {
+  invoices: Invoice[]
+  methods: PaymentMethod[]
+  profile: InvoiceProfile
+  nextNumber: string
+  paypal: PaypalAppConnection[]
+}
+
+export type InvoicePaymentInput = { amount: number; date: string; method?: string | null; note?: string | null; transactionId?: string | null }
+
 export interface MfaOption {
   id: string
   label: string
@@ -390,4 +525,49 @@ export const api = {
   addWorkPayment: (invoiceId: string, body: WorkPaymentInput) =>
     request<{ job: WorkJob }>(`/work/invoices/${invoiceId}/payments`, { method: 'POST', body: JSON.stringify(body) }),
   deleteWorkPayment: (id: string) => request<{ job: WorkJob }>(`/work/payments/${id}`, { method: 'DELETE' }),
+
+  invoices: () => request<InvoicesData>('/invoices'),
+  createInvoice: (body: InvoiceInput) => request<{ invoice: Invoice }>('/invoices', { method: 'POST', body: JSON.stringify(body) }),
+  updateInvoice: (id: string, body: Partial<InvoiceInput>) =>
+    request<{ invoice: Invoice }>(`/invoices/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteInvoice: (id: string) => request<{ ok: true }>(`/invoices/${id}`, { method: 'DELETE' }),
+  resetInvoiceLink: (id: string) => request<{ invoice: Invoice }>(`/invoices/${id}/reset-link`, { method: 'POST' }),
+  addInvoicePayment: (id: string, body: InvoicePaymentInput) =>
+    request<{ invoice: Invoice }>(`/invoices/${id}/payments`, { method: 'POST', body: JSON.stringify(body) }),
+  deleteInvoicePayment: (id: string, paymentId: string) =>
+    request<{ invoice: Invoice }>(`/invoices/${id}/payments/${paymentId}`, { method: 'DELETE' }),
+  saveInvoiceProfile: (body: InvoiceProfile) =>
+    request<{ profile: InvoiceProfile; nextNumber: string }>('/invoice-profile', { method: 'PUT', body: JSON.stringify(body) }),
+  createPaymentMethod: (body: PaymentMethodInput) =>
+    request<{ method: PaymentMethod; methods: PaymentMethod[] }>('/payment-methods', { method: 'POST', body: JSON.stringify(body) }),
+  updatePaymentMethod: (id: string, body: PaymentMethodInput) =>
+    request<{ methods: PaymentMethod[] }>(`/payment-methods/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deletePaymentMethod: (id: string) => request<{ methods: PaymentMethod[] }>(`/payment-methods/${id}`, { method: 'DELETE' }),
+
+  enableInstantUpdates: (connectionId: string) =>
+    request<{ ok: true; url: string }>(`/connections/${connectionId}/instant-updates`, { method: 'POST' }),
+  disableInstantUpdates: (connectionId: string) =>
+    request<{ ok: true }>(`/connections/${connectionId}/instant-updates`, { method: 'DELETE' }),
+}
+
+/** The share link: no sign-in, so it skips the signed-in /api/banks helper. */
+async function publicRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(`/api/public${path}`, {
+    ...init,
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...init.headers },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new ApiError(res.status, (data as { error?: string }).error ?? res.statusText)
+  return data as T
+}
+
+export const publicApi = {
+  invoice: (token: string) => publicRequest<{ invoice: PublicInvoice }>(`/invoices/${encodeURIComponent(token)}`),
+  startPaypal: (token: string) => publicRequest<{ url: string }>(`/invoices/${encodeURIComponent(token)}/paypal`, { method: 'POST' }),
+  capturePaypal: (token: string, orderId: string) =>
+    publicRequest<{ invoice: PublicInvoice | null }>(`/invoices/${encodeURIComponent(token)}/paypal/capture`, {
+      method: 'POST',
+      body: JSON.stringify({ orderId }),
+    }),
 }

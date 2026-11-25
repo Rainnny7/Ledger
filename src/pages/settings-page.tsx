@@ -4,7 +4,6 @@ import { REGEXP_ONLY_DIGITS } from 'input-otp'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
-import { encode } from 'uqr'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -14,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@/components/ui/input-otp'
 import { Label } from '@/components/ui/label'
+import { QrCode } from '@/components/qr-code'
 import { Switch } from '@/components/ui/switch'
 import { authClient, twoFactor, useSession } from '@/lib/auth-client'
 import { queryClient } from '@/lib/queries'
@@ -324,7 +324,7 @@ function SetupDialog({ open, onClose }: { open: boolean; onClose: () => void }) 
         )}
         {step.type === 'scan' && (
           <div className="grid justify-items-center gap-4">
-            <QrCode value={step.uri} className="size-48 rounded-lg bg-white p-2" />
+            <QrCode value={step.uri} label="QR code for your authenticator app" className="size-48 rounded-lg p-2" />
             <details className="w-full text-xs text-muted-foreground">
               <summary className="cursor-pointer">Can’t scan? Enter the key manually</summary>
               <code className="mt-2 block rounded-md bg-muted p-2 break-all text-foreground">{secretOf(step.uri)}</code>
@@ -472,22 +472,6 @@ function secretOf(uri: string) {
   } catch {
     return ''
   }
-}
-
-/** A QR code drawn as one SVG path (dark modules on a white quiet zone so any scanner reads it). */
-function QrCode({ value, className }: { value: string; className?: string }) {
-  const { data, size } = encode(value, { border: 1 })
-  let d = ''
-  data.forEach((row, y) =>
-    row.forEach((on, x) => {
-      if (on) d += `M${x} ${y}h1v1h-1z`
-    }),
-  )
-  return (
-    <svg viewBox={`0 0 ${size} ${size}`} className={className} role="img" aria-label="QR code for your authenticator app" shapeRendering="crispEdges">
-      <path d={d} fill="#000" />
-    </svg>
-  )
 }
 
 // ---------------------------------------------------------------- devices
