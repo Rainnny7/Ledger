@@ -9,58 +9,63 @@ import { cn } from "cn"
  * outside (a "Clear" button, the back button) the box follows it.
  */
 export function SearchInput({
-  value,
-  onChange,
-  delay = 250,
-  placeholder,
-  className,
+	value,
+	onChange,
+	delay = 250,
+	placeholder,
+	className,
 }: {
-  value: string
-  onChange: (value: string) => void
-  delay?: number
-  placeholder?: string
-  className?: string
+	value: string
+	onChange: (value: string) => void
+	delay?: number
+	placeholder?: string
+	className?: string
 }) {
-  const [draft, setDraft] = useState(value)
-  // The last value we've seen or reported, so an outside change can be told apart from our own.
-  const [seen, setSeen] = useState(value)
-  if (value !== seen) {
-    setSeen(value)
-    setDraft(value)
-  }
+	const [draft, setDraft] = useState(value)
+	// The last value we've seen or reported, so an outside change can be told apart from our own.
+	const [seen, setSeen] = useState(value)
+	if (value !== seen) {
+		setSeen(value)
+		setDraft(value)
+	}
 
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const report = useRef(onChange)
-  useEffect(() => {
-    report.current = onChange
-  })
-  useEffect(() => () => clearTimeout(timer.current), [])
+	const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+	const report = useRef(onChange)
+	useEffect(() => {
+		report.current = onChange
+	})
+	useEffect(() => () => clearTimeout(timer.current), [])
 
-  function commit(next: string) {
-    clearTimeout(timer.current)
-    setSeen(next)
-    report.current(next)
-  }
+	function commit(next: string) {
+		clearTimeout(timer.current)
+		setSeen(next)
+		report.current(next)
+	}
 
-  return (
-    <div className={cn("relative min-w-48 flex-1", className)}>
-      <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        placeholder={placeholder}
-        className="pl-8"
-        value={draft}
-        onChange={(e) => {
-          const next = e.target.value
-          setDraft(next)
-          clearTimeout(timer.current)
-          // Emptying the box shows everything again straight away.
-          if (next === "") commit(next)
-          else timer.current = setTimeout(() => commit(next), delay)
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") commit(draft)
-        }}
-      />
-    </div>
-  )
+	return (
+		<div className={cn("relative min-w-48 flex-1", className)}>
+			<Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+			<Input
+				placeholder={placeholder}
+				className="pl-8"
+				value={draft}
+				onChange={(event) => {
+					const next = event.target.value
+					setDraft(next)
+					clearTimeout(timer.current)
+					// Emptying the box shows everything again straight away.
+					if (next === "") {
+						commit(next)
+					} else {
+						timer.current = setTimeout(() => commit(next), delay)
+					}
+				}}
+				onKeyDown={(event) => {
+					if (event.key === "Enter") {
+						commit(draft)
+					}
+				}}
+			/>
+		</div>
+	)
 }

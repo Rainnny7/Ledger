@@ -6,26 +6,27 @@ import { WorkDialogFooter } from "@/components/work/dialogs/work-dialog-footer"
 
 type Model = ReturnType<typeof useWorkPaymentDialog>
 
+/** React/UI entry: `PaymentDialogForm`. */
 export function PaymentDialogForm({
-  model,
-  onClose,
+	model,
+	onClose,
 }: {
-  model: Model
-  onClose: () => void
+	model: Model
+	onClose: () => void
 }) {
-  const { save, valid, saving } = model
+	const { save, valid, saving } = model
 
-  return (
-    <form className="grid gap-4" onSubmit={(e) => void save(e)}>
-      <PaymentDialogAmount model={model} />
-      <PaymentDialogFx model={model} />
-      <PaymentDialogAfter model={model} />
-      <WorkDialogFooter
-        onClose={onClose}
-        submitLabel="Record payment"
-        disabled={!valid}
-        saving={saving}
-      />
-    </form>
-  )
+	return (
+		<form className="grid gap-4" onSubmit={(event) => void save(event)}>
+			<PaymentDialogAmount model={model} />
+			<PaymentDialogFx model={model} />
+			<PaymentDialogAfter model={model} />
+			<WorkDialogFooter
+				onClose={onClose}
+				submitLabel="Record payment"
+				disabled={!valid}
+				saving={saving}
+			/>
+		</form>
+	)
 }

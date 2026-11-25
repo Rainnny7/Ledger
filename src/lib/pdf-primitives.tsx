@@ -1,11 +1,13 @@
 import type { ReactNode, ImgHTMLAttributes, AnchorHTMLAttributes } from "react"
 
+/** `Style` type used in this module. */
 export type Style = Record<string, unknown>
 
+/** `StyleSheet` export. */
 export const StyleSheet = {
-  create<T extends Record<string, Style>>(styles: T): T {
-    return styles
-  },
+	create<T extends Record<string, Style>>(styles: T): T {
+		return styles
+	},
 }
 
 type StyleInput = Style | Style[] | false | null | undefined
@@ -18,300 +20,314 @@ type StyleInput = Style | Style[] | false | null | undefined
  */
 export const PDF_POINT_TO_CSS_PIXEL = 96 / 72
 
+/** `pointToCssPixel` export. */
 export const pointToCssPixel = (value: number): number =>
-  value * PDF_POINT_TO_CSS_PIXEL
+	value * PDF_POINT_TO_CSS_PIXEL
 
 const POINT_LENGTH_PROPERTIES = new Set([
-  "blockSize",
-  "borderBlockEndWidth",
-  "borderBlockStartWidth",
-  "borderBlockWidth",
-  "borderBottomLeftRadius",
-  "borderBottomRightRadius",
-  "borderBottomWidth",
-  "borderEndEndRadius",
-  "borderEndStartRadius",
-  "borderInlineEndWidth",
-  "borderInlineStartWidth",
-  "borderInlineWidth",
-  "borderLeftWidth",
-  "borderRadius",
-  "borderRightWidth",
-  "borderStartEndRadius",
-  "borderStartStartRadius",
-  "borderTopLeftRadius",
-  "borderTopRightRadius",
-  "borderTopWidth",
-  "borderWidth",
-  "bottom",
-  "columnGap",
-  "flexBasis",
-  "fontSize",
-  "gap",
-  "height",
-  "inlineSize",
-  "inset",
-  "insetBlock",
-  "insetBlockEnd",
-  "insetBlockStart",
-  "insetInline",
-  "insetInlineEnd",
-  "insetInlineStart",
-  "left",
-  "letterSpacing",
-  "margin",
-  "marginBlock",
-  "marginBlockEnd",
-  "marginBlockStart",
-  "marginBottom",
-  "marginInline",
-  "marginInlineEnd",
-  "marginInlineStart",
-  "marginLeft",
-  "marginRight",
-  "marginTop",
-  "maxBlockSize",
-  "maxHeight",
-  "maxInlineSize",
-  "maxWidth",
-  "minBlockSize",
-  "minHeight",
-  "minInlineSize",
-  "minWidth",
-  "outlineOffset",
-  "outlineWidth",
-  "padding",
-  "paddingBlock",
-  "paddingBlockEnd",
-  "paddingBlockStart",
-  "paddingBottom",
-  "paddingInline",
-  "paddingInlineEnd",
-  "paddingInlineStart",
-  "paddingLeft",
-  "paddingRight",
-  "paddingTop",
-  "right",
-  "rowGap",
-  "textDecorationThickness",
-  "textIndent",
-  "top",
-  "width",
+	"blockSize",
+	"borderBlockEndWidth",
+	"borderBlockStartWidth",
+	"borderBlockWidth",
+	"borderBottomLeftRadius",
+	"borderBottomRightRadius",
+	"borderBottomWidth",
+	"borderEndEndRadius",
+	"borderEndStartRadius",
+	"borderInlineEndWidth",
+	"borderInlineStartWidth",
+	"borderInlineWidth",
+	"borderLeftWidth",
+	"borderRadius",
+	"borderRightWidth",
+	"borderStartEndRadius",
+	"borderStartStartRadius",
+	"borderTopLeftRadius",
+	"borderTopRightRadius",
+	"borderTopWidth",
+	"borderWidth",
+	"bottom",
+	"columnGap",
+	"flexBasis",
+	"fontSize",
+	"gap",
+	"height",
+	"inlineSize",
+	"inset",
+	"insetBlock",
+	"insetBlockEnd",
+	"insetBlockStart",
+	"insetInline",
+	"insetInlineEnd",
+	"insetInlineStart",
+	"left",
+	"letterSpacing",
+	"margin",
+	"marginBlock",
+	"marginBlockEnd",
+	"marginBlockStart",
+	"marginBottom",
+	"marginInline",
+	"marginInlineEnd",
+	"marginInlineStart",
+	"marginLeft",
+	"marginRight",
+	"marginTop",
+	"maxBlockSize",
+	"maxHeight",
+	"maxInlineSize",
+	"maxWidth",
+	"minBlockSize",
+	"minHeight",
+	"minInlineSize",
+	"minWidth",
+	"outlineOffset",
+	"outlineWidth",
+	"padding",
+	"paddingBlock",
+	"paddingBlockEnd",
+	"paddingBlockStart",
+	"paddingBottom",
+	"paddingInline",
+	"paddingInlineEnd",
+	"paddingInlineStart",
+	"paddingLeft",
+	"paddingRight",
+	"paddingTop",
+	"right",
+	"rowGap",
+	"textDecorationThickness",
+	"textIndent",
+	"top",
+	"width",
 ])
 
 interface ViewProps {
-  children?: ReactNode
-  style?: StyleInput
-  className?: string
-  wrap?: boolean
-  fixed?: boolean
-  break?: boolean
-  minPresenceAhead?: number
+	children?: ReactNode
+	style?: StyleInput
+	className?: string
+	wrap?: boolean
+	fixed?: boolean
+	break?: boolean
+	minPresenceAhead?: number
 }
 
+/** `normalizeTakumiStyle` export. */
 export const normalizeTakumiStyle = (style: Style): Style => {
-  const {
-    marginHorizontal,
-    marginVertical,
-    paddingHorizontal,
-    paddingVertical,
-    ...normalized
-  } = style
+	const {
+		marginHorizontal,
+		marginVertical,
+		paddingHorizontal,
+		paddingVertical,
+		...normalized
+	} = style
 
-  if (marginHorizontal !== undefined) {
-    normalized.marginLeft ??= marginHorizontal
-    normalized.marginRight ??= marginHorizontal
-  }
-  if (marginVertical !== undefined) {
-    normalized.marginBottom ??= marginVertical
-    normalized.marginTop ??= marginVertical
-  }
-  if (paddingHorizontal !== undefined) {
-    normalized.paddingLeft ??= paddingHorizontal
-    normalized.paddingRight ??= paddingHorizontal
-  }
-  if (paddingVertical !== undefined) {
-    normalized.paddingBottom ??= paddingVertical
-    normalized.paddingTop ??= paddingVertical
-  }
+	if (marginHorizontal !== undefined) {
+		normalized.marginLeft ??= marginHorizontal
+		normalized.marginRight ??= marginHorizontal
+	}
+	if (marginVertical !== undefined) {
+		normalized.marginBottom ??= marginVertical
+		normalized.marginTop ??= marginVertical
+	}
+	if (paddingHorizontal !== undefined) {
+		normalized.paddingLeft ??= paddingHorizontal
+		normalized.paddingRight ??= paddingHorizontal
+	}
+	if (paddingVertical !== undefined) {
+		normalized.paddingBottom ??= paddingVertical
+		normalized.paddingTop ??= paddingVertical
+	}
 
-  const borderSides = ["Top", "Right", "Bottom", "Left"] as const
-  if (normalized.borderWidth !== undefined) {
-    normalized.borderStyle ??= "solid"
-  }
-  for (const side of borderSides) {
-    if (normalized[`border${side}Width`] !== undefined) {
-      normalized[`border${side}Style`] ??= "solid"
-    }
-  }
+	const borderSides = ["Top", "Right", "Bottom", "Left"] as const
+	if (normalized.borderWidth !== undefined) {
+		normalized.borderStyle ??= "solid"
+	}
+	for (const side of borderSides) {
+		if (normalized[`border${side}Width`] !== undefined) {
+			normalized[`border${side}Style`] ??= "solid"
+		}
+	}
 
-  return Object.fromEntries(
-    Object.entries(normalized).map(([property, value]) => [
-      property,
-      typeof value === "number" && POINT_LENGTH_PROPERTIES.has(property)
-        ? pointToCssPixel(value)
-        : value,
-    ])
-  )
+	return Object.fromEntries(
+		Object.entries(normalized).map(([property, value]) => [
+			property,
+			typeof value === "number" && POINT_LENGTH_PROPERTIES.has(property)
+				? pointToCssPixel(value)
+				: value,
+		])
+	)
 }
 
+/** `flatten` export. */
 export const flatten = (
-  style?: StyleInput
+	style?: StyleInput
 ): Record<string, unknown> | undefined => {
-  if (!style) {
-    return undefined
-  }
-  if (Array.isArray(style)) {
-    return normalizeTakumiStyle(Object.assign({}, ...style.filter(Boolean)))
-  }
-  return normalizeTakumiStyle(style)
+	if (!style) {
+		return undefined
+	}
+	if (Array.isArray(style)) {
+		return normalizeTakumiStyle(Object.assign({}, ...style.filter(Boolean)))
+	}
+	return normalizeTakumiStyle(style)
 }
 
+/** `View` export. */
 export const View = ({ children, style, className, ...rest }: ViewProps) => {
-  const {
-    wrap,
-    fixed,
-    break: br,
-    minPresenceAhead: _m,
-    ...dom
-  } = rest as ViewProps & Record<string, unknown>
-  const merged = {
-    display: "flex",
-    flexDirection: "column",
-    ...flatten(style),
-  }
-  if (br) {
-    Object.assign(merged, { breakBefore: "page" })
-  }
-  if (wrap === false) {
-    Object.assign(merged, { breakInside: "avoid" })
-  }
-  if (fixed) {
-    Object.assign(merged, { position: "fixed" })
-  }
-  return (
-    <div
-      className={className}
-      style={merged as React.CSSProperties}
-      {...(dom as object)}
-    >
-      {children}
-    </div>
-  )
+	const {
+		wrap,
+		fixed,
+		break: br,
+		minPresenceAhead: _m,
+		...dom
+	} = rest as ViewProps & Record<string, unknown>
+	const merged = {
+		display: "flex",
+		flexDirection: "column",
+		...flatten(style),
+	}
+	if (br) {
+		Object.assign(merged, { breakBefore: "page" })
+	}
+	if (wrap === false) {
+		Object.assign(merged, { breakInside: "avoid" })
+	}
+	if (fixed) {
+		Object.assign(merged, { position: "fixed" })
+	}
+	return (
+		<div
+			className={className}
+			style={merged as React.CSSProperties}
+			{...(dom as object)}
+		>
+			{children}
+		</div>
+	)
 }
 
 interface TextProps {
-  children?: ReactNode
-  style?: StyleInput
-  className?: string
-  render?: (info: { pageNumber: number; totalPages: number }) => ReactNode
-  fixed?: boolean
-  href?: string
-  src?: string
+	children?: ReactNode
+	style?: StyleInput
+	className?: string
+	render?: (info: { pageNumber: number; totalPages: number }) => ReactNode
+	fixed?: boolean
+	href?: string
+	src?: string
 }
 
+/** `Text` export. */
 export const Text = ({
-  children,
-  style,
-  className,
-  render: _render,
-  href,
-  src,
-  ...rest
+	children,
+	style,
+	className,
+	render: _render,
+	href,
+	src,
+	...rest
 }: TextProps) => {
-  const merged = flatten(style) as React.CSSProperties | undefined
-  const link = href ?? src
-  if (link) {
-    return (
-      <a href={link} className={className} style={merged} {...(rest as object)}>
-        {children}
-      </a>
-    )
-  }
-  return (
-    <span className={className} style={merged} {...(rest as object)}>
-      {children}
-    </span>
-  )
+	const merged = flatten(style) as React.CSSProperties | undefined
+	const link = href ?? src
+	if (link) {
+		return (
+			<a
+				href={link}
+				className={className}
+				style={merged}
+				{...(rest as object)}
+			>
+				{children}
+			</a>
+		)
+	}
+	return (
+		<span className={className} style={merged} {...(rest as object)}>
+			{children}
+		</span>
+	)
 }
 
+/** `Image` export. */
 export const Image = ({
-  src,
-  style,
-  ...rest
+	src,
+	style,
+	...rest
 }: {
-  src: string | { uri: string }
-  style?: StyleInput
+	src: string | { uri: string }
+	style?: StyleInput
 } & Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "style">) => {
-  const resolved = typeof src === "string" ? src : src.uri
-  return (
-    // eslint-disable-next-line eslint(nextjs/no-img-element) -- PDF primitive, not Next.js page
-    <img
-      src={resolved}
-      style={flatten(style) as React.CSSProperties}
-      alt=""
-      {...rest}
-    />
-  )
+	const resolved = typeof src === "string" ? src : src.uri
+	return (
+		// eslint-disable-next-line eslint(nextjs/no-img-element) -- PDF primitive, not Next.js page
+		<img
+			src={resolved}
+			style={flatten(style) as React.CSSProperties}
+			alt=""
+			{...rest}
+		/>
+	)
 }
 
+/** `Link` export. */
 export const Link = ({
-  src,
-  children,
-  style,
-  ...rest
+	src,
+	children,
+	style,
+	...rest
 }: {
-  src: string
-  children?: ReactNode
-  style?: StyleInput
+	src: string
+	children?: ReactNode
+	style?: StyleInput
 } & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "style">) => (
-  <a href={src} style={flatten(style) as React.CSSProperties} {...rest}>
-    {children}
-  </a>
+	<a href={src} style={flatten(style) as React.CSSProperties} {...rest}>
+		{children}
+	</a>
 )
 
+/** `Document` export. */
 export const Document = ({
-  children,
-  title,
-  style,
+	children,
+	title,
+	style,
 }: {
-  children?: ReactNode
-  title?: string
-  style?: StyleInput
+	children?: ReactNode
+	title?: string
+	style?: StyleInput
 }) => (
-  <div
-    data-pdf-document={title}
-    style={
-      {
-        display: "flex",
-        flexDirection: "column",
-        ...flatten(style),
-      } as React.CSSProperties
-    }
-  >
-    {children}
-  </div>
+	<div
+		data-pdf-document={title}
+		style={
+			{
+				display: "flex",
+				flexDirection: "column",
+				...flatten(style),
+			} as React.CSSProperties
+		}
+	>
+		{children}
+	</div>
 )
 
+/** `Page` export. */
 export const Page = ({
-  children,
-  size: _size,
-  style,
+	children,
+	size: _size,
+	style,
 }: {
-  children?: ReactNode
-  size?: string | { width: number; height: number }
-  style?: StyleInput
+	children?: ReactNode
+	size?: string | { width: number; height: number }
+	style?: StyleInput
 }) => (
-  <div
-    data-pdf-page
-    style={
-      {
-        display: "flex",
-        flexDirection: "column",
-        ...flatten(style),
-      } as React.CSSProperties
-    }
-  >
-    {children}
-  </div>
+	<div
+		data-pdf-page
+		style={
+			{
+				display: "flex",
+				flexDirection: "column",
+				...flatten(style),
+			} as React.CSSProperties
+		}
+	>
+		{children}
+	</div>
 )

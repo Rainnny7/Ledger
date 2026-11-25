@@ -8,11 +8,11 @@ import { formatMoney } from "@/lib/format"
 import { cn } from "cn"
 import { isDebtAccount, shownBalance } from "@/lib/balances"
 export {
-  isDebtAccount,
-  overdraftAllowance,
-  shownBalance,
-  shownRunningBalance,
-  signedBalance,
+	isDebtAccount,
+	overdraftAllowance,
+	shownBalance,
+	shownRunningBalance,
+	signedBalance,
 } from "@/lib/balances"
 
 /**
@@ -20,113 +20,140 @@ export {
  * (and in demo mode until changed there, for the demo session only).
  */
 export function useIncludeOverdraft() {
-  const { data } = useSession()
-  const demo = useDemoPrefs()
-  return (
-    demo.includeOverdraft ??
-    (data?.user as { includeOverdraft?: boolean | null } | undefined)
-      ?.includeOverdraft ??
-    true
-  )
+	const { data } = useSession()
+	const demo = useDemoPrefs()
+	return (
+		demo.includeOverdraft ??
+		(data?.user as { includeOverdraft?: boolean | null } | undefined)
+			?.includeOverdraft ??
+		true
+	)
 }
 
+/** React/UI entry: `BalanceLabel`. */
 export function BalanceLabel({ account }: { account: Account }) {
-  return <>{isDebtAccount(account) ? "Balance owing" : "Balance"}</>
+	return <>{isDebtAccount(account) ? "Balance owing" : "Balance"}</>
 }
 
+/** React/UI entry: `BalanceValue`. */
 export function BalanceValue({
-  account,
-  className,
+	account,
+	className,
 }: {
-  account: Account
-  className?: string
+	account: Account
+	className?: string
 }) {
-  const value = shownBalance(account, useIncludeOverdraft())
-  const negative = !isDebtAccount(account) && (value ?? 0) < 0
-  return (
-    <span
-      className={cn("tabular-nums", negative && "text-destructive", className)}
-    >
-      {value === null ? (
-        formatMoney(null)
-      ) : (
-        <AnimatedMoney value={value} currency={account.currency} />
-      )}
-    </span>
-  )
+	const value = shownBalance(account, useIncludeOverdraft())
+	const negative = !isDebtAccount(account) && (value ?? 0) < 0
+	return (
+		<span
+			className={cn(
+				"tabular-nums",
+				negative && "text-destructive",
+				className
+			)}
+		>
+			{value === null ? (
+				formatMoney(null)
+			) : (
+				<AnimatedMoney value={value} currency={account.currency} />
+			)}
+		</span>
+	)
 }
 
 /** Overdraft usage for chequing/savings accounts. Renders nothing when there's no overdraft info. */
 export function OverdraftMeter({
-  account,
-  compact,
+	account,
+	compact,
 }: {
-  account: Account
-  compact?: boolean
+	account: Account
+	compact?: boolean
 }) {
-  if (isDebtAccount(account)) return null
-  const used = account.overdraftUsed ?? 0
-  const limit = account.overdraftLimit
-  if (!limit && used <= 0) return null
+	if (isDebtAccount(account)) {
+		return null
+	}
+	const used = account.overdraftUsed ?? 0
+	const limit = account.overdraftLimit
+	if (!limit && used <= 0) {
+		return null
+	}
 
-  const pct = limit ? Math.min(100, (used / limit) * 100) : 100
-  return (
-    <div className="grid gap-1.5">
-      <div className="flex items-baseline justify-between text-xs">
-        <span className="text-muted-foreground">Overdraft</span>
-        <span
-          className={cn(
-            "tabular-nums",
-            used > 0 ? "font-medium text-destructive" : "text-muted-foreground"
-          )}
-        >
-          {used > 0 ? (
-            <>
-              <Money value={used} currency={account.currency} /> used
-            </>
-          ) : (
-            "Not in use"
-          )}
-          {limit ? (
-            <>
-              {" "}
-              · <Money value={limit} currency={account.currency} /> limit
-            </>
-          ) : null}
-        </span>
-      </div>
-      {!compact || used > 0 ? (
-        <Progress
-          value={pct}
-          className={cn(
-            "h-1.5",
-            used > 0 && "[&_[data-slot=progress-indicator]]:bg-destructive"
-          )}
-        />
-      ) : null}
-    </div>
-  )
+	const pct = limit ? Math.min(100, (used / limit) * 100) : 100
+	return (
+		<div className="grid gap-1.5">
+			<div className="flex items-baseline justify-between text-xs">
+				<span className="text-muted-foreground">Overdraft</span>
+				<span
+					className={cn(
+						"tabular-nums",
+						used > 0
+							? "font-medium text-destructive"
+							: "text-muted-foreground"
+					)}
+				>
+					{used > 0 ? (
+						<>
+							<Money value={used} currency={account.currency} />{" "}
+							used
+						</>
+					) : (
+						"Not in use"
+					)}
+					{limit ? (
+						<>
+							{" "}
+							·{" "}
+							<Money
+								value={limit}
+								currency={account.currency}
+							/>{" "}
+							limit
+						</>
+					) : null}
+				</span>
+			</div>
+			{!compact || used > 0 ? (
+				<Progress
+					value={pct}
+					className={cn(
+						"h-1.5",
+						used > 0 &&
+							"[&_[data-slot=progress-indicator]]:bg-destructive"
+					)}
+				/>
+			) : null}
+		</div>
+	)
 }
 
+/** React/UI entry: `CreditMeter`. */
 export function CreditMeter({ account }: { account: Account }) {
-  if (account.type !== "credit") return null
-  const limit =
-    account.creditLimit ??
-    (account.available !== null && account.balance !== null
-      ? account.available + account.balance
-      : null)
-  if (!limit) return null
-  const used = Math.max(0, account.balance ?? 0)
-  return (
-    <div className="grid gap-1.5">
-      <div className="flex items-baseline justify-between text-xs">
-        <span className="text-muted-foreground">Credit used</span>
-        <span className="text-muted-foreground tabular-nums">
-          {Math.round((used / limit) * 100)}% of{" "}
-          <Money value={limit} currency={account.currency} />
-        </span>
-      </div>
-      <Progress value={Math.min(100, (used / limit) * 100)} className="h-1.5" />
-    </div>
-  )
+	if (account.type !== "credit") {
+		return null
+	}
+	const limit =
+		account.creditLimit ??
+		(account.available !== null && account.balance !== null
+			? account.available + account.balance
+			: null)
+	if (!limit) {
+		return null
+	}
+	const used = Math.max(0, account.balance ?? 0)
+	return (
+		<div className="grid gap-1.5">
+			<div className="flex items-baseline justify-between text-xs">
+				<span className="text-muted-foreground">Credit used</span>
+				<span className="text-muted-foreground tabular-nums">
+					{Math.round((used / limit) * 100)}% of{" "}
+					<Money value={limit} currency={account.currency} />
+				</span>
+			</div>
+			<Progress
+				value={Math.min(100, (used / limit) * 100)}
+				className="h-1.5"
+			/>
+		</div>
+	)
 }

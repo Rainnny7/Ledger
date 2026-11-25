@@ -7,6 +7,6 @@ export type Style = Record<string, unknown>
  * Base props shared by all pdfcn PDF components.
  */
 export interface PDFComponentProps {
-  style?: Style
-  children: ReactNode
+	style?: Style
+	children: ReactNode
 }

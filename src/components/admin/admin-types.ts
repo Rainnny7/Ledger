@@ -1,30 +1,35 @@
 /** The server's built-in demo users (one per persona); they hold sample data, not real accounts. */
 export const isDemoEmail = (email: string) =>
-  /^demo(-[a-z]+)?@ledger\.invalid$/.test(email)
+	/^demo(-[a-z]+)?@ledger\.invalid$/.test(email)
 
+/** Admin User. */
 export interface AdminUser {
-  id: string
-  name: string
-  email: string
-  role?: string | null
-  banned?: boolean | null
-  twoFactorEnabled?: boolean | null
-  mustChangePassword?: boolean | null
-  createdAt: Date | string
+	id: string
+	name: string
+	email: string
+	role?: string | null
+	banned?: boolean | null
+	twoFactorEnabled?: boolean | null
+	mustChangePassword?: boolean | null
+	createdAt: Date | string
 }
 
+/** State and handlers for rs key. */
 export const usersKey = ["admin", "users"] as const
+/** settingsKey. */
 export const settingsKey = ["admin", "settings"] as const
 
+/** Admin Settings. */
 export interface AdminSettings {
-  registrationOpen: boolean
-  /** The account that set this Ledger up: only it can manage admins or its own account. */
-  ownerId: string | null
+	registrationOpen: boolean
+	/** The account that set this Ledger up: only it can manage admins or its own account. */
+	ownerId: string | null
 }
 
+/** User dialog. */
 export type UserDialog =
-  | { type: "add" }
-  | { type: "password"; user: AdminUser }
-  | { type: "role"; user: AdminUser }
-  | { type: "delete"; user: AdminUser }
-  | { type: "ban"; user: AdminUser }
+	| { type: "add" }
+	| { type: "password"; user: AdminUser }
+	| { type: "role"; user: AdminUser }
+	| { type: "delete"; user: AdminUser }
+	| { type: "ban"; user: AdminUser }

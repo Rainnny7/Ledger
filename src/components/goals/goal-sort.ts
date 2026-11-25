@@ -1,29 +1,35 @@
 import type { Goal } from "@/lib/api"
 
+/** Sort order for goal status when urgency is equal. */
 export const GOAL_STATUS_RANK = {
-  overdue: 0,
-  behind: 1,
-  "on-track": 2,
-  ahead: 3,
-  "no-date": 4,
-  done: 5,
+	overdue: 0,
+	behind: 1,
+	"on-track": 2,
+	ahead: 3,
+	"no-date": 4,
+	done: 5,
 } as const
 
-const goalStatusRank = (g: Goal) => GOAL_STATUS_RANK[g.status]
+const goalStatusRank = (goal: Goal) => GOAL_STATUS_RANK[goal.status]
 
 /** Open goals first: most urgent (soonest deadline, then furthest behind) up top. */
-export function byUrgency(a: Goal, b: Goal) {
-  return (
-    goalStatusRank(a) - goalStatusRank(b) ||
-    (a.targetDate ?? "9999").localeCompare(b.targetDate ?? "9999") ||
-    a.progress - b.progress
-  )
+export function byUrgency(leftGoal: Goal, rightGoal: Goal) {
+	return (
+		goalStatusRank(leftGoal) - goalStatusRank(rightGoal) ||
+		(leftGoal.targetDate ?? "9999").localeCompare(
+			rightGoal.targetDate ?? "9999"
+		) ||
+		leftGoal.progress - rightGoal.progress
+	)
 }
 
 /** Spotlight strip: urgency then deadline. */
-export function compareOpenGoals(a: Goal, b: Goal) {
-  return (
-    GOAL_STATUS_RANK[a.status] - GOAL_STATUS_RANK[b.status] ||
-    (a.targetDate ?? "9999").localeCompare(b.targetDate ?? "9999")
-  )
+export function compareOpenGoals(leftGoal: Goal, rightGoal: Goal) {
+	return (
+		GOAL_STATUS_RANK[leftGoal.status] -
+			GOAL_STATUS_RANK[rightGoal.status] ||
+		(leftGoal.targetDate ?? "9999").localeCompare(
+			rightGoal.targetDate ?? "9999"
+		)
+	)
 }

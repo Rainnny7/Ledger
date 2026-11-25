@@ -6,26 +6,27 @@ import { WorkDialogFooter } from "@/components/work/dialogs/work-dialog-footer"
 
 type Model = ReturnType<typeof useWorkInvoiceDialog>
 
+/** React/UI entry: `InvoiceDialogForm`. */
 export function InvoiceDialogForm({
-  model,
-  onClose,
+	model,
+	onClose,
 }: {
-  model: Model
-  onClose: () => void
+	model: Model
+	onClose: () => void
 }) {
-  const { save, valid, saving, submitLabel } = model
+	const { save, valid, saving, submitLabel } = model
 
-  return (
-    <form className="grid gap-4" onSubmit={(e) => void save(e)}>
-      <InvoiceDialogHours model={model} />
-      <InvoiceDialogRate model={model} />
-      <InvoiceDialogMeta model={model} />
-      <WorkDialogFooter
-        onClose={onClose}
-        submitLabel={submitLabel}
-        disabled={!valid}
-        saving={saving}
-      />
-    </form>
-  )
+	return (
+		<form className="grid gap-4" onSubmit={(event) => void save(event)}>
+			<InvoiceDialogHours model={model} />
+			<InvoiceDialogRate model={model} />
+			<InvoiceDialogMeta model={model} />
+			<WorkDialogFooter
+				onClose={onClose}
+				submitLabel={submitLabel}
+				disabled={!valid}
+				saving={saving}
+			/>
+		</form>
+	)
 }

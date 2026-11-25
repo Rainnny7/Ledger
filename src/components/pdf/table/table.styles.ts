@@ -3,277 +3,277 @@ import type { PdfcnTheme } from "@/types/pdf-themes"
 
 /**
  * Creates all table styles derived from the active theme.
- * @param t - The resolved PdfcnTheme instance.
+ * @param theme - The resolved PdfcnTheme instance.
  */
-export const createTableStyles = (t: PdfcnTheme) => {
-  const { spacing, borderRadius, fontWeights, typography } = t.primitives
-  const borderColor = t.colors.border
+export const createTableStyles = (theme: PdfcnTheme) => {
+	const { spacing, borderRadius, fontWeights, typography } = theme.primitives
+	const borderColor = theme.colors.border
 
-  const hairline = 0.5
-  const rule = 1
-  const thick = 1.5
+	const hairline = 0.5
+	const rule = 1
+	const thick = 1.5
 
-  const cellPadV = spacing[2] - 2
-  const cellPadH = spacing[2] + 2
-  // eslint-disable-next-line prefer-destructuring
-  const cellPadVCompact = spacing[0.5]
-  // eslint-disable-next-line prefer-destructuring
-  const cellPadHCompact = spacing[2]
+	const cellPadV = spacing[2] - 2
+	const cellPadH = spacing[2] + 2
+	// eslint-disable-next-line prefer-destructuring
+	const cellPadVCompact = spacing[0.5]
+	// eslint-disable-next-line prefer-destructuring
+	const cellPadHCompact = spacing[2]
 
-  const rowDivider = {
-    borderBottomColor: borderColor,
-    borderBottomStyle: "solid" as const,
-    borderBottomWidth: hairline,
-  }
+	const rowDivider = {
+		borderBottomColor: borderColor,
+		borderBottomStyle: "solid" as const,
+		borderBottomWidth: hairline,
+	}
 
-  return StyleSheet.create({
-    cell: {
-      flex: 1,
-      justifyContent: "center",
-      paddingHorizontal: cellPadH,
-      paddingVertical: cellPadV,
-    },
+	return StyleSheet.create({
+		cell: {
+			flex: 1,
+			justifyContent: "center",
+			paddingHorizontal: cellPadH,
+			paddingVertical: cellPadV,
+		},
 
-    cellBordered: {
-      paddingHorizontal: cellPadH,
-      paddingVertical: cellPadV,
-    },
+		cellBordered: {
+			paddingHorizontal: cellPadH,
+			paddingVertical: cellPadV,
+		},
 
-    cellBorderedBorder: {
-      borderRightColor: borderColor,
-      borderRightStyle: "solid",
-      borderRightWidth: hairline,
-    },
+		cellBorderedBorder: {
+			borderRightColor: borderColor,
+			borderRightStyle: "solid",
+			borderRightWidth: hairline,
+		},
 
-    cellCompact: {
-      paddingHorizontal: cellPadHCompact,
-      paddingVertical: cellPadVCompact,
-    },
+		cellCompact: {
+			paddingHorizontal: cellPadHCompact,
+			paddingVertical: cellPadVCompact,
+		},
 
-    cellFixed: {
-      flexGrow: 0,
-      flexShrink: 0,
-      justifyContent: "center",
-      paddingHorizontal: cellPadH,
-      paddingVertical: cellPadV,
-    },
+		cellFixed: {
+			flexGrow: 0,
+			flexShrink: 0,
+			justifyContent: "center",
+			paddingHorizontal: cellPadH,
+			paddingVertical: cellPadV,
+		},
 
-    cellGridBorder: {
-      borderRightColor: borderColor,
-      borderRightStyle: "solid",
-      borderRightWidth: hairline,
-    },
+		cellGridBorder: {
+			borderRightColor: borderColor,
+			borderRightStyle: "solid",
+			borderRightWidth: hairline,
+		},
 
-    cellMinimal: {
-      paddingHorizontal: spacing[2] - 2,
-      paddingVertical: spacing[1] + 1,
-    },
+		cellMinimal: {
+			paddingHorizontal: spacing[2] - 2,
+			paddingVertical: spacing[1] + 1,
+		},
 
-    cellPrimaryHeader: {
-      paddingHorizontal: cellPadH,
-      paddingVertical: cellPadV,
-    },
+		cellPrimaryHeader: {
+			paddingHorizontal: cellPadH,
+			paddingVertical: cellPadV,
+		},
 
-    cellStriped: {
-      paddingHorizontal: cellPadH,
-      paddingVertical: cellPadV,
-    },
+		cellStriped: {
+			paddingHorizontal: cellPadH,
+			paddingVertical: cellPadV,
+		},
 
-    cellText: {
-      color: t.colors.foreground,
-      fontFamily: t.typography.body.fontFamily,
-      fontSize: t.typography.body.fontSize,
-      lineHeight: 1.2,
-    },
-    cellTextCompact: {
-      color: t.colors.foreground,
-      fontFamily: t.typography.body.fontFamily,
-      fontSize: typography.xs,
-      lineHeight: 1.2,
-    },
-    cellTextFooter: {
-      color: t.colors.foreground,
-      fontFamily: t.typography.body.fontFamily,
-      fontSize: t.typography.body.fontSize,
-      fontWeight: fontWeights.semibold,
-      lineHeight: 1.2,
-    },
-    cellTextHeaderBordered: {
-      color: t.colors.foreground,
-      fontFamily: t.typography.body.fontFamily,
-      fontSize: t.typography.body.fontSize,
-      fontWeight: fontWeights.bold,
-      lineHeight: 1.2,
-    },
-    cellTextHeaderCompact: {
-      color: t.colors.foreground,
-      fontFamily: t.typography.body.fontFamily,
-      fontSize: typography.xs,
-      fontWeight: fontWeights.semibold,
-      letterSpacing: 0.6,
-      lineHeight: 1.2,
-      textTransform: "uppercase",
-    },
-    cellTextHeaderGrid: {
-      color: t.colors.foreground,
-      fontFamily: t.typography.body.fontFamily,
-      fontSize: t.typography.body.fontSize,
-      fontWeight: fontWeights.semibold,
-      lineHeight: 1.2,
-    },
-    cellTextHeaderLine: {
-      color: t.colors.foreground,
-      fontFamily: t.typography.body.fontFamily,
-      fontSize: t.typography.body.fontSize,
-      fontWeight: fontWeights.semibold,
-      lineHeight: 1.2,
-    },
+		cellText: {
+			color: theme.colors.foreground,
+			fontFamily: theme.typography.body.fontFamily,
+			fontSize: theme.typography.body.fontSize,
+			lineHeight: 1.2,
+		},
+		cellTextCompact: {
+			color: theme.colors.foreground,
+			fontFamily: theme.typography.body.fontFamily,
+			fontSize: typography.xs,
+			lineHeight: 1.2,
+		},
+		cellTextFooter: {
+			color: theme.colors.foreground,
+			fontFamily: theme.typography.body.fontFamily,
+			fontSize: theme.typography.body.fontSize,
+			fontWeight: fontWeights.semibold,
+			lineHeight: 1.2,
+		},
+		cellTextHeaderBordered: {
+			color: theme.colors.foreground,
+			fontFamily: theme.typography.body.fontFamily,
+			fontSize: theme.typography.body.fontSize,
+			fontWeight: fontWeights.bold,
+			lineHeight: 1.2,
+		},
+		cellTextHeaderCompact: {
+			color: theme.colors.foreground,
+			fontFamily: theme.typography.body.fontFamily,
+			fontSize: typography.xs,
+			fontWeight: fontWeights.semibold,
+			letterSpacing: 0.6,
+			lineHeight: 1.2,
+			textTransform: "uppercase",
+		},
+		cellTextHeaderGrid: {
+			color: theme.colors.foreground,
+			fontFamily: theme.typography.body.fontFamily,
+			fontSize: theme.typography.body.fontSize,
+			fontWeight: fontWeights.semibold,
+			lineHeight: 1.2,
+		},
+		cellTextHeaderLine: {
+			color: theme.colors.foreground,
+			fontFamily: theme.typography.body.fontFamily,
+			fontSize: theme.typography.body.fontSize,
+			fontWeight: fontWeights.semibold,
+			lineHeight: 1.2,
+		},
 
-    cellTextHeaderMinimal: {
-      color: t.colors.mutedForeground,
-      fontFamily: t.typography.body.fontFamily,
-      fontSize: t.typography.body.fontSize,
-      fontWeight: fontWeights.medium,
-      lineHeight: 1.2,
-    },
-    cellTextHeaderPrimaryHeader: {
-      color: t.colors.primaryForeground,
-      fontFamily: t.typography.body.fontFamily,
-      fontSize: typography.xs,
-      fontWeight: fontWeights.semibold,
-      letterSpacing: 0.6,
-      lineHeight: 1.2,
-      textTransform: "uppercase",
-    },
-    cellTextHeaderStriped: {
-      color: t.colors.foreground,
-      fontFamily: t.typography.body.fontFamily,
-      fontSize: t.typography.body.fontSize,
-      fontWeight: fontWeights.semibold,
-      lineHeight: 1.2,
-    },
-    row: {
-      display: "flex",
-      flexDirection: "row",
-    },
-    rowBordered: rowDivider,
-    rowCompact: rowDivider,
-    rowFooter: {
-      borderTopColor: borderColor,
-      borderTopStyle: "solid",
-      borderTopWidth: rule,
-    },
+		cellTextHeaderMinimal: {
+			color: theme.colors.mutedForeground,
+			fontFamily: theme.typography.body.fontFamily,
+			fontSize: theme.typography.body.fontSize,
+			fontWeight: fontWeights.medium,
+			lineHeight: 1.2,
+		},
+		cellTextHeaderPrimaryHeader: {
+			color: theme.colors.primaryForeground,
+			fontFamily: theme.typography.body.fontFamily,
+			fontSize: typography.xs,
+			fontWeight: fontWeights.semibold,
+			letterSpacing: 0.6,
+			lineHeight: 1.2,
+			textTransform: "uppercase",
+		},
+		cellTextHeaderStriped: {
+			color: theme.colors.foreground,
+			fontFamily: theme.typography.body.fontFamily,
+			fontSize: theme.typography.body.fontSize,
+			fontWeight: fontWeights.semibold,
+			lineHeight: 1.2,
+		},
+		row: {
+			display: "flex",
+			flexDirection: "row",
+		},
+		rowBordered: rowDivider,
+		rowCompact: rowDivider,
+		rowFooter: {
+			borderTopColor: borderColor,
+			borderTopStyle: "solid",
+			borderTopWidth: rule,
+		},
 
-    rowFooterStriped: {
-      backgroundColor: t.colors.muted,
-      borderTopColor: borderColor,
-      borderTopStyle: "solid",
-      borderTopWidth: rule,
-    },
-    rowGrid: rowDivider,
+		rowFooterStriped: {
+			backgroundColor: theme.colors.muted,
+			borderTopColor: borderColor,
+			borderTopStyle: "solid",
+			borderTopWidth: rule,
+		},
+		rowGrid: rowDivider,
 
-    rowHeaderBordered: {
-      backgroundColor: t.colors.muted,
-      borderBottomColor: borderColor,
-      borderBottomStyle: "solid",
-      borderBottomWidth: hairline,
-    },
+		rowHeaderBordered: {
+			backgroundColor: theme.colors.muted,
+			borderBottomColor: borderColor,
+			borderBottomStyle: "solid",
+			borderBottomWidth: hairline,
+		},
 
-    rowHeaderCompact: {
-      backgroundColor: t.colors.muted,
-      borderBottomColor: borderColor,
-      borderBottomStyle: "solid",
-      borderBottomWidth: rule,
-    },
-    rowHeaderGrid: {
-      backgroundColor: t.colors.muted,
-      borderBottomColor: borderColor,
-      borderBottomStyle: "solid",
-      borderBottomWidth: rule,
-    },
+		rowHeaderCompact: {
+			backgroundColor: theme.colors.muted,
+			borderBottomColor: borderColor,
+			borderBottomStyle: "solid",
+			borderBottomWidth: rule,
+		},
+		rowHeaderGrid: {
+			backgroundColor: theme.colors.muted,
+			borderBottomColor: borderColor,
+			borderBottomStyle: "solid",
+			borderBottomWidth: rule,
+		},
 
-    rowHeaderLine: {
-      borderBottomColor: borderColor,
-      borderBottomStyle: "solid",
-      borderBottomWidth: rule,
-    },
-    rowHeaderMinimal: {
-      borderBottomColor: borderColor,
-      borderBottomStyle: "solid",
-      borderBottomWidth: rule,
-    },
-    rowHeaderPrimaryHeader: {
-      backgroundColor: t.colors.primary,
-    },
-    rowHeaderStriped: {
-      backgroundColor: t.colors.muted,
-      borderBottomColor: borderColor,
-      borderBottomStyle: "solid",
-      borderBottomWidth: rule,
-    },
-    rowLine: rowDivider,
+		rowHeaderLine: {
+			borderBottomColor: borderColor,
+			borderBottomStyle: "solid",
+			borderBottomWidth: rule,
+		},
+		rowHeaderMinimal: {
+			borderBottomColor: borderColor,
+			borderBottomStyle: "solid",
+			borderBottomWidth: rule,
+		},
+		rowHeaderPrimaryHeader: {
+			backgroundColor: theme.colors.primary,
+		},
+		rowHeaderStriped: {
+			backgroundColor: theme.colors.muted,
+			borderBottomColor: borderColor,
+			borderBottomStyle: "solid",
+			borderBottomWidth: rule,
+		},
+		rowLine: rowDivider,
 
-    rowMinimal: rowDivider,
-    rowPrimaryHeader: rowDivider,
+		rowMinimal: rowDivider,
+		rowPrimaryHeader: rowDivider,
 
-    rowStripe: {
-      backgroundColor: t.colors.muted,
-    },
+		rowStripe: {
+			backgroundColor: theme.colors.muted,
+		},
 
-    rowStriped: {},
-    table: {
-      display: "flex",
-      flexDirection: "column",
-      marginBottom: t.spacing.componentGap,
-      width: "100%",
-    },
-    tableBordered: {
-      borderBottomLeftRadius: borderRadius.sm,
-      borderBottomRightRadius: borderRadius.sm,
-      borderColor,
-      borderStyle: "solid",
-      borderTopLeftRadius: borderRadius.sm,
-      borderTopRightRadius: borderRadius.sm,
-      borderWidth: rule,
-      overflow: "hidden" as const,
-    },
-    tableCompact: {
-      borderBottomColor: borderColor,
-      borderBottomStyle: "solid",
-      borderBottomWidth: hairline,
-    },
-    tableGrid: {
-      borderBottomLeftRadius: borderRadius.md,
-      borderBottomRightRadius: borderRadius.md,
-      borderColor,
-      borderStyle: "solid",
-      borderTopLeftRadius: borderRadius.md,
-      borderTopRightRadius: borderRadius.md,
-      borderWidth: thick,
-      overflow: "hidden" as const,
-    },
-    tableLine: {
-      borderBottomColor: borderColor,
-      borderBottomStyle: "solid",
-      borderBottomWidth: hairline,
-    },
-    tableMinimal: {
-      paddingVertical: spacing[2],
-    },
+		rowStriped: {},
+		table: {
+			display: "flex",
+			flexDirection: "column",
+			marginBottom: theme.spacing.componentGap,
+			width: "100%",
+		},
+		tableBordered: {
+			borderBottomLeftRadius: borderRadius.sm,
+			borderBottomRightRadius: borderRadius.sm,
+			borderColor,
+			borderStyle: "solid",
+			borderTopLeftRadius: borderRadius.sm,
+			borderTopRightRadius: borderRadius.sm,
+			borderWidth: rule,
+			overflow: "hidden" as const,
+		},
+		tableCompact: {
+			borderBottomColor: borderColor,
+			borderBottomStyle: "solid",
+			borderBottomWidth: hairline,
+		},
+		tableGrid: {
+			borderBottomLeftRadius: borderRadius.md,
+			borderBottomRightRadius: borderRadius.md,
+			borderColor,
+			borderStyle: "solid",
+			borderTopLeftRadius: borderRadius.md,
+			borderTopRightRadius: borderRadius.md,
+			borderWidth: thick,
+			overflow: "hidden" as const,
+		},
+		tableLine: {
+			borderBottomColor: borderColor,
+			borderBottomStyle: "solid",
+			borderBottomWidth: hairline,
+		},
+		tableMinimal: {
+			paddingVertical: spacing[2],
+		},
 
-    tablePrimaryHeader: {
-      borderBottomColor: borderColor,
-      borderBottomStyle: "solid",
-      borderBottomWidth: hairline,
-    },
+		tablePrimaryHeader: {
+			borderBottomColor: borderColor,
+			borderBottomStyle: "solid",
+			borderBottomWidth: hairline,
+		},
 
-    tableStriped: {
-      borderBottomColor: borderColor,
-      borderBottomStyle: "solid",
-      borderBottomWidth: hairline,
-      borderTopColor: borderColor,
-      borderTopStyle: "solid",
-      borderTopWidth: hairline,
-    },
-  })
+		tableStriped: {
+			borderBottomColor: borderColor,
+			borderBottomStyle: "solid",
+			borderBottomWidth: hairline,
+			borderTopColor: borderColor,
+			borderTopStyle: "solid",
+			borderTopWidth: hairline,
+		},
+	})
 }

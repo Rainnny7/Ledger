@@ -7,29 +7,29 @@ import type { ReactNode } from "react"
  * Until a block has been captured, `fallback` (a hand-drawn skeleton) shows instead.
  */
 export function Bones({
-  name,
-  loading,
-  fallback,
-  children,
-  className,
+	name,
+	loading,
+	fallback,
+	children,
+	className,
 }: {
-  name: string
-  loading: boolean
-  fallback: ReactNode
-  children: ReactNode
-  /** For the wrapper around the content, e.g. the page's grid gap. */
-  className?: string
+	name: string
+	loading: boolean
+	fallback: ReactNode
+	children: ReactNode
+	/** For the wrapper around the content, e.g. the page's grid gap. */
+	className?: string
 }) {
-  return (
-    <BoneyardSkeleton
-      name={name}
-      loading={loading}
-      fallback={fallback}
-      select="viewport"
-      transition={250}
-    >
-      {/* While loading the content has no data, so render nothing under the bones. */}
-      {loading ? null : <div className={className}>{children}</div>}
-    </BoneyardSkeleton>
-  )
+	return (
+		<BoneyardSkeleton
+			name={name}
+			loading={loading}
+			fallback={fallback}
+			select="viewport"
+			transition={250}
+		>
+			{/* While loading the content has no data, so render nothing under the bones. */}
+			{loading ? null : <div className={className}>{children}</div>}
+		</BoneyardSkeleton>
+	)
 }

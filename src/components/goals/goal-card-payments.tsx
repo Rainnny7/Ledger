@@ -4,87 +4,98 @@ import type { Goal } from "@/lib/api"
 import { formatShortDate } from "@/lib/format"
 import { cn } from "cn"
 
+/** Goal Card Payments. */
 export function GoalCardPayments({
-  goal: g,
-  payments,
-  showAll,
-  canRemove,
-  onToggleShowAll,
-  onRemove,
+	goal,
+	payments,
+	showAll,
+	canRemove,
+	onToggleShowAll,
+	onRemove,
 }: {
-  goal: Goal
-  payments: Goal["payments"]
-  showAll: boolean
-  canRemove: boolean
-  onToggleShowAll: () => void
-  onRemove: (id: string) => void
+	goal: Goal
+	payments: Goal["payments"]
+	showAll: boolean
+	canRemove: boolean
+	onToggleShowAll: () => void
+	onRemove: (id: string) => void
 }) {
-  const done = g.status === "done"
-  if (g.payments.length === 0) return null
+	const done = goal.status === "done"
+	if (goal.payments.length === 0) {
+		return null
+	}
 
-  return (
-    <div className="grid gap-1">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-medium text-muted-foreground uppercase">
-          Payments
-        </h3>
-        {g.pacePerMonth > 0 && !done && (
-          <span className="text-xs text-muted-foreground">
-            ~<Money value={g.pacePerMonth} currency={g.currency} />
-            /month lately
-          </span>
-        )}
-      </div>
-      <ul className="grid text-sm">
-        {payments.map((p) => (
-          <li
-            key={p.id}
-            className="group flex items-center gap-2 rounded-md px-2 py-1 odd:bg-muted/40"
-          >
-            <span className="w-14 shrink-0 text-muted-foreground tabular-nums">
-              {formatShortDate(p.date)}
-            </span>
-            <span className="flex min-w-0 flex-1 items-center gap-1 truncate text-muted-foreground">
-              {p.transactionId && (
-                <Link2
-                  className="size-3 shrink-0"
-                  aria-label="Linked to a transaction"
-                />
-              )}
-              <span className="truncate">{p.note}</span>
-            </span>
-            <span
-              className={cn(
-                "tabular-nums",
-                p.amount < 0
-                  ? "text-destructive"
-                  : "text-emerald-600 dark:text-emerald-400"
-              )}
-            >
-              <Money value={p.amount} currency={g.currency} sign />
-            </span>
-            {canRemove && (
-              <button
-                type="button"
-                aria-label="Remove payment"
-                className="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100"
-                onClick={() => onRemove(p.id)}
-              >
-                <X className="size-3.5" />
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-      {g.payments.length > 3 && (
-        <button
-          type="button"
-          className="w-fit text-xs font-medium text-primary hover:underline"
-          onClick={onToggleShowAll}
-        >
-          {showAll ? "Show less" : `Show all ${g.payments.length}`}
-        </button>
-      )}
-    </div>
-  )
+	return (
+		<div className="grid gap-1">
+			<div className="flex items-center justify-between">
+				<h3 className="text-xs font-medium text-muted-foreground uppercase">
+					Payments
+				</h3>
+				{goal.pacePerMonth > 0 && !done && (
+					<span className="text-xs text-muted-foreground">
+						~
+						<Money
+							value={goal.pacePerMonth}
+							currency={goal.currency}
+						/>
+						/month lately
+					</span>
+				)}
+			</div>
+			<ul className="grid text-sm">
+				{payments.map((payment) => (
+					<li
+						key={payment.id}
+						className="group flex items-center gap-2 rounded-md px-2 py-1 odd:bg-muted/40"
+					>
+						<span className="w-14 shrink-0 text-muted-foreground tabular-nums">
+							{formatShortDate(payment.date)}
+						</span>
+						<span className="flex min-w-0 flex-1 items-center gap-1 truncate text-muted-foreground">
+							{payment.transactionId && (
+								<Link2
+									className="size-3 shrink-0"
+									aria-label="Linked to a transaction"
+								/>
+							)}
+							<span className="truncate">{payment.note}</span>
+						</span>
+						<span
+							className={cn(
+								"tabular-nums",
+								payment.amount < 0
+									? "text-destructive"
+									: "text-emerald-600 dark:text-emerald-400"
+							)}
+						>
+							<Money
+								value={payment.amount}
+								currency={goal.currency}
+								sign
+							/>
+						</span>
+						{canRemove && (
+							<button
+								type="button"
+								aria-label="Remove payment"
+								className="payment-0.5 rounded text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100"
+								onClick={() => onRemove(payment.id)}
+							>
+								<X className="size-3.5" />
+							</button>
+						)}
+					</li>
+				))}
+			</ul>
+			{goal.payments.length > 3 && (
+				<button
+					type="button"
+					className="w-fit text-xs font-medium text-primary hover:underline"
+					onClick={onToggleShowAll}
+				>
+					{showAll ? "Show less" : `Show all ${goal.payments.length}`}
+				</button>
+			)}
+		</div>
+	)
 }

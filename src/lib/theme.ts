@@ -8,11 +8,11 @@ import { useCallback, useEffect, useRef } from "react"
 import { flushSync } from "react-dom"
 import { toast } from "sonner"
 import {
-  isThemeChoice,
-  type ThemeChoice,
-  type ThemeId,
-  THEMES,
-  themeMeta,
+	isThemeChoice,
+	type ThemeChoice,
+	type ThemeId,
+	THEMES,
+	themeMeta,
 } from "../../shared/themes.ts"
 import { authClient, useSession } from "./auth-client"
 import { demoMode } from "./demo"
@@ -21,43 +21,51 @@ export { THEMES, type ThemeChoice, type ThemeId, themeMeta }
 export { THEME_CLASSES } from "./theme-classes"
 
 const systemTheme = (): ThemeId =>
-  matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+	matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
 
 /** Puts the theme's class on <html> before the next paint. */
 function applyClass(choice: ThemeChoice) {
-  const id = choice === "system" ? systemTheme() : choice
-  const root = document.documentElement
-  root.classList.remove(...THEMES.map((t) => t.className))
-  root.classList.add(themeMeta(id)!.className)
+	const id = choice === "system" ? systemTheme() : choice
+	const root = document.documentElement
+	root.classList.remove(...THEMES.map((theme) => theme.className))
+	root.classList.add(themeMeta(id)!.className)
 }
 
 /** The current theme and a setter. */
 export function useAppTheme() {
-  const { theme, resolvedTheme, setTheme } = useTheme()
-  const { data } = useSession()
-  const choice: ThemeChoice = isThemeChoice(theme) ? theme : "system"
-  const resolved = themeMeta(resolvedTheme) ?? THEMES[0]
+	const { theme, resolvedTheme, setTheme } = useTheme()
+	const { data } = useSession()
+	const choice: ThemeChoice = isThemeChoice(theme) ? theme : "system"
+	const resolved = themeMeta(resolvedTheme) ?? THEMES[0]
 
-  const signedIn = Boolean(data)
-  const change = useCallback(
-    (next: ThemeChoice) => {
-      if (next === choice) return
-      flushSync(() => {
-        applyClass(next)
-        setTheme(next)
-      })
+	const signedIn = Boolean(data)
+	const change = useCallback(
+		(next: ThemeChoice) => {
+			if (next === choice) {
+				return
+			}
+			flushSync(() => {
+				applyClass(next)
+				setTheme(next)
+			})
 
-      // Saved to the account too (not in demo mode: that's a look around, not your account).
-      if (signedIn && !demoMode) {
-        void authClient.updateUser({ theme: next }).then(({ error }) => {
-          if (error) toast.error(error.message ?? "Couldn’t save your theme")
-        })
-      }
-    },
-    [choice, signedIn, setTheme]
-  )
+			// Saved to the account too (not in demo mode: that's a look around, not your account).
+			if (signedIn && !demoMode) {
+				void authClient
+					.updateUser({ theme: next })
+					.then(({ error }) => {
+						if (error) {
+							toast.error(
+								error.message ?? "Couldn’t save your theme"
+							)
+						}
+					})
+			}
+		},
+		[choice, signedIn, setTheme]
+	)
 
-  return { choice, resolved, change }
+	return { choice, resolved, change }
 }
 
 /**
@@ -65,15 +73,19 @@ export function useAppTheme() {
  * Changes made here afterwards are saved by useAppTheme.
  */
 export function useAccountTheme() {
-  const { data } = useSession()
-  const { theme, setTheme } = useTheme()
-  const saved = (data?.user as { theme?: string | null } | undefined)?.theme
-  const synced = useRef<string | null>(null)
-  const userId = data?.user.id ?? null
+	const { data } = useSession()
+	const { theme, setTheme } = useTheme()
+	const saved = (data?.user as { theme?: string | null } | undefined)?.theme
+	const synced = useRef<string | null>(null)
+	const userId = data?.user.id ?? null
 
-  useEffect(() => {
-    if (demoMode || !userId || synced.current === userId) return
-    synced.current = userId
-    if (isThemeChoice(saved) && saved !== theme) setTheme(saved)
-  }, [userId, saved, theme, setTheme])
+	useEffect(() => {
+		if (demoMode || !userId || synced.current === userId) {
+			return
+		}
+		synced.current = userId
+		if (isThemeChoice(saved) && saved !== theme) {
+			setTheme(saved)
+		}
+	}, [userId, saved, theme, setTheme])
 }

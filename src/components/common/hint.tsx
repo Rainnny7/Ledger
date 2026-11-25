@@ -1,8 +1,8 @@
 import type { ReactElement, ReactNode } from "react"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
 } from "@/components/ui/tooltip"
 
 /**
@@ -10,23 +10,25 @@ import {
  * The child becomes the trigger, so it keeps its own tag, props and click handler.
  */
 export function Hint({
-  label,
-  children,
-  side,
-  className,
+	label,
+	children,
+	side,
+	className,
 }: {
-  label: ReactNode
-  children: ReactElement
-  side?: "top" | "bottom" | "left" | "right"
-  className?: string
+	label: ReactNode
+	children: ReactElement
+	side?: "top" | "bottom" | "left" | "right"
+	className?: string
 }) {
-  if (label === null || label === undefined || label === "") return children
-  return (
-    <Tooltip>
-      <TooltipTrigger render={children} />
-      <TooltipContent side={side} className={className}>
-        {label}
-      </TooltipContent>
-    </Tooltip>
-  )
+	if (label === null || label === undefined || label === "") {
+		return children
+	}
+	return (
+		<Tooltip>
+			<TooltipTrigger render={children} />
+			<TooltipContent side={side} className={className}>
+				{label}
+			</TooltipContent>
+		</Tooltip>
+	)
 }

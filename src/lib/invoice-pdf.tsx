@@ -17,109 +17,113 @@ import { professionalTheme } from "@/lib/pdf-themes/professional"
 import { vividTheme } from "@/lib/pdf-themes/vivid"
 import { type InvoicePdfSource, toPdfData } from "./invoice-pdf-data"
 
+/** `` type used in this module. */
 export type { InvoicePdfSource } from "./invoice-pdf-data"
 
 const THEMES = {
-  professional: professionalTheme,
-  modern: modernTheme,
-  elegant: elegantTheme,
-  corporate: corporateTheme,
-  forest: forestTheme,
-  vivid: vividTheme,
+	professional: professionalTheme,
+	modern: modernTheme,
+	elegant: elegantTheme,
+	corporate: corporateTheme,
+	forest: forestTheme,
+	vivid: vividTheme,
 }
 
 /** Every family the pdfcn themes name, all drawn with Geist (the app's own font). */
 const FAMILIES = [
-  "Helvetica",
-  "Times-Roman",
-  "Inter",
-  "Lato",
-  "Lora",
-  "Merriweather",
-  "Nunito",
-  "Playfair Display",
-  "Geist",
+	"Helvetica",
+	"Times-Roman",
+	"Inter",
+	"Lato",
+	"Lora",
+	"Merriweather",
+	"Nunito",
+	"Playfair Display",
+	"Geist",
 ]
 
 let ready: Promise<FontLoader[]> | null = null
 
 /** A failed font fetch must fail loudly, not hand the renderer an error page as font data. */
 async function fetchBytes(url: string) {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`Couldn’t load the invoice font (${res.status})`)
-  return res.arrayBuffer()
+	const response = await fetch(url)
+	if (!response.ok) {
+		throw new Error(`Couldn’t load the invoice font (${response.status})`)
+	}
+	return response.arrayBuffer()
 }
 
 function load() {
-  ready ??= (async () => {
-    const [, latin, ext] = await Promise.all([
-      initTakumi({ module_or_path: wasmUrl }),
-      fetchBytes(geistLatin),
-      fetchBytes(geistLatinExt),
-    ])
-    // Latin-ext covers accented names (é, ł, ő…) the basic Latin file doesn't.
-    return FAMILIES.flatMap((name): FontLoader[] => [
-      {
-        name,
-        data: new Uint8Array(latin),
-        unicodeRange: [
-          [0x0000, 0x00ff],
-          [0x0131, 0x0131],
-          [0x0152, 0x0153],
-          [0x02bb, 0x02dc],
-          [0x2000, 0x206f],
-          [0x20ac, 0x20ac],
-          [0x2122, 0x2122],
-          [0x2190, 0x2212],
-        ],
-      },
-      {
-        name,
-        data: new Uint8Array(ext),
-        unicodeRange: [
-          [0x0100, 0x024f],
-          [0x0259, 0x0259],
-          [0x1e00, 0x1eff],
-          [0x20a0, 0x20cf],
-          [0x2c60, 0x2c7f],
-          [0xa720, 0xa7ff],
-        ],
-      },
-    ])
-  })().catch((e) => {
-    ready = null
-    throw e
-  })
-  return ready
+	ready ??= (async () => {
+		const [, latin, ext] = await Promise.all([
+			initTakumi({ module_or_path: wasmUrl }),
+			fetchBytes(geistLatin),
+			fetchBytes(geistLatinExt),
+		])
+		// Latin-ext covers accented names (é, ł, ő…) the basic Latin file doesn't.
+		return FAMILIES.flatMap((name): FontLoader[] => [
+			{
+				name,
+				data: new Uint8Array(latin),
+				unicodeRange: [
+					[0x0000, 0x00ff],
+					[0x0131, 0x0131],
+					[0x0152, 0x0153],
+					[0x02bb, 0x02dc],
+					[0x2000, 0x206f],
+					[0x20ac, 0x20ac],
+					[0x2122, 0x2122],
+					[0x2190, 0x2212],
+				],
+			},
+			{
+				name,
+				data: new Uint8Array(ext),
+				unicodeRange: [
+					[0x0100, 0x024f],
+					[0x0259, 0x0259],
+					[0x1e00, 0x1eff],
+					[0x20a0, 0x20cf],
+					[0x2c60, 0x2c7f],
+					[0xa720, 0xa7ff],
+				],
+			},
+		])
+	})().catch((error) => {
+		ready = null
+		throw error
+	})
+	return ready
 }
 
+/** `renderInvoicePdf` for this feature area. */
 export async function renderInvoicePdf(
-  source: InvoicePdfSource
+	source: InvoicePdfSource
 ): Promise<Blob> {
-  const fonts = await load()
-  const data = toPdfData(source)
-  const theme =
-    THEMES[source.invoice.theme as keyof typeof THEMES] ?? professionalTheme
-  const Doc =
-    source.invoice.template === "minimal"
-      ? InvoiceMinimalDocument
-      : source.invoice.template === "classic"
-        ? InvoiceClassicDocument
-        : InvoiceModernDocument
-  const bytes = await render(<Doc theme={theme} data={data} />, {
-    size: "a4",
-    // The template draws its own page padding; a page margin would push the footer onto page 2.
-    margin: 0,
-    fonts,
-    fontFamilies: ["Geist"],
-    uncoveredText: "placeholder",
-    metadata: {
-      title: `Invoice ${data.number}`,
-      authors: source.invoice.from.name
-        ? [source.invoice.from.name]
-        : undefined,
-      creator: "Ledger",
-    },
-  })
-  return new Blob([bytes], { type: "application/pdf" })
+	const fonts = await load()
+	const data = toPdfData(source)
+	const theme =
+		THEMES[source.invoice.theme as keyof typeof THEMES] ?? professionalTheme
+	const Doc =
+		source.invoice.template === "minimal"
+			? InvoiceMinimalDocument
+			: source.invoice.template === "classic"
+				? InvoiceClassicDocument
+				: InvoiceModernDocument
+	const bytes = await render(<Doc theme={theme} data={data} />, {
+		size: "a4",
+		// The template draws its own page padding; a page margin would push the footer onto page 2.
+		margin: 0,
+		fonts,
+		fontFamilies: ["Geist"],
+		uncoveredText: "placeholder",
+		metadata: {
+			title: `Invoice ${data.number}`,
+			authors: source.invoice.from.name
+				? [source.invoice.from.name]
+				: undefined,
+			creator: "Ledger",
+		},
+	})
+	return new Blob([bytes], { type: "application/pdf" })
 }

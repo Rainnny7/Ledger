@@ -7,11 +7,11 @@
  * works the same in demo mode. Amounts are expected in the home currency (see inHomeCurrency).
  */
 import type {
-  Tip,
-  AdvisorReport,
-  AdvisorInput,
-  MonthFigures,
-  Ctx,
+	Tip,
+	AdvisorReport,
+	AdvisorInput,
+	MonthFigures,
+	Ctx,
 } from "./types"
 import { monthOf, prevMonth, monthFigures } from "./helpers"
 import { ownSubscriptions } from "./subscriptions"
@@ -25,90 +25,95 @@ import { savingsTips, cushionTips } from "./savings"
 import { creditTips, overdraftTips, upcomingTips } from "./credit"
 import { goalTips } from "./goals"
 
+/** Re-exported advisor types for consumers. */
 export type {
-  AdvisorInput,
-  AdvisorReport,
-  AdvisorSummary,
-  Health,
-  HealthFactor,
-  Tip,
-  TipArea,
-  TipKind,
+	AdvisorInput,
+	AdvisorReport,
+	AdvisorSummary,
+	Health,
+	HealthFactor,
+	Tip,
+	TipArea,
+	TipKind,
 } from "./types"
 
+/** `buildAdvice` for this feature area. */
 export function buildAdvice(input: AdvisorInput): AdvisorReport {
-  const { today, transactions: txs } = input
-  const thisMonth = monthOf(today)
-  const earliest = txs.at(-1)?.date ?? today
+	const { today, transactions: txs } = input
+	const thisMonth = monthOf(today)
+	const earliest = txs.at(-1)?.date ?? today
 
-  // The last three full months that the history actually covers (a few days' slack for the first).
-  const months: string[] = []
-  for (let i = 1; i <= 3; i++) {
-    const m = prevMonth(thisMonth, i)
-    if (earliest <= `${m}-05`) months.push(m)
-  }
-  const figures = months.map((m) => monthFigures(txs, m))
-  const avg = (f: (m: MonthFigures) => number) =>
-    figures.length
-      ? figures.reduce((s, m) => s + f(m), 0) / figures.length
-      : null
-  const avgIncome = avg((m) => m.income)
-  const avgOut = avg((m) => m.out)
-  const hasIncome = avgIncome !== null && avgIncome >= 100
-  const savingsRate =
-    hasIncome && avgOut !== null ? (avgIncome - avgOut) / avgIncome : null
-  const surplus = hasIncome && avgOut !== null ? avgIncome - avgOut : null
+	// The last three full months that the history actually covers (a few days' slack for the first).
+	const months: string[] = []
+	for (let i = 1; i <= 3; i++) {
+		const monthKey = prevMonth(thisMonth, i)
+		if (earliest <= `${monthKey}-05`) {
+			months.push(monthKey)
+		}
+	}
+	const figures = months.map((monthKey) => monthFigures(txs, monthKey))
+	const avg = (pick: (figure: MonthFigures) => number) =>
+		figures.length
+			? figures.reduce((sum, figure) => sum + pick(figure), 0) /
+				figures.length
+			: null
+	const avgIncome = avg((figure) => figure.income)
+	const avgOut = avg((figure) => figure.out)
+	const hasIncome = avgIncome !== null && avgIncome >= 100
+	const savingsRate =
+		hasIncome && avgOut !== null ? (avgIncome - avgOut) / avgIncome : null
+	const surplus = hasIncome && avgOut !== null ? avgIncome - avgOut : null
 
-  const ctx: Ctx = {
-    ...input,
-    thisMonth,
-    months,
-    figures,
-    avgIncome,
-    avgOut,
-    hasIncome,
-    savingsRate,
-    surplus,
-  }
+	const context: Ctx = {
+		...input,
+		thisMonth,
+		months,
+		figures,
+		avgIncome,
+		avgOut,
+		hasIncome,
+		savingsRate,
+		surplus,
+	}
 
-  const cushion = cushionOf(ctx)
-  const credit = creditOf(input.accounts)
-  const fees = feesOf(ctx)
-  const subs = ownSubscriptions(input)
-  const subscriptionsYearly = subs.reduce((s, x) => s + x.yearly, 0)
+	const cushion = cushionOf(context)
+	const credit = creditOf(input.accounts)
+	const fees = feesOf(context)
+	const subs = ownSubscriptions(input)
+	const subscriptionsYearly = subs.reduce((sum, x) => sum + x.yearly, 0)
 
-  const tips: Tip[] = [
-    ...paceTips(ctx),
-    ...habitTips(ctx),
-    ...diningTips(ctx),
-    ...weekendTips(ctx),
-    ...subscriptionTips(ctx, subs, subscriptionsYearly),
-    ...fees.tips,
-    ...savingsTips(ctx),
-    ...cushionTips(ctx, cushion),
-    ...creditTips(credit),
-    ...overdraftTips(input.accounts),
-    ...upcomingTips(ctx, subs),
-    ...goalTips(ctx),
-  ]
-  tips.sort((a, b) => b.priority - a.priority)
+	const tips: Tip[] = [
+		...paceTips(context),
+		...habitTips(context),
+		...diningTips(context),
+		...weekendTips(context),
+		...subscriptionTips(context, subs, subscriptionsYearly),
+		...fees.tips,
+		...savingsTips(context),
+		...cushionTips(context, cushion),
+		...creditTips(credit),
+		...overdraftTips(input.accounts),
+		...upcomingTips(context, subs),
+		...goalTips(context),
+	]
+	tips.sort((left, right) => right.priority - left.priority)
 
-  const potentialYearly = tips.reduce(
-    (s, t) => s + (t.kind !== "win" && t.yearly ? t.yearly : 0),
-    0
-  )
+	const potentialYearly = tips.reduce(
+		(sum, tip) => sum + (tip.kind !== "win" && tip.yearly ? tip.yearly : 0),
+		0
+	)
 
-  return {
-    tips,
-    health: healthOf(ctx, cushion, credit, fees.yearly),
-    summary: {
-      savingsRate,
-      avgIncome: hasIncome ? avgIncome : null,
-      avgOut,
-      cushionMonths: cushion?.months ?? null,
-      subscriptionsYearly,
-      potentialYearly,
-      months,
-    },
-  }
+	return {
+		tips,
+		health: healthOf(context, cushion, credit, fees.yearly),
+		summary: {
+			savingsRate,
+			avgIncome: hasIncome ? avgIncome : null,
+			avgOut,
+			cushionMonths: cushion?.months ?? null,
+			subscriptionsYearly,
+			potentialYearly,
+			months,
+		},
+	}
 }

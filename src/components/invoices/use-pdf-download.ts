@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query"
 import type { InvoicePdfSource } from "@/lib/invoice-pdf-data"
-import { fail } from "@/components/invoices/notify"
+import { notifyFailure } from "@/components/invoices/notify"
 import { renderPdf, saveBlob } from "@/components/invoices/pdf-files"
 
 /**
@@ -8,14 +8,14 @@ import { renderPdf, saveBlob } from "@/components/invoices/pdf-files"
  * late can't clear the state of a newer one.
  */
 export function usePdfDownload() {
-  return useMutation({
-    mutationFn: async ({
-      source,
-      name,
-    }: {
-      source: InvoicePdfSource
-      name: string
-    }) => saveBlob(await renderPdf(source), name),
-    onError: fail,
-  })
+	return useMutation({
+		mutationFn: async ({
+			source,
+			name,
+		}: {
+			source: InvoicePdfSource
+			name: string
+		}) => saveBlob(await renderPdf(source), name),
+		onError: notifyFailure,
+	})
 }
