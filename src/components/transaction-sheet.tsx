@@ -23,9 +23,10 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { type Account, api, type Category, type Transaction } from '@/lib/api'
-import { CATEGORY_LIST, CATEGORY_META } from '@/lib/categories'
+import { type Account, api, type Category, type TaxTag, type Transaction } from '@/lib/api'
+import { CATEGORY_LIST, CATEGORY_META, TAX_TAG_LIST, TAX_TAG_META } from '@/lib/categories'
 import { demoMode } from '@/lib/demo'
 import { formatLongDate, formatTimestamp } from '@/lib/format'
 import { queryClient, useGoals, useSubscriptions } from '@/lib/queries'
@@ -49,6 +50,8 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
   const [category, setCategory] = useState<Category>('other')
   const [applyAll, setApplyAll] = useState(false)
   const [note, setNote] = useState('')
+  const [taxTag, setTaxTag] = useState<TaxTag | 'none'>('none')
+  const [taxAll, setTaxAll] = useState(false)
   const [saving, setSaving] = useState(false)
   const [paying, setPaying] = useState<PaymentDraft | null>(null)
   const goals = useGoals().data?.goals
@@ -68,6 +71,8 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
       setCategory(t.category)
       setApplyAll(t.categorySource === 'rule')
       setNote(t.note ?? '')
+      setTaxTag(t.taxTag ?? 'none')
+      setTaxAll(t.taxTagSource === 'rule')
     }
   }
 
@@ -83,7 +88,9 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
     return { list: same, count: same.length, spent, avg: out.length ? spent / out.length : 0, first: same.at(-1)?.date }
   }, [t, transactions])
 
-  const dirty = !!t && (category !== t.category || applyAll !== (t.categorySource === 'rule') || note !== (t.note ?? ''))
+  const taxChanged = !!t && (taxTag !== (t.taxTag ?? 'none') || taxAll !== (t.taxTagSource === 'rule'))
+  const dirty =
+    !!t && (category !== t.category || applyAll !== (t.categorySource === 'rule') || note !== (t.note ?? '') || taxChanged)
 
   async function save() {
     if (!t) return
@@ -96,9 +103,22 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
         body.category = category
         body.applyToMerchant = applyAll
       }
+      if (taxChanged) {
+        // Turning "always" off removes the merchant's rule first; the tag picked then applies to this one only.
+        if (t.taxTagSource === 'rule' && !taxAll) await api.updateTransaction(t.id, { taxTag: null, applyTaxToMerchant: true })
+        body.taxTag = taxTag === 'none' ? null : taxTag
+        body.applyTaxToMerchant = taxAll
+      }
       const { transaction } = await api.updateTransaction(t.id, body)
-      onUpdated(transaction, catChanged && applyAll)
-      toast.success(catChanged && applyAll ? `All ${t.merchant} transactions are now ${CATEGORY_META[category].label}` : 'Saved')
+      const merchantWide = (catChanged && applyAll) || (taxChanged && (taxAll || t.taxTagSource === 'rule'))
+      onUpdated(transaction, merchantWide)
+      toast.success(
+        catChanged && applyAll
+          ? `All ${t.merchant} transactions are now ${CATEGORY_META[category].label}`
+          : taxChanged && taxAll && taxTag !== 'none'
+            ? `All ${t.merchant} transactions are tagged ${TAX_TAG_META[taxTag].label.toLowerCase()}`
+            : 'Saved',
+      )
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
@@ -232,10 +252,36 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
               </div>
 
               <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label>For taxes</Label>
+                  {t.taxTagSource === 'auto' && <span className="text-xs text-muted-foreground">A payment for one of your bills</span>}
+                </div>
+                <Tabs value={taxTag} onValueChange={(v) => setTaxTag(v as TaxTag | 'none')}>
+                  <TabsList className="w-full">
+                    <TabsTrigger value="none">Untagged</TabsTrigger>
+                    {TAX_TAG_LIST.map((tag) => {
+                      const Icon = TAX_TAG_META[tag].icon
+                      return (
+                        <TabsTrigger key={tag} value={tag} title={TAX_TAG_META[tag].hint}>
+                          <Icon /> {TAX_TAG_META[tag].label}
+                        </TabsTrigger>
+                      )
+                    })}
+                  </TabsList>
+                </Tabs>
+                {(taxTag !== 'none' || t.taxTagSource === 'rule') && (
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={taxAll} onCheckedChange={(v) => setTaxAll(v === true)} />
+                    Always tag {t.merchant} this way ({history.count})
+                  </label>
+                )}
+              </div>
+
+              <div className="grid gap-2">
                 <Label htmlFor="tx-note">Note</Label>
                 <Textarea
                   id="tx-note"
-                  placeholder="Add a note — e.g. split with Sam, reimbursable…"
+                  placeholder={taxTag === 'business' ? 'What was it for? e.g. software for client work, lunch with a client…' : 'Add a note — e.g. split with Sam, reimbursable…'}
                   value={note}
                   maxLength={500}
                   onChange={(e) => setNote(e.target.value)}

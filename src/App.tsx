@@ -29,6 +29,7 @@ const WorkPage = lazy(() => import('@/pages/work-page').then((m) => ({ default: 
 const InvoicesPage = lazy(() => import('@/pages/invoices-page').then((m) => ({ default: m.InvoicesPage })))
 const InvoiceEditorPage = lazy(() => import('@/pages/invoice-editor-page').then((m) => ({ default: m.InvoiceEditorPage })))
 const PublicInvoicePage = lazy(() => import('@/pages/public-invoice-page').then((m) => ({ default: m.PublicInvoicePage })))
+const TaxesPage = lazy(() => import('@/pages/taxes-page').then((m) => ({ default: m.TaxesPage })))
 const AdminPage = lazy(() => import('@/pages/admin-page').then((m) => ({ default: m.AdminPage })))
 
 function Page({ children }: { children: ReactNode }) {
@@ -104,6 +105,7 @@ const router = createBrowserRouter(
           <Route path="/invoices" element={<Page><InvoicesPage /></Page>} />
           <Route path="/invoices/new" element={<Page><InvoiceEditorPage /></Page>} />
           <Route path="/invoices/:id" element={<Page><InvoiceEditorPage /></Page>} />
+          <Route path="/taxes" element={<Page><TaxesPage /></Page>} />
           <Route path="/settings" element={<Page><SettingsPage /></Page>} />
           <Route element={<NotInDemo />}>
             <Route path="/contacts" element={<Page><ContactsPage /></Page>} />

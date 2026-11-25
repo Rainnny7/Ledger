@@ -5,6 +5,7 @@ import { Brand } from "@/components/brand";
 import { CommandPalette, openCommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BriefcaseBusinessIcon } from "@/components/icons/briefcase-business";
+import { CalculatorIcon } from "@/components/icons/calculator";
 import { ChartPieIcon } from "@/components/icons/chart-pie";
 import { FileTextIcon } from "@/components/icons/file-text";
 import { LogoutIcon } from "@/components/icons/logout";
@@ -97,6 +98,7 @@ const NAV: {
   { to: "/advisor", label: "Advisor", icon: LightbulbIcon, count: "advice" },
   { to: "/work", label: "Work", icon: BriefcaseBusinessIcon, count: "work" },
   { to: "/invoices", label: "Invoices", icon: FileTextIcon },
+  { to: "/taxes", label: "Taxes", icon: CalculatorIcon },
 ];
 
 /** A nav link whose icon plays its animation when the link is hovered or focused. */
@@ -333,9 +335,9 @@ export function AppShell() {
     .toUpperCase();
 
   return (
-    <div className="min-h-svh bg-muted/40">
+    <div className="min-h-svh bg-muted/40 print:bg-background">
       {demoMode && (
-        <div className="relative z-40 flex items-center justify-center gap-3 bg-primary px-4 py-1.5 text-sm text-primary-foreground animate-in slide-in-from-top duration-300">
+        <div className="relative z-40 flex items-center justify-center gap-3 bg-primary print:hidden px-4 py-1.5 text-sm text-primary-foreground animate-in slide-in-from-top duration-300">
           <MonitorPlay className="size-4 shrink-0" />
           <span className="truncate">
             <span className="font-medium">Demo mode</span>
@@ -354,7 +356,7 @@ export function AppShell() {
           </Button>
         </div>
       )}
-      <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b print:hidden bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-[90rem] items-center gap-2 px-3 sm:gap-4 sm:px-4">
           <Link
             to="/"

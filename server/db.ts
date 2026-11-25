@@ -90,6 +90,15 @@ export function migrateAppTables() {
     );
     CREATE INDEX IF NOT EXISTS idx_sub_charge_tx ON subscription_charge(transaction_id);
 
+    -- "Always tag <merchant> as business / personal" rules, for the tax report.
+    CREATE TABLE IF NOT EXISTS tax_rule (
+      user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+      merchant_key TEXT NOT NULL,
+      tag TEXT NOT NULL,               -- business | personal
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, merchant_key)
+    );
+
     -- Merchants the user dismissed from "detected recurring charges".
     CREATE TABLE IF NOT EXISTS subscription_dismissed (
       user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
@@ -296,6 +305,8 @@ export function migrateAppTables() {
 
   addColumn('bank_transaction', 'category_override', 'TEXT')
   addColumn('bank_transaction', 'note', 'TEXT')
+  // Business or personal, for the tax report (null → untagged, or whatever a merchant rule says).
+  addColumn('bank_transaction', 'tax_tag', 'TEXT')
   // Earliest date a full history read has reached (null → do a full backfill next sync).
   addColumn('bank_account', 'history_from', 'TEXT')
   // Direct deposit numbers + limits (encrypted JSON: they include the full account number).

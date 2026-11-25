@@ -1,6 +1,6 @@
-import { ArrowDownLeft, ArrowUpRight, Download, Loader2, Tags, X } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, BriefcaseBusiness, Download, FileSpreadsheet, Loader2, Tags, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { confirmDialog } from '@/components/confirm-dialog'
 import { RANGES, type RangeKey, rangeStart } from '@/components/range-picker'
@@ -12,16 +12,17 @@ import { SearchInput } from '@/components/search-input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { api, type Category, type Transaction } from '@/lib/api'
-import { CATEGORY_LIST, CATEGORY_META } from '@/lib/categories'
+import { api, type Category, type TaxTag, type Transaction } from '@/lib/api'
+import { CATEGORY_LIST, CATEGORY_META, TAX_TAG_LIST, TAX_TAG_META } from '@/lib/categories'
 import { inHomeCurrency, useConverter } from '@/lib/currency'
 import { demoMode } from '@/lib/demo'
 import { downloadCsv } from '@/lib/finance'
 import { formatMoney, formatShortDate } from '@/lib/format'
 import { useOverview, useTransactions } from '@/lib/queries'
-import { useUrlState } from '@/lib/url-state'
+import { useIntent, useUrlState } from '@/lib/url-state'
 
 type Flow = 'all' | 'in' | 'out'
+type TagFilter = 'all' | TaxTag | 'untagged'
 const PAGE = 100
 
 const periodItems: { value: RangeKey; label: string }[] = [
@@ -32,6 +33,12 @@ const periodItems: { value: RangeKey; label: string }[] = [
   { value: 'all', label: 'All time' },
 ]
 const categoryItems = [{ value: 'all', label: 'All categories' }, ...CATEGORY_LIST.map((c) => ({ value: c, label: CATEGORY_META[c].label }))]
+const tagItems: { value: TagFilter; label: string }[] = [
+  { value: 'all', label: 'Any tax tag' },
+  ...TAX_TAG_LIST.map((t) => ({ value: t, label: TAX_TAG_META[t].label })),
+  { value: 'untagged', label: 'Untagged' },
+]
+const retagItems = [...TAX_TAG_LIST.map((t) => ({ value: t, label: TAX_TAG_META[t].label })), { value: 'none', label: 'Remove tag' }]
 const recategorizeItems = [{ value: 'auto', label: 'Automatic' }, ...CATEGORY_LIST.map((c) => ({ value: c, label: CATEGORY_META[c].label }))]
 
 /** Every transaction on every account, searchable, with bulk recategorizing. */
@@ -45,12 +52,16 @@ export function TransactionsPage() {
   const [category, setCategory] = useUrlState<Category | 'all'>('category', 'all', ['all', ...CATEGORY_LIST])
   const [flow, setFlow] = useUrlState<Flow>('flow', 'all', ['all', 'in', 'out'])
   const [period, setPeriod] = useUrlState<RangeKey>('period', '90d', Object.keys(RANGES) as RangeKey[])
+  const [tag, setTag] = useUrlState<TagFilter>('tag', 'all', ['all', ...TAX_TAG_LIST, 'untagged'])
   // Links from elsewhere (the Advisor) can narrow to a few merchants and an exact start date.
   const [params, setParams] = useSearchParams()
   const merchantsParam = params.get('merchants') ?? ''
   const merchantKeys = useMemo(() => new Set(merchantsParam.split(',').filter(Boolean)), [merchantsParam])
   const sinceParam = params.get('from')
   const since = sinceParam && /^\d{4}-\d{2}-\d{2}$/.test(sinceParam) ? sinceParam : null
+  // The tax report links to one year: `from` and `to` together.
+  const untilParam = params.get('to')
+  const until = since && untilParam && /^\d{4}-\d{2}-\d{2}$/.test(untilParam) ? untilParam : null
   /** Several filters change at once in one URL update (separate setters would each start from the old URL). */
   const updateParams = (edit: (p: URLSearchParams) => void) =>
     setParams(
@@ -77,6 +88,8 @@ export function TransactionsPage() {
     return transactions.filter(
       (t) =>
         (!from || t.date >= from) &&
+        (!until || t.date <= until) &&
+        (tag === 'all' || (tag === 'untagged' ? !t.taxTag : t.taxTag === tag)) &&
         (accountId === 'all' || t.accountId === accountId) &&
         (flow === 'all' || (flow === 'in' ? t.amount > 0 : t.amount < 0)) &&
         (category === 'all' || t.category === category) &&
@@ -87,7 +100,7 @@ export function TransactionsPage() {
           (t.note ?? '').toLowerCase().includes(q) ||
           Math.abs(t.amount).toFixed(2).includes(q)),
     )
-  }, [transactions, query, accountId, flow, category, from, merchantKeys])
+  }, [transactions, query, accountId, flow, category, from, until, tag, merchantKeys])
 
   // Totals add up across currencies in the home currency.
   const totals = useMemo(() => {
@@ -104,13 +117,14 @@ export function TransactionsPage() {
   const shown = filtered.slice(0, limit)
   const pickedShown = shown.filter((t) => picked.has(t.id))
   const allShownPicked = shown.length > 0 && pickedShown.length === shown.length
-  const filtersOn = query || accountId !== 'all' || category !== 'all' || flow !== 'all' || merchantKeys.size > 0 || since
+  const filtersOn = query || accountId !== 'all' || category !== 'all' || flow !== 'all' || tag !== 'all' || merchantKeys.size > 0 || since
   const merchantNames = useMemo(() => {
     const names = new Map<string, string>()
     for (const t of transactions) if (merchantKeys.has(t.merchantKey) && !names.has(t.merchantKey)) names.set(t.merchantKey, t.merchant)
     return [...names.values()]
   }, [transactions, merchantKeys])
-  const periodOptions = since ? [{ value: 'since', label: `Since ${formatShortDate(since)}` }, ...periodItems] : periodItems
+  const sinceLabel = until ? `${formatShortDate(since!)} – ${formatShortDate(until)}` : `Since ${formatShortDate(since ?? '')}`
+  const periodOptions = since ? [{ value: 'since', label: sinceLabel }, ...periodItems] : periodItems
 
   function changed() {
     setLimit(PAGE)
@@ -149,7 +163,7 @@ export function TransactionsPage() {
     }
     setApplying(true)
     try {
-      const { updated } = await api.updateTransactions(ids, value === 'auto' ? null : (value as Category))
+      const { updated } = await api.updateTransactions(ids, { category: value === 'auto' ? null : (value as Category) })
       toast.success(`${updated} transaction${updated === 1 ? '' : 's'} filed under ${label}`)
       setPicked(new Set())
     } catch (err) {
@@ -159,16 +173,48 @@ export function TransactionsPage() {
     }
   }
 
+  async function retag(value: string) {
+    if (demoMode) return toast.error('Demo mode is read-only. Exit demo mode to make changes.')
+    const ids = [...picked]
+    const taxTag = value === 'none' ? null : (value as TaxTag)
+    setApplying(true)
+    try {
+      const { updated } = await api.updateTransactions(ids, { taxTag })
+      toast.success(
+        taxTag
+          ? `${updated} transaction${updated === 1 ? '' : 's'} tagged ${TAX_TAG_META[taxTag].label.toLowerCase()}`
+          : `Tag removed from ${updated} transaction${updated === 1 ? '' : 's'}`,
+      )
+      setPicked(new Set())
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setApplying(false)
+    }
+  }
+
+  // From the command palette: open one transaction, or download what's shown.
+  useIntent(
+    'tx',
+    (id) => {
+      const t = transactions.find((x) => x.id === id)
+      if (t) setSelected(t)
+    },
+    !!txq.data,
+  )
+  useIntent('export', () => exportCsv(), !!txq.data && !!overview.data)
+
   function exportCsv() {
     const byId = new Map(accounts.map((a) => [a.id, a]))
     downloadCsv('transactions.csv', [
-      ['Date', 'Account', 'Merchant', 'Description', 'Category', 'Amount', 'Currency', 'Pending', 'Note'],
+      ['Date', 'Account', 'Merchant', 'Description', 'Category', 'Tax tag', 'Amount', 'Currency', 'Pending', 'Note'],
       ...filtered.map((t) => [
         t.date,
         byId.get(t.accountId)?.name,
         t.merchant,
         t.description,
         CATEGORY_META[t.category].label,
+        t.taxTag ? TAX_TAG_META[t.taxTag].label : '',
         t.amount.toFixed(2),
         byId.get(t.accountId)?.currency,
         t.pending ? 'yes' : '',
@@ -183,7 +229,13 @@ export function TransactionsPage() {
     <div className="grid gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
-        <p className="text-sm text-muted-foreground">Everything across your accounts. Tick a few to file them under one category at once.</p>
+        <p className="text-sm text-muted-foreground">
+          Everything across your accounts. Tick a few to file them under one category, or tag them business or personal for{' '}
+          <Link to="/taxes" className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline">
+            <FileSpreadsheet className="size-3.5" /> your tax report
+          </Link>
+          .
+        </p>
       </div>
 
       {txq.error && <p className="text-sm text-destructive">{txq.error.message}</p>}
@@ -230,13 +282,14 @@ export function TransactionsPage() {
               value={since ? 'since' : period}
               onChange={(v) => {
                 if (v === 'since') return
-                if (since) updateParams((p) => (p.delete('from'), v === '90d' ? p.delete('period') : p.set('period', v)))
+                if (since) updateParams((p) => (p.delete('from'), p.delete('to'), v === '90d' ? p.delete('period') : p.set('period', v)))
                 else setPeriod(v as RangeKey)
                 changed()
               }}
               className="w-36"
             />
             <FilterSelect items={categoryItems} value={category} onChange={(v) => (setCategory(v as Category | 'all'), changed())} className="w-44" />
+            <FilterSelect items={tagItems} value={tag} onChange={(v) => (setTag(v as TagFilter), changed())} className="w-36" />
             <Tabs value={flow} onValueChange={(v) => (setFlow(v as Flow), changed())}>
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
@@ -250,7 +303,7 @@ export function TransactionsPage() {
                 size="sm"
                 onClick={() => {
                   updateParams((p) => {
-                    for (const k of ['q', 'account', 'category', 'flow', 'merchants', 'from']) p.delete(k)
+                    for (const k of ['q', 'account', 'category', 'flow', 'tag', 'merchants', 'from', 'to']) p.delete(k)
                   })
                   changed()
                 }}
@@ -295,6 +348,19 @@ export function TransactionsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {recategorizeItems.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select items={retagItems} value={null} onValueChange={(v) => v && void retag(v as string)}>
+                    <SelectTrigger size="sm" className="w-44" disabled={applying}>
+                      <BriefcaseBusiness />
+                      <SelectValue placeholder="Tag for taxes…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {retagItems.map((c) => (
                         <SelectItem key={c.value} value={c.value}>
                           {c.label}
                         </SelectItem>

@@ -2,7 +2,7 @@ import { TransactionMenuItems, WithContextMenu } from '@/components/app-context-
 import { Hint } from '@/components/hint'
 import { Money } from '@/components/money'
 import { shownRunningBalance, useIncludeOverdraft } from '@/components/account-figures'
-import { StickyNote } from 'lucide-react'
+import { BriefcaseBusiness, StickyNote } from 'lucide-react'
 import { Fragment, useMemo } from 'react'
 import { CategoryBadge, CategoryIcon } from '@/components/tx-bits'
 import { Badge } from '@/components/ui/badge'
@@ -101,6 +101,9 @@ export function TransactionsTable({ transactions, accounts, onSelect, showBalanc
                             <Badge variant="outline" className="shrink-0">
                               Pending
                             </Badge>
+                          )}
+                          {t.taxTag === 'business' && (
+                            <BriefcaseBusiness className="size-3.5 shrink-0 text-primary" aria-label="Business" />
                           )}
                           {t.note && <StickyNote className="size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
                         </div>

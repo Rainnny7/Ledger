@@ -47,6 +47,7 @@ import { useSession } from '@/lib/auth-client'
 import { inHomeCurrency, useConverter } from '@/lib/currency'
 import { DEMO_IDENTITY, demoMode } from '@/lib/demo'
 import { useDashboardTransactions, useOverview, useSubscriptions } from '@/lib/queries'
+import { useIntent } from '@/lib/url-state'
 import { cn } from '@/lib/utils'
 import { useNow } from '@/lib/use-now'
 
@@ -71,6 +72,9 @@ export function DashboardPage() {
   })
   const [upload, setUpload] = useState<{ open: boolean; connectionId?: string }>({ open: false })
   const [range, setRange] = useState<RangeKey>('90d')
+  // From the command palette.
+  useIntent('connect', () => setDialog({ open: true, connection: null }))
+  useIntent('upload', () => setUpload({ open: true }))
   const [selected, setSelected] = useState<Transaction | null>(null)
 
   const connections = data?.connections ?? []

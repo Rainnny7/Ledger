@@ -55,6 +55,7 @@ import { demoMode } from '@/lib/demo'
 import { formatDate, formatMoney, formatMonth, formatRelativeDate, formatShortDate, isoDate } from '@/lib/format'
 import { useConverter } from '@/lib/currency'
 import { useWork } from '@/lib/queries'
+import { useIntent } from '@/lib/url-state'
 import { cn } from '@/lib/utils'
 import { copyText, formatDuration, formatHours, invoiceText, payEveryLabel, paymentLine } from '@/lib/work'
 
@@ -111,6 +112,17 @@ export function WorkPage() {
     <A extends unknown[]>(fn: (...a: A) => void) =>
     (...a: A) =>
       demoMode ? readOnly() : fn(...a)
+
+  // From the command palette: `?new=1` adds a job, `?log=<job id>` logs hours on one.
+  useIntent('new', guard(() => setJobDialog({ job: null })))
+  useIntent(
+    'log',
+    guard((id: string) => {
+      const job = active.find((j) => j.id === id)
+      if (job) setLogging(job)
+    }),
+    !!data,
+  )
 
   async function removeJob(j: WorkJob) {
     const bills = j.invoices.length

@@ -22,6 +22,14 @@ export function isCategory(v: unknown): v is Category {
   return typeof v === 'string' && (CATEGORIES as readonly string[]).includes(v)
 }
 
+/** How a transaction counts for taxes: part of running a business (side work, self-employment) or personal. */
+export const TAX_TAGS = ['business', 'personal'] as const
+export type TaxTag = (typeof TAX_TAGS)[number]
+
+export function isTaxTag(v: unknown): v is TaxTag {
+  return typeof v === 'string' && (TAX_TAGS as readonly string[]).includes(v)
+}
+
 /** Named billing periods. Anything else is stored as "every-<n>-<weeks|months|years>". */
 export const PRESET_CYCLES = ['weekly', 'biweekly', 'monthly', 'quarterly', 'semiannual', 'yearly', 'biennial', 'triennial'] as const
 export type PresetCycle = (typeof PRESET_CYCLES)[number]

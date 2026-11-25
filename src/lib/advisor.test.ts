@@ -40,6 +40,8 @@ function tx(date: string, amount: number, merchant: string, category: Category, 
     merchantKey: merchant.toLowerCase(),
     category,
     categorySource: 'auto',
+    taxTag: null,
+    taxTagSource: null,
   }
 }
 

@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useEffectEvent } from 'react'
 import { useSearchParams } from 'react-router'
 
 /**
@@ -31,4 +31,26 @@ export function useUrlState<T extends string>(key: string, fallback: T, allowed?
     [key, fallback, setParams],
   )
   return [value, set] as const
+}
+
+/**
+ * A one-off request in the address, like `?new=1` from the command palette: runs `run` with its
+ * value once the page is `ready`, then drops it from the URL so a reload or the back button
+ * doesn't open the dialog again.
+ */
+export function useIntent(key: string, run: (value: string) => void, ready = true) {
+  const [params, setParams] = useSearchParams()
+  const value = params.get(key)
+  const fire = useEffectEvent((v: string) => run(v))
+  useEffect(() => {
+    if (value === null || !ready) return
+    fire(value)
+    setParams(
+      (p) => {
+        p.delete(key)
+        return p
+      },
+      { replace: true, preventScrollReset: true },
+    )
+  }, [key, value, ready, setParams])
 }

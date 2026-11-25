@@ -30,6 +30,7 @@ import { addDays, daysFromToday, formatLongDate, formatMoney, formatRelativeDate
 import { useConverter } from '@/lib/currency'
 import { demoMode } from '@/lib/demo'
 import { useOverview, useSubscriptions } from '@/lib/queries'
+import { useIntent } from '@/lib/url-state'
 import { cn } from '@/lib/utils'
 import { useNow } from '@/lib/use-now'
 
@@ -115,6 +116,12 @@ export function SubscriptionsPage() {
     })
     setParams({}, { replace: true })
   }, [params, setParams])
+
+  useIntent('new', () => {
+    if (demoMode) return void toast.error('Demo mode is read-only. Exit demo mode to make changes.')
+    setEditing(null)
+    setDraft({ cycle: 'monthly', anchorDate: isoDate() })
+  })
 
   function edit(s: Subscription) {
     if (s.access === 'view') return

@@ -26,6 +26,7 @@ import { demoMode } from '@/lib/demo'
 import { formatDate, formatShortDate, isoDate } from '@/lib/format'
 import { useConverter } from '@/lib/currency'
 import { useGoals } from '@/lib/queries'
+import { useIntent } from '@/lib/url-state'
 import { cn } from '@/lib/utils'
 
 const PRESETS: (Partial<GoalInput> & { blurb: string })[] = [
@@ -82,6 +83,7 @@ export function GoalsPage() {
     if (demoMode) return toast.error('Demo mode is read-only. Exit demo mode to make changes.')
     setCreating(preset)
   }
+  useIntent('new', () => startNew())
 
   async function remove(g: Goal) {
     if (!(await confirmDialog({ title: `Delete “${g.name}”?`, description: `Its ${g.payments.length} payment${g.payments.length === 1 ? '' : 's'} are deleted too. This can’t be undone.`, action: 'Delete goal', destructive: true }))) return

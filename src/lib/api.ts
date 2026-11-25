@@ -53,8 +53,8 @@ export interface AccountDetails {
   limits: AccountLimit[]
 }
 
-import type { Category, Cycle } from '../../shared/categories.ts'
-export type { Category, Cycle, CycleUnit, PresetCycle } from '../../shared/categories.ts'
+import type { Category, Cycle, TaxTag } from '../../shared/categories.ts'
+export type { Category, Cycle, CycleUnit, PresetCycle, TaxTag } from '../../shared/categories.ts'
 
 export interface Transaction {
   id: string
@@ -71,6 +71,10 @@ export interface Transaction {
   merchantKey: string
   category: Category
   categorySource: 'auto' | 'rule' | 'manual'
+  /** Business or personal, for the tax report; null while untagged. */
+  taxTag: TaxTag | null
+  /** manual: this transaction · rule: every one from the merchant · auto: a payment for your bill or invoice. */
+  taxTagSource: 'auto' | 'rule' | 'manual' | null
 }
 
 /** A monthly spending limit for one category, in the user's home currency. */
@@ -578,7 +582,13 @@ export const api = {
   transactions: (from?: string) => request<{ transactions: Transaction[] }>(`/transactions${from ? `?from=${from}` : ''}`),
   updateTransaction: async (
     id: string,
-    body: { category?: Category | null; applyToMerchant?: boolean; note?: string | null },
+    body: {
+      category?: Category | null
+      applyToMerchant?: boolean
+      note?: string | null
+      taxTag?: TaxTag | null
+      applyTaxToMerchant?: boolean
+    },
   ) => {
     const result = await request<{ transaction: Transaction }>(`/transactions/${id}`, {
       method: 'PATCH',
@@ -586,16 +596,17 @@ export const api = {
       notify: false,
     })
     // One row changed: the cached lists are patched in place. A merchant-wide rule changes many rows.
-    const merchantWide = body.category !== undefined && body.applyToMerchant === true
+    const merchantWide =
+      (body.category !== undefined && body.applyToMerchant === true) || (body.taxTag !== undefined && body.applyTaxToMerchant === true)
     window.dispatchEvent(new CustomEvent(TRANSACTION_UPDATED, { detail: result.transaction }))
     notifyDataChanged(merchantWide ? '/transactions/merchant' : `/transactions/${id}`)
     return result
   },
   /** Files several transactions under one category in a single request. */
-  updateTransactions: (ids: string[], category: Category | null) =>
+  updateTransactions: (ids: string[], change: { category: Category | null } | { taxTag: TaxTag | null }) =>
     request<{ updated: number }>('/transactions/bulk', {
       method: 'PATCH',
-      body: JSON.stringify({ ids, category }),
+      body: JSON.stringify({ ids, ...change }),
       notify: false,
     }).then((r) => {
       notifyDataChanged('/transactions/merchant')

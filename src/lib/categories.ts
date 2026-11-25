@@ -1,6 +1,8 @@
 import {
   ArrowLeftRight,
   Banknote,
+  BriefcaseBusiness,
+  UserRound,
   Car,
   CircleDollarSign,
   CircleEllipsis,
@@ -15,7 +17,7 @@ import {
   Utensils,
   Wallet,
 } from 'lucide-react'
-import type { Category } from './api'
+import type { Category, TaxTag } from './api'
 
 export const CATEGORY_META: Record<Category, { label: string; icon: LucideIcon }> = {
   income: { label: 'Income', icon: Wallet },
@@ -41,3 +43,10 @@ export const CATEGORY_LIST = Object.keys(CATEGORY_META) as Category[]
  * pay down a balance rather than buy anything; shown separately). Excluded from spend totals.
  */
 export const NON_SPEND: ReadonlySet<Category> = new Set(['transfers', 'income', 'debt'])
+
+/** Tax tags as they're shown: business (side work, self-employment) or personal. */
+export const TAX_TAG_META: Record<TaxTag, { label: string; icon: LucideIcon; hint: string }> = {
+  business: { label: 'Business', icon: BriefcaseBusiness, hint: 'Part of your work: income, or an expense you might claim' },
+  personal: { label: 'Personal', icon: UserRound, hint: 'Your own spending, not part of a business' },
+}
+export const TAX_TAG_LIST = Object.keys(TAX_TAG_META) as TaxTag[]
