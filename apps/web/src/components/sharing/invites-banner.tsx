@@ -1,5 +1,6 @@
 import { Check, Mail, X } from "lucide-react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import { api, type ShareInvite } from "@/lib/api"
 import { useInvites } from "@/lib/queries"
@@ -16,7 +17,7 @@ async function respond(invite: ShareInvite, accept: boolean) {
 			accept ? `Added ${invite.name}` : `Declined ${invite.name}`
 		)
 	} catch (error) {
-		toast.error((error as Error).message)
+		toastError((error as Error).message)
 	}
 }
 

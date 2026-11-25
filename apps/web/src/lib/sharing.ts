@@ -1,4 +1,5 @@
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { api, type Shared, type ShareKind } from "@/lib/api"
 
 /** Singular noun for each shareable item type (toast copy). */
@@ -36,7 +37,7 @@ export async function leaveShared(
 		await api.leaveShare(kind, item.id)
 		toast.success(`Removed ${item.name}`)
 	} catch (error) {
-		toast.error((error as Error).message)
+		toastError((error as Error).message)
 	}
 }
 

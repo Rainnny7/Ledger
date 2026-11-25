@@ -3,6 +3,8 @@ import { Eye, Loader2, Pencil, UserPlus, Users, X } from "lucide-react"
 import { type FormEvent, type KeyboardEvent, useId, useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
+import { QueryError } from "@/components/ui/query-error"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -45,7 +47,7 @@ async function updateSharePermission(id: string, permission: SharePermission) {
 	try {
 		await api.updateShare(id, permission)
 	} catch (error) {
-		toast.error((error as Error).message)
+		toastError((error as Error).message)
 	}
 }
 
@@ -54,7 +56,7 @@ async function removeShare(id: string, who: string) {
 		await api.unshare(id)
 		toast.success(`Stopped sharing with ${who}`)
 	} catch (error) {
-		toast.error((error as Error).message)
+		toastError((error as Error).message)
 	}
 }
 
@@ -283,7 +285,7 @@ export function ShareDialog({
 			})
 			setEmail("")
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setSaving(false)
 		}
@@ -300,6 +302,13 @@ export function ShareDialog({
 						delete its payments or change who it’s shared with.
 					</DialogDescription>
 				</DialogHeader>
+
+				{shares.error && !shares.data && (
+					<QueryError
+						message={shares.error.message}
+						onRetry={() => void shares.refetch()}
+					/>
+				)}
 
 				<form onSubmit={add} className="grid gap-2">
 					<Label htmlFor="share-email">Add someone</Label>

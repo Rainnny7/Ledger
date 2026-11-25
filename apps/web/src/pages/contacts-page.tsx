@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { type FormEvent, useMemo, useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { ContactAvatar } from "@/components/sharing/share-bits"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { QueryError } from "@/components/ui/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api, type Contact, type Shared } from "@/lib/api"
 import { formatDate, localDate } from "@/lib/format"
@@ -35,7 +37,7 @@ import { useContacts, useGoals, useSubscriptions, useWork } from "@/lib/queries"
 
 /** Your contacts: people you share goals, subscriptions and jobs with. */
 export function ContactsPage() {
-	const { data, loading, error } = useContacts()
+	const { data, loading, error, reload } = useContacts()
 	const [query, setQuery] = useState("")
 	const contacts = useMemo(() => data?.contacts ?? [], [data])
 	const needle = query.trim().toLowerCase()
@@ -86,10 +88,11 @@ export function ContactsPage() {
 						)}
 					</CardHeader>
 					<CardContent>
-						{error && (
-							<p className="text-sm text-destructive">
-								{error.message}
-							</p>
+						{error && !data && (
+							<QueryError
+								message={error.message}
+								onRetry={() => void reload()}
+							/>
 						)}
 						{!data && loading ? (
 							<div className="grid gap-2">
@@ -168,7 +171,7 @@ function AddContactCard() {
 			setEmail("")
 			setName("")
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setSaving(false)
 		}
@@ -249,7 +252,7 @@ function ContactRow({
 			})
 			setEditing(false)
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		}
 	}
 
@@ -272,7 +275,7 @@ function ContactRow({
 			await api.deleteContact(contact.id)
 			toast.success("Contact removed")
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		}
 	}
 
