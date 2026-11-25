@@ -34,6 +34,8 @@ export const env = {
   allowRegistration: process.env.ALLOW_REGISTRATION === 'true',
   /** Behind a reverse proxy (nginx, Caddy, Cloudflare Tunnel…), trust its X-Forwarded-For for the client's address. */
   trustProxy: process.env.TRUST_PROXY === 'true',
-  /** Where daily exchange rates come from (Frankfurter's ECB reference rates by default). */
+  /** Live exchange rates (Coinbase's public rates by default). Set FX_LIVE_URL= (empty) to use only the ECB's daily rates. */
+  fxLiveUrl: process.env.FX_LIVE_URL ?? 'https://api.coinbase.com/v2/exchange-rates?currency=USD',
+  /** The fallback when live rates fail: Frankfurter's daily ECB reference rates. */
   fxRatesUrl: process.env.FX_RATES_URL ?? 'https://api.frankfurter.dev/v1/latest',
 }

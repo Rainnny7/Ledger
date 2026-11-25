@@ -335,6 +335,8 @@ export interface FxRates {
   date: string
   rates: Record<string, number>
   fetchedAt: string | null
+  /** 'live' for current market rates, 'ecb' for the ECB's once-a-day fixing. */
+  source: 'live' | 'ecb'
 }
 
 // ---------------------------------------------------------------- invoices

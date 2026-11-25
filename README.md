@@ -21,7 +21,7 @@ I wanted one place to see my transactions, how much I'm earning, what subscripti
 - **Work**: log hours for side work, bill them, and track each payment until you're paid in full.
 - **Invoices**: make an invoice from scratch or from a Work bill in a few clicks, pick from three PDF designs, and choose how you want to be paid (e-Transfer, PayPal.me, PayPal checkout, crypto, bank transfer, cash and more). Share a link the client can open without signing in, or send them the PDF. Payments made through PayPal checkout are marked paid on the spot.
 - **Sharing**: share a goal, subscription or job with another Ledger user, as view-only or editable. Pick them from your **Contacts** (in the user menu) or type their email. They need an account on the same server; only the owner can delete, archive or change who it's shared with, and the owner's bank accounts are never shown.
-- **Any currency**: accounts, goals, subscriptions and bills can each have their own currency. Totals are converted into your default currency (picked in Settings, or guessed from your time zone) using daily ECB reference rates.
+- **Any currency**: accounts, goals, subscriptions and bills can each have their own currency. Totals are converted into your default currency (picked in Settings, or guessed from your time zone) using live mid-market rates (refreshed hourly, falling back to the ECB's daily reference rates).
 - **Automatic refresh**: saved connections are refreshed every 6 hours in the background.
 - **Multi-user**: the first account is the admin. Admins can add users, open or close sign-ups, and see an audit log. Two-factor sign-in is supported.
 - **Demo mode**: fills every page with made-up data, handy for showing it off (the screenshots here use it).
@@ -102,7 +102,8 @@ All optional. See [`.env.example`](.env.example).
 | `TD_BROWSER_CHANNEL` | | e.g. `chrome` to use your installed Chrome |
 | `ALLOW_REGISTRATION` | `false` | Whether sign-ups start open after the first account |
 | `TRUST_PROXY` | `false` | `true` behind a reverse proxy, so rate limits see the real client IP |
-| `FX_RATES_URL` | `https://api.frankfurter.dev/v1/latest` | Where exchange rates are fetched from (Frankfurter-compatible) |
+| `FX_LIVE_URL` | `https://api.coinbase.com/v2/exchange-rates?currency=USD` | Where live exchange rates are fetched from (Coinbase-compatible; empty to turn off) |
+| `FX_RATES_URL` | `https://api.frankfurter.dev/v1/latest` | Fallback daily ECB rates (Frankfurter-compatible) |
 | `PAYPAL_ENV` | `live` | `sandbox` to test against PayPal's sandbox |
 
 ## Built with

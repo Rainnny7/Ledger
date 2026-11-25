@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { currencyName, useConverter } from '@/lib/currency'
-import { formatDate, formatMoney, getDisplayCurrency } from '@/lib/format'
+import { formatDate, formatMoney, formatTimestamp, getDisplayCurrency } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 const rateFormat = new Intl.NumberFormat('en-CA', { maximumSignificantDigits: 5 })
@@ -69,7 +69,10 @@ export function ForeignMoney({
             </span>
             {c.fx?.date && (
               <span className="max-w-56 text-[11px] text-muted-foreground">
-                European Central Bank mid-market rate for {formatDate(c.fx.date)}. Your bank’s rate usually includes a markup of a few percent.
+                {c.fx.source === 'live' && c.fx.fetchedAt
+                  ? `Mid-market rate as of ${formatTimestamp(c.fx.fetchedAt)}.`
+                  : `European Central Bank reference rate for ${formatDate(c.fx.date)}.`}{' '}
+                Your bank’s rate usually includes a markup of a few percent.
               </span>
             )}
           </>

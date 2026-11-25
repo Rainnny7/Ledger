@@ -98,8 +98,8 @@ const TASKS: Task[] = [
     id: 'fx-rates',
     label: 'Update exchange rates',
     description:
-      'Fetches the European Central Bank’s daily reference rates (through Frankfurter) used to show amounts in each person’s own currency. The ECB publishes once each working day around 16:00 CET; if a fetch fails, the last good rates stay in use.',
-    intervalMs: 6 * HOUR,
+      'Fetches live mid-market exchange rates (from Coinbase) used to show amounts in each person’s own currency. If those can’t be reached it uses the European Central Bank’s daily reference rates instead, and if both fail the last good rates stay in use.',
+    intervalMs: HOUR,
     run: refreshRates,
   },
   {
