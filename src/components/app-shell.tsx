@@ -302,9 +302,17 @@ export function AppShell() {
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 {demoMode ? (
-                  <DropdownMenuItem onClick={() => setDemoMode(false)}>
-                    <X /> Exit demo mode
-                  </DropdownMenuItem>
+                  <>
+                    <MenuItem
+                      icon={SettingsIcon}
+                      onClick={() => navigate("/settings")}
+                    >
+                      Settings
+                    </MenuItem>
+                    <DropdownMenuItem onClick={() => setDemoMode(false)}>
+                      <X /> Exit demo mode
+                    </DropdownMenuItem>
+                  </>
                 ) : (
                   <>
                     <MenuItem

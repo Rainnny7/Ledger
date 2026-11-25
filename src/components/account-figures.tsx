@@ -3,6 +3,7 @@ import { AnimatedMoney } from '@/components/count-up'
 import { Progress } from '@/components/ui/progress'
 import type { Account, Transaction } from '@/lib/api'
 import { useSession } from '@/lib/auth-client'
+import { useDemoPrefs } from '@/lib/demo'
 import { formatMoney } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -12,11 +13,12 @@ export function isDebtAccount(a: Pick<Account, 'type'>) {
 
 /**
  * Settings → Preferences: whether balances count the overdraft you can still draw on. On by default
- * (and in demo mode, where nobody is signed in).
+ * (and in demo mode until changed there, for the demo session only).
  */
 export function useIncludeOverdraft() {
   const { data } = useSession()
-  return (data?.user as { includeOverdraft?: boolean | null } | undefined)?.includeOverdraft ?? true
+  const demo = useDemoPrefs()
+  return demo.includeOverdraft ?? (data?.user as { includeOverdraft?: boolean | null } | undefined)?.includeOverdraft ?? true
 }
 
 /** The overdraft a chequing/savings account comes with: its limit, or failing that available − balance. */

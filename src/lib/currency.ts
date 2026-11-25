@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { type Account, api, type FxRates, type Transaction } from './api'
 import { useSession } from './auth-client'
+import { useDemoPrefs } from './demo'
 
 /** Currencies with daily reference rates (ECB), so anything picked here can be converted. */
 export const CURRENCIES = [
@@ -112,7 +113,8 @@ export const savedCurrency = (user: unknown) => (user as { currency?: string | n
 /** The currency totals are shown in: the one picked in Settings, else a guess from this device. */
 export function useHomeCurrency(): string {
   const { data } = useSession()
-  return savedCurrency(data?.user) ?? detectCurrency()
+  const demo = useDemoPrefs()
+  return demo.currency ?? savedCurrency(data?.user) ?? detectCurrency()
 }
 
 export const useFx = () =>

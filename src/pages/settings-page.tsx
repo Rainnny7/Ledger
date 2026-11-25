@@ -21,6 +21,7 @@ import { authClient, twoFactor, useSession } from '@/lib/auth-client'
 import { currencyName, useFx, useHomeCurrency } from '@/lib/currency'
 import { formatDate } from '@/lib/format'
 import { queryClient } from '@/lib/queries'
+import { demoMode, setDemoPrefs, useDemoPrefs } from '@/lib/demo'
 
 export function SettingsPage() {
   return (
@@ -29,11 +30,29 @@ export function SettingsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">Preferences, security and your account.</p>
       </div>
+      {demoMode && (
+        <Alert>
+          <AlertDescription>
+            Demo mode: preferences changed here only last until you exit demo mode. Everything else is turned off.
+          </AlertDescription>
+        </Alert>
+      )}
       <PreferencesCard />
-      <ChangePasswordCard />
-      <TwoFactorCard />
-      <DevicesCard />
-      <DeleteAccountCard />
+      {demoMode ? (
+        // Shown for the tour, but inert: these act on the real account.
+        <div inert aria-disabled className="grid gap-8 opacity-50 select-none">
+          <ChangePasswordCard />
+          <TwoFactorCard />
+          <DeleteAccountCard />
+        </div>
+      ) : (
+        <>
+          <ChangePasswordCard />
+          <TwoFactorCard />
+          <DevicesCard />
+          <DeleteAccountCard />
+        </>
+      )}
     </div>
   )
 }
@@ -42,12 +61,14 @@ export function SettingsPage() {
 
 function PreferencesCard() {
   const { data } = useSession()
-  const saved = (data?.user as { includeOverdraft?: boolean | null } | undefined)?.includeOverdraft ?? true
+  const demo = useDemoPrefs()
+  const saved = demo.includeOverdraft ?? (data?.user as { includeOverdraft?: boolean | null } | undefined)?.includeOverdraft ?? true
   // Shown straight away; the session catches up once the server has it.
   const [pending, setPending] = useState<boolean | null>(null)
   const checked = pending ?? saved
 
   async function toggle(value: boolean) {
+    if (demoMode) return setDemoPrefs({ includeOverdraft: value })
     setPending(value)
     const { error } = await authClient.updateUser({ includeOverdraft: value })
     if (error) toast.error(error.message ?? 'Could not save that')
@@ -59,6 +80,11 @@ function PreferencesCard() {
   const fx = useFx()
   const [pendingCurrency, setPendingCurrency] = useState<string | null>(null)
   async function changeCurrency(code: string) {
+    if (demoMode) {
+      setDemoPrefs({ currency: code })
+      toast.success(`Totals now show in ${currencyName(code)}`)
+      return
+    }
     setPendingCurrency(code)
     const { error } = await authClient.updateUser({ currency: code })
     if (error) toast.error(error.message ?? 'Could not save that')

@@ -65,7 +65,7 @@ function RequireAdmin() {
   return data?.user.role === 'admin' && !demoMode ? <Outlet /> : <Navigate to="/" replace />
 }
 
-/** Settings shows your real devices and email, so it's off-limits in demo mode. */
+/** Contacts are real people, so they're off-limits in demo mode. (Settings opens with only Preferences usable.) */
 function NotInDemo() {
   return demoMode ? <Navigate to="/" replace /> : <Outlet />
 }
@@ -99,8 +99,8 @@ export default function App() {
               <Route path="/invoices" element={<Page><InvoicesPage /></Page>} />
               <Route path="/invoices/new" element={<Page><InvoiceEditorPage /></Page>} />
               <Route path="/invoices/:id" element={<Page><InvoiceEditorPage /></Page>} />
+              <Route path="/settings" element={<Page><SettingsPage /></Page>} />
               <Route element={<NotInDemo />}>
-                <Route path="/settings" element={<Page><SettingsPage /></Page>} />
                 <Route path="/contacts" element={<Page><ContactsPage /></Page>} />
               </Route>
               <Route element={<RequireAdmin />}>
