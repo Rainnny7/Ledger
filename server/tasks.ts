@@ -7,7 +7,7 @@
 import { mkdirSync, readdirSync, rmSync, statSync } from "node:fs"
 import path from "node:path"
 import { db, getSetting, setSetting } from "./db.ts"
-import { DATA_DIR } from "./env.ts"
+import { DATA_DIR, env } from "./env.ts"
 import { syncInBackground } from "./banks/sessions.ts"
 import { refreshRates } from "./fx.ts"
 
@@ -114,8 +114,6 @@ async function tidyUp(): Promise<string> {
 }
 
 export const BACKUP_DIR = path.join(DATA_DIR, "backups")
-/** How many daily copies to keep. */
-const BACKUPS_KEPT = Number(process.env.BACKUPS_KEPT ?? 14)
 
 /**
  * Why a copy was made: the daily schedule, "Run now" on the backup task, or the Back up now
@@ -154,7 +152,7 @@ export function listBackups() {
           reason: backupReason(name),
         }
       })
-      .sort((a, b) => b.name.localeCompare(a.name))
+      .toSorted((a, b) => b.name.localeCompare(a.name))
   } catch {
     return []
   }
@@ -179,7 +177,7 @@ async function backUp(ctx: RunContext): Promise<string> {
         }
   setSetting(reasonKey(name), JSON.stringify(reason))
   db.prepare("VACUUM INTO ?").run(file)
-  const old = listBackups().slice(Math.max(1, BACKUPS_KEPT))
+  const old = listBackups().slice(Math.max(1, env.backupsKept))
   for (const b of old) {
     rmSync(path.join(BACKUP_DIR, b.name), { force: true })
     db.prepare("DELETE FROM app_setting WHERE key = ?").run(reasonKey(b.name))
@@ -347,6 +345,14 @@ export async function runTask(
 
 let timer: NodeJS.Timeout | null = null
 
+function scheduleTick() {
+  for (const t of TASKS) {
+    const last = lastRun(t.id)
+    const base = last ? Date.parse(last.finishedAt ?? last.startedAt) : 0
+    if (Date.now() - base >= t.intervalMs) void runTask(t.id, "schedule")
+  }
+}
+
 /** Checks once a minute for due tasks; the first check waits a couple of minutes after start-up. */
 export function startScheduler() {
   if (timer) return
@@ -364,16 +370,9 @@ export function startScheduler() {
       )
     }
   }
-  const tick = () => {
-    for (const t of TASKS) {
-      const last = lastRun(t.id)
-      const base = last ? Date.parse(last.finishedAt ?? last.startedAt) : 0
-      if (Date.now() - base >= t.intervalMs) void runTask(t.id, "schedule")
-    }
-  }
   setTimeout(() => {
-    tick()
-    timer = setInterval(tick, 60_000)
+    scheduleTick()
+    timer = setInterval(scheduleTick, 60_000)
     timer.unref()
   }, 2 * 60_000).unref()
 }

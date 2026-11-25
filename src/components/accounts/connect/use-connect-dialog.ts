@@ -124,6 +124,7 @@ export function useConnectDialog({
     const p = isProviderId(connection.institution)
       ? connection.institution
       : "td"
+    // oxlint-disable-next-line react/set-state-in-effect -- start saved-credential reconnect when dialog opens
     setBusy(true)
     void (async () => {
       try {
@@ -146,8 +147,8 @@ export function useConnectDialog({
       cancelled = true
       callGen.current += 1
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, connection?.id, full])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: saved-credential auto-connect only on open/id/full
+  }, [open, connection?.id, full]) // oxlint-disable-line react/exhaustive-effect-dependencies -- saved-credential auto-connect only on open/id/full
 
   function start(p: ProviderId, body: Parameters<typeof api.connect>[1]) {
     setPhase({
@@ -168,8 +169,8 @@ export function useConnectDialog({
       phase.type === "mfa_push" ? 300 : 1500
     )
     return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, sessionId, polling, busy, phase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- poll timer driven by session phase, not every handler
+  }, [open, sessionId, polling, busy, phase]) // oxlint-disable-line react/exhaustive-effect-dependencies -- poll timer driven by session phase
 
   const locked =
     phase.type === "syncing" ||

@@ -43,16 +43,16 @@ export function ChangePasswordCard() {
     setBusy(true)
     setError(null)
     try {
-      const { error } = await authClient.changePassword({
+      const { error: authError } = await authClient.changePassword({
         currentPassword: current,
         newPassword: next,
         revokeOtherSessions: signOutOthers,
       })
-      if (error) {
+      if (authError) {
         setError(
-          error.code === "INVALID_PASSWORD"
+          authError.code === "INVALID_PASSWORD"
             ? "Your current password is wrong."
-            : (error.message ?? "Could not change your password")
+            : (authError.message ?? "Could not change your password")
         )
         return
       }

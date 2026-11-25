@@ -130,9 +130,9 @@ function SetupDialog({
     setBusy(true)
     setError(null)
     try {
-      const { data, error } = await twoFactor.enable({ password })
-      if (error || !data || !("totpURI" in data))
-        return setError(error?.message ?? "Could not start setup")
+      const { data, error: enableError } = await twoFactor.enable({ password })
+      if (enableError || !data || !("totpURI" in data))
+        return setError(enableError?.message ?? "Could not start setup")
       setStep({
         type: "scan",
         uri: data.totpURI,
@@ -149,11 +149,11 @@ function SetupDialog({
     setBusy(true)
     setError(null)
     try {
-      const { error } = await twoFactor.verifyTotp({ code: value })
-      if (error) {
+      const { error: verifyError } = await twoFactor.verifyTotp({ code: value })
+      if (verifyError) {
         setCode("")
         return setError(
-          error.message ?? "That code didn’t match. Try the next one."
+          verifyError.message ?? "That code didn’t match. Try the next one."
         )
       }
       setStep({ type: "codes", backupCodes: step.backupCodes })

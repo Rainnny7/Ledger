@@ -8,6 +8,8 @@ import { decrypt, encrypt } from "../crypto.ts"
 import { db } from "../db.ts"
 import { PaypalClient } from "./paypal/client.ts"
 import { historyPlan, saveScrape } from "./store.ts"
+import { bankErrorForClient } from "./errors.ts"
+import { withBrowserTimeout, withConnectionLock } from "./session-lock.ts"
 import { TdScraper } from "./td/scraper.ts"
 import type { BankClient, LoginStep } from "./types.ts"
 
@@ -95,15 +97,19 @@ function maskUsername(u: string) {
  */
 async function after(s: LoginSession, step: LoginStep): Promise<SessionView> {
   if (step.type === "error") {
-    s.step = step
+    const safe = bankErrorForClient(step.message, "login", {
+      password: s.password,
+      site: PROVIDERS[s.provider].site,
+    })
+    s.step = { type: "error", message: safe }
     if (s.connectionId) {
       db.prepare(`UPDATE bank_connection SET last_error = ? WHERE id = ?`).run(
-        step.message,
+        safe,
         s.connectionId
       )
     }
     await destroy(s)
-    return { sessionId: s.id, step }
+    return { sessionId: s.id, step: s.step as LoginStep }
   }
   if (step.type !== "success") {
     s.step = step
@@ -115,12 +121,16 @@ async function after(s: LoginSession, step: LoginStep): Promise<SessionView> {
   touch(s)
   void (async () => {
     try {
-      const accounts = await s.scraper.scrapeAccounts(
-        (message) => {
-          s.step = { type: "syncing", message }
-          touch(s) // a long history read must not hit the idle timeout
-        },
-        historyPlan(s.connectionId, s.full)
+      const accounts = await withBrowserTimeout(
+        () =>
+          s.scraper.scrapeAccounts(
+            (message) => {
+              s.step = { type: "syncing", message }
+              touch(s) // a long history read must not hit the idle timeout
+            },
+            historyPlan(s.connectionId, s.full)
+          ),
+        "Account sync"
       )
       const storage = await s.scraper.storageState()
       const connectionId = saveScrape({
@@ -138,7 +148,7 @@ async function after(s: LoginSession, step: LoginStep): Promise<SessionView> {
       s.connectionId = connectionId
       s.step = { type: "done", connectionId }
     } catch (e) {
-      const message = (e as Error).message || "Failed to read accounts."
+      const message = bankErrorForClient(e, "sync", { password: s.password })
       s.step = { type: "error", message }
       if (s.connectionId) {
         db.prepare(
@@ -168,14 +178,17 @@ async function run(
   } catch (e) {
     return after(s, {
       type: "error",
-      message: `Unexpected error talking to ${PROVIDERS[s.provider].site}: ${(e as Error).message}`,
+      message: bankErrorForClient(e, "connect", {
+        password: s.password,
+        site: PROVIDERS[s.provider].site,
+      }),
     })
   } finally {
     s.busy = false
   }
 }
 
-export async function startLogin(opts: {
+async function startLoginLocked(opts: {
   userId: string
   provider: ProviderId
   connectionId?: string | null
@@ -255,9 +268,29 @@ export async function startLogin(opts: {
   touch(s)
 
   return run(s, async () => {
-    await scraper.open(browserState)
-    return scraper.login(username, password)
+    await withBrowserTimeout(async () => {
+      await scraper.open(browserState)
+    }, "Browser launch")
+    return withBrowserTimeout(
+      () => scraper.login(username, password),
+      "Sign-in"
+    )
   })
+}
+
+export async function startLogin(opts: {
+  userId: string
+  provider: ProviderId
+  connectionId?: string | null
+  username?: string
+  password?: string
+  remember?: boolean
+  full?: boolean
+}): Promise<SessionView> {
+  const lockKey = opts.connectionId
+    ? `conn:${opts.connectionId}`
+    : `user:${opts.userId}:${opts.provider}`
+  return withConnectionLock(lockKey, () => startLoginLocked(opts))
 }
 
 export function chooseMfa(s: LoginSession, optionId: string) {
@@ -303,7 +336,7 @@ export type BackgroundResult = "synced" | "needs-sign-in" | "skipped" | "failed"
  * scheduled "Refresh bank accounts" task. Reads only what's new since the last sync. When the
  * bank wants a two-factor code it stops there; the user reconnects from the dashboard as usual.
  */
-export async function syncInBackground(
+async function syncInBackgroundLocked(
   connectionId: string
 ): Promise<{ result: BackgroundResult; message?: string }> {
   const row = db
@@ -343,16 +376,33 @@ export async function syncInBackground(
 
   const provider = PROVIDERS[row.institution]
   const client = provider.create()
-  const setError = (message: string) =>
-    db
-      .prepare(`UPDATE bank_connection SET last_error = ? WHERE id = ?`)
-      .run(message, connectionId)
+  const setError = (raw: unknown) => {
+    const message = bankErrorForClient(raw, "sync", {
+      password: creds.password,
+      site: provider.site,
+    })
+    db.prepare(`UPDATE bank_connection SET last_error = ? WHERE id = ?`).run(
+      message,
+      connectionId
+    )
+    return message
+  }
   try {
-    await client.open(browserState)
-    const step = await client.login(creds.username, creds.password)
+    await withBrowserTimeout(() => client.open(browserState), "Browser launch")
+    const step = await withBrowserTimeout(
+      () => client.login(creds.username, creds.password),
+      "Sign-in"
+    )
     if (step.type === "error") {
-      setError(step.message)
-      return { result: "failed", message: step.message }
+      const message = bankErrorForClient(step.message, "login", {
+        password: creds.password,
+        site: provider.site,
+      })
+      db.prepare(`UPDATE bank_connection SET last_error = ? WHERE id = ?`).run(
+        message,
+        connectionId
+      )
+      return { result: "failed", message }
     }
     // A code or an approval would need the user; leave the connection as it was.
     if (step.type !== "success")
@@ -361,9 +411,9 @@ export async function syncInBackground(
         message: `${provider.site} asked for a two-factor code`,
       }
 
-    const accounts = await client.scrapeAccounts(
-      () => {},
-      historyPlan(connectionId, false)
+    const accounts = await withBrowserTimeout(
+      () => client.scrapeAccounts(() => {}, historyPlan(connectionId, false)),
+      "Account sync"
     )
     const storage = await client.storageState()
     saveScrape({
@@ -378,11 +428,18 @@ export async function syncInBackground(
     })
     return { result: "synced" }
   } catch (e) {
-    const message = (e as Error).message || "Failed to read accounts."
-    setError(message)
+    const message = setError(e)
     return { result: "failed", message }
   } finally {
     creds.password = ""
     await client.close().catch(() => {})
   }
+}
+
+export async function syncInBackground(
+  connectionId: string
+): Promise<{ result: BackgroundResult; message?: string }> {
+  return withConnectionLock(`conn:${connectionId}`, () =>
+    syncInBackgroundLocked(connectionId)
+  )
 }

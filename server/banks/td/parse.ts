@@ -3,6 +3,7 @@
  * into structured accounts & transactions. Kept free of Playwright so they can
  * be unit-tested with fixtures.
  */
+import { roundMoney } from "../../../shared/money.ts"
 import type { AccountType, ScrapedTransaction } from "../types.ts"
 
 export interface RawTable {
@@ -54,7 +55,7 @@ export function parseAmount(raw: string | null | undefined): number | null {
     /\bDR\b/i.test(s) ||
     /\bminus\b/i.test(s)
   if (negative) value = -value
-  return Math.round(value * 100) / 100
+  return roundMoney(value)
 }
 
 /** True when the cell looks like it is a money amount (and not, say, a date or account number). */

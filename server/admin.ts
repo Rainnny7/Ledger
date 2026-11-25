@@ -8,6 +8,9 @@
  */
 import { randomUUID } from "node:crypto"
 import { db, getSetting, setSetting } from "./db.ts"
+import { isInstanceOwnerFor } from "./owner-gate.ts"
+
+export { isInstanceOwnerFor } from "./owner-gate.ts"
 
 export function migrateAdminTables() {
   db.exec(`
@@ -37,6 +40,9 @@ export function migrateAdminTables() {
   getOwnerId()
 }
 
+const pickUserId = (sql: string) =>
+  (db.prepare(sql).get() as { id: string } | undefined)?.id ?? null
+
 /**
  * The owner's user id. Falls back to the oldest admin (or, failing that, promotes the oldest
  * account) when the owner hasn't been recorded yet or has deleted their account.
@@ -45,19 +51,21 @@ export function getOwnerId(): string | null {
   const saved = getSetting("owner_user_id")
   if (saved && db.prepare(`SELECT 1 FROM user WHERE id = ?`).get(saved))
     return saved
-  const pick = (sql: string) =>
-    (db.prepare(sql).get() as { id: string } | undefined)?.id ?? null
-  let id = pick(
+  let id = pickUserId(
     `SELECT id FROM user WHERE id NOT LIKE 'ledger-demo%' AND role = 'admin' ORDER BY createdAt LIMIT 1`
   )
   if (!id) {
-    id = pick(
+    id = pickUserId(
       `SELECT id FROM user WHERE id NOT LIKE 'ledger-demo%' ORDER BY createdAt LIMIT 1`
     )
     if (id) db.prepare(`UPDATE user SET role = 'admin' WHERE id = ?`).run(id)
   }
   if (id) setSetting("owner_user_id", id)
   return id
+}
+
+export function isInstanceOwner(userId: string | null | undefined): boolean {
+  return isInstanceOwnerFor(userId, getOwnerId())
 }
 
 export function emailOf(userId: string): string | null {
@@ -90,6 +98,8 @@ const KEEP = 2000
 const clip = (v: string | null | undefined, n = 200) =>
   v ? v.slice(0, n) : null
 
+const auditQuote = (v: string) => JSON.stringify(v)
+
 /** Records an event in the audit log and prints it to the server log. */
 export function audit(e: AuditEntry) {
   const kind = e.kind ?? "admin"
@@ -119,8 +129,8 @@ export function audit(e: AuditEntry) {
   ).run()
 
   const parts = [`[audit] ${kind}: ${row.action}`]
-  if (row.actorEmail) parts.push(`by=${row.actorEmail}`)
-  if (row.targetEmail) parts.push(`target=${row.targetEmail}`)
+  if (row.actorEmail) parts.push(`by=${auditQuote(row.actorEmail)}`)
+  if (row.targetEmail) parts.push(`target=${auditQuote(row.targetEmail)}`)
   if (row.detail) parts.push(`detail=${JSON.stringify(row.detail)}`)
   if (row.ip) parts.push(`ip=${row.ip}`)
   ;(e.failed ? console.warn : console.log)(parts.join(" "))

@@ -52,13 +52,14 @@ export function AddUserDialog({
     setBusy(true)
     setError(null)
     try {
-      const { error } = await authClient.admin.createUser({
+      const { error: authError } = await authClient.admin.createUser({
         name: name.trim(),
         email: email.trim(),
         password,
         role: makeAdmin && canAddAdmins ? "admin" : "user",
       })
-      if (error) return setError(error.message ?? "Could not add this user")
+      if (authError)
+        return setError(authError.message ?? "Could not add this user")
       const copied = await copyPassword(password)
       toast.success(`Added ${name.trim() || email.trim()}`, {
         description: copied
@@ -172,11 +173,12 @@ export function SetPasswordDialog({
     setError(null)
     // The server also signs them out everywhere and makes them pick a new password at next sign-in.
     try {
-      const { error } = await authClient.admin.setUserPassword({
+      const { error: authError } = await authClient.admin.setUserPassword({
         userId: user.id,
         newPassword: password,
       })
-      if (error) return setError(error.message ?? "Could not set the password")
+      if (authError)
+        return setError(authError.message ?? "Could not set the password")
       const copied = await copyPassword(password)
       toast.success("Temporary password set", {
         description: copied

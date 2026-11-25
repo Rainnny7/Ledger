@@ -30,7 +30,7 @@ export function DevicesCard() {
     queryFn: async () => {
       const { data, error } = await authClient.listSessions()
       if (error) throw new Error(error.message ?? "Could not load devices")
-      return (data as DeviceSession[]).sort(
+      return (data as DeviceSession[]).toSorted(
         (a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt)
       )
     },

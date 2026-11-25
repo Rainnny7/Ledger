@@ -4,6 +4,7 @@
  * Descriptions deliberately avoid the word "PayPal" so the categoriser sees the real
  * counterparty ("Spotify", "Steam") instead of filing everything under PayPal.
  */
+import { sumMoney } from "../../../shared/money.ts"
 import type { ScrapedTransaction } from "../types.ts"
 
 interface Money {
@@ -120,8 +121,7 @@ export function toTransaction(
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !t.transaction_amount) return null
 
   // What actually left / reached the balance: gross plus the (negative) fee.
-  const amount =
-    Math.round((money(t.transaction_amount) + money(t.fee_amount)) * 100) / 100
+  const amount = sumMoney([money(t.transaction_amount), money(t.fee_amount)])
   if (amount === 0) return null
 
   const label = familyLabel(family, amount)

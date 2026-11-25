@@ -1,5 +1,9 @@
 import { getSetting, setSetting } from "./db.ts"
+import { convertCents, fromCents, toCents } from "../shared/money.ts"
 import { env } from "./env.ts"
+import { validateFxRates } from "./fx-validate.ts"
+
+export { validateFxRates } from "./fx-validate.ts"
 
 /**
  * Exchange rates for showing totals in each person's own currency. Live mid-market rates come from
@@ -159,6 +163,8 @@ async function fetchRates(): Promise<Fetched> {
       )
     }
   }
+  const previous = cached()
+  validateFxRates(rates, previous)
   setSetting(KEY, JSON.stringify(rates))
   lastFailure = 0
   return { rates, liveError }
@@ -178,21 +184,32 @@ function fetchOnce(): Promise<Fetched> {
  */
 export async function refreshRates(): Promise<string> {
   const before = cached()
-  const { rates: next, liveError } = await fetchOnce()
-  const count = Object.keys(next.rates).length
-  if (next.source === "live") {
-    const time = new Date(next.fetchedAt ?? Date.now())
-      .toISOString()
-      .slice(11, 16)
-    return `Live rates as of ${time} UTC · ${count} currencies`
+  try {
+    const { rates: next, liveError } = await fetchOnce()
+    const count = Object.keys(next.rates).length
+    if (next.source === "live") {
+      const time = new Date(next.fetchedAt ?? Date.now())
+        .toISOString()
+        .slice(11, 16)
+      return `Live rates as of ${time} UTC · ${count} currencies`
+    }
+    const why = liveError
+      ? `Live rates unavailable (${liveError}), so using the ECB’s. `
+      : ""
+    if (before?.source === "ecb" && before.date === next.date) {
+      return `${why}Still ${next.date}: the ECB hasn’t published a newer day yet · ${count} currencies`
+    }
+    return `${why}ECB rates for ${next.date} · ${count} currencies`
+  } catch (err) {
+    const saved = cached()
+    if (saved && message(err).includes("FX ")) {
+      throw new Error(
+        `${message(err)}; kept the previous ${Object.keys(saved.rates).length}-currency set`,
+        { cause: err }
+      )
+    }
+    throw err
   }
-  const why = liveError
-    ? `Live rates unavailable (${liveError}), so using the ECB’s. `
-    : ""
-  if (before?.source === "ecb" && before.date === next.date) {
-    return `${why}Still ${next.date}: the ECB hasn’t published a newer day yet · ${count} currencies`
-  }
-  return `${why}ECB rates for ${next.date} · ${count} currencies`
 }
 
 /** Current rates: the saved copy, or (if there's none or it's old) a new fetch falling back to it. */
@@ -223,5 +240,5 @@ export function convert(
   const a = fx.rates[from]
   const b = fx.rates[to]
   if (!a || !b) return null
-  return (amount / a) * b
+  return fromCents(convertCents(toCents(amount), a, b))
 }

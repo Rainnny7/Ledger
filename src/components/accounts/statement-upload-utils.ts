@@ -1,4 +1,7 @@
+import { STATEMENT_MAX_REQUEST_BYTES } from "../../../shared/statement-upload.ts"
+
 export const ACCEPT = ".pdf,.zip,application/pdf,application/zip"
+export const STATEMENT_MAX_BYTES = STATEMENT_MAX_REQUEST_BYTES
 
 export const accepted = (f: File) => /\.(pdf|zip)$/i.test(f.name)
 

@@ -51,17 +51,17 @@ export function ChangeTemporaryPasswordPage() {
     setError(null)
     // On success the spinner stays on: the refetched session swaps this page out for the app.
     try {
-      const { error } = await authClient.changePassword({
+      const { error: authError } = await authClient.changePassword({
         currentPassword: current,
         newPassword: next,
         revokeOtherSessions: true,
       })
-      if (error) {
+      if (authError) {
         setBusy(false)
         setError(
-          error.code === "INVALID_PASSWORD"
+          authError.code === "INVALID_PASSWORD"
             ? "That temporary password is wrong."
-            : (error.message ?? "Could not change your password")
+            : (authError.message ?? "Could not change your password")
         )
         return
       }

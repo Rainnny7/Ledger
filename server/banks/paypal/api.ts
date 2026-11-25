@@ -35,6 +35,10 @@ export class PaypalApiError extends Error {
 
 const tokens = new Map<string, { token: string; expires: number }>()
 
+export function purgePaypalTokenCache(connectionId: string) {
+  tokens.delete(connectionId)
+}
+
 /** The connection's REST app credentials (stored encrypted as {username: clientId, password: secret}). */
 function credentials(connectionId: string) {
   const row = db
@@ -42,11 +46,13 @@ function credentials(connectionId: string) {
       `SELECT credentials_enc AS enc FROM bank_connection WHERE id = ? AND institution = 'paypal'`
     )
     .get(connectionId) as { enc: string | null } | undefined
-  if (!row?.enc)
+  if (!row?.enc) {
+    purgePaypalTokenCache(connectionId)
     throw new PaypalApiError(
       "That PayPal connection has no saved app details.",
       400
     )
+  }
   const c = decrypt<{ username: string; password: string }>(row.enc)
   return { clientId: c.username.trim(), secret: c.password.trim() }
 }

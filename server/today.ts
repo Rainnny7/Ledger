@@ -11,6 +11,7 @@ const zone = new AsyncLocalStorage<string>()
 export function validTimeZone(tz: string | undefined): string | undefined {
   if (!tz || tz.length > 64) return undefined
   try {
+    // oxlint-disable-next-line eslint/no-new -- validates IANA zone via Intl
     new Intl.DateTimeFormat("en-CA", { timeZone: tz })
     return tz
   } catch {

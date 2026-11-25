@@ -6,7 +6,10 @@ import {
   type Locator,
   type Page,
 } from "playwright"
+import { roundMoney, sumMoney } from "../../../shared/money.ts"
+import { chromiumLaunchEnv, chromiumUseSandbox } from "../browser-env.ts"
 import { env } from "../../env.ts"
+import { redactBankErrorMessage } from "../errors.ts"
 import type {
   BankClient,
   LoginStep,
@@ -34,6 +37,19 @@ import {
   visible,
 } from "./scraper-util.ts"
 
+const dateDigits = (v: string) => v.replace(/\D/g, "")
+
+async function fillTdField(field: Locator, value: string) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await field.click()
+    await field.fill(value)
+    await field.blur()
+    await sleep(300)
+    if ((await field.inputValue()).trim() === value.trim()) return true
+  }
+  return false
+}
+
 export class TdScraper implements BankClient {
   private browser?: Browser
   private context?: BrowserContext
@@ -45,6 +61,8 @@ export class TdScraper implements BankClient {
       headless: env.tdHeadless,
       channel: process.env.TD_BROWSER_CHANNEL || undefined, // e.g. "chrome" to use installed Chrome
       args: ["--disable-blink-features=AutomationControlled"],
+      env: chromiumLaunchEnv(),
+      chromiumSandbox: chromiumUseSandbox(),
     })
     const ua = (
       await this.browser.newPage().then(async (p) => {
@@ -119,18 +137,11 @@ export class TdScraper implements BankClient {
     // type and drops keystrokes (an Access Card number came through as 6 of 16 digits).
     const user = page.locator(USERNAME_SEL).first()
     const pass = page.locator(PASSWORD_SEL).first()
-    const enter = async (field: Locator, value: string) => {
-      for (let attempt = 0; attempt < 3; attempt++) {
-        await field.click()
-        await field.fill(value)
-        await field.blur()
-        await sleep(300)
-        if ((await field.inputValue()).trim() === value.trim()) return true
-      }
-      return false
-    }
     const cleanUsername = username.replace(/\s+/g, "")
-    if (!(await enter(user, cleanUsername)) || !(await enter(pass, password))) {
+    if (
+      !(await fillTdField(user, cleanUsername)) ||
+      !(await fillTdField(pass, password))
+    ) {
       return {
         type: "error",
         message:
@@ -583,7 +594,10 @@ export class TdScraper implements BankClient {
         )
         base.details = await this.readManageTab(text)
       } catch (e) {
-        console.warn(`[td] failed reading ${acct.name}:`, (e as Error).message)
+        console.warn(
+          `[td] failed reading ${acct.name}:`,
+          redactBankErrorMessage((e as Error).message)
+        )
       }
 
       // Derive overdraft numbers for bank accounts.
@@ -596,10 +610,9 @@ export class TdScraper implements BankClient {
           base.balance !== null &&
           base.available > base.balance
         ) {
-          const implied =
-            Math.round((base.available - Math.max(base.balance, 0)) * 100) / 100
+          const implied = roundMoney(base.available - Math.max(base.balance, 0))
           if (implied > 0)
-            base.overdraftLimit = implied + (base.overdraftUsed ?? 0)
+            base.overdraftLimit = sumMoney([implied, base.overdraftUsed ?? 0])
         }
       }
       results.push(base)
@@ -631,7 +644,10 @@ export class TdScraper implements BankClient {
         text += "\n" + (await this.extractAll()).map((f) => f.text).join("\n")
       }
     } catch (e) {
-      console.warn("[td] could not open the Manage tab:", (e as Error).message)
+      console.warn(
+        "[td] could not open the Manage tab:",
+        redactBankErrorMessage((e as Error).message)
+      )
     }
     const details = parseAccountDetails(text)
     return details.accountNumber || details.transit || details.limits.length
@@ -734,7 +750,6 @@ export class TdScraper implements BankClient {
    * ("10/26/202605/30/2025"). Select everything, delete, then type it. Returns whether it stuck.
    */
   private async setDateInput(input: Locator, value: string) {
-    const digits = (v: string) => v.replace(/\D/g, "")
     for (let attempt = 0; attempt < 3; attempt++) {
       await input.click()
       await input.press("ControlOrMeta+a")
@@ -743,7 +758,7 @@ export class TdScraper implements BankClient {
       await input.pressSequentially(value, { delay: 40 })
       const typed = await input.inputValue().catch(() => "")
       await input.press("Tab")
-      if (digits(typed) === digits(value)) return true
+      if (dateDigits(typed) === dateDigits(value)) return true
     }
     return false
   }

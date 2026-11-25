@@ -50,17 +50,18 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
     setError(null)
     try {
       if (needsCode) {
-        const { error } = useBackup
+        const { error: verifyError } = useBackup
           ? await twoFactor.verifyBackupCode({ code: code.trim(), trustDevice })
           : await twoFactor.verifyTotp({
               code: code.replace(/\s/g, ""),
               trustDevice,
             })
-        if (error) setError(error.message ?? "That code didn’t work")
+        if (verifyError)
+          setError(verifyError.message ?? "That code didn’t work")
         else navigate("/", { replace: true })
         return
       }
-      const { data, error } = isRegister
+      const { data, error: authError } = isRegister
         ? await signUp.email({
             name,
             email,
@@ -68,7 +69,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
             currency: detectCurrency(),
           })
         : await signIn.email({ email, password })
-      if (error) setError(error.message ?? "Something went wrong")
+      if (authError) setError(authError.message ?? "Something went wrong")
       else if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
         setNeedsCode(true)
         setCode("")

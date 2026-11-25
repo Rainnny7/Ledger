@@ -6,6 +6,7 @@
  * words (runs that touch), then each word is placed in a column by its x position under the
  * "Description / Withdrawals / Deposits / Date / Balance" header.
  */
+import { fromCents, roundMoney, toCents } from "../../../shared/money.ts"
 import type { ScrapedTransaction } from "../types.ts"
 
 /** One run of text from a PDF page, positioned in PDF points (y grows upwards). */
@@ -66,7 +67,7 @@ export class NotATdStatement extends Error {}
 function toLines(items: TextItem[]): Line[] {
   const sorted = items
     .filter((i) => i.str.trim())
-    .sort((a, b) => b.y - a.y || a.x - b.x)
+    .toSorted((a, b) => b.y - a.y || a.x - b.x)
   const rows: TextItem[][] = []
   for (const item of sorted) {
     const row = rows.at(-1)
@@ -74,9 +75,9 @@ function toLines(items: TextItem[]): Line[] {
     else rows.push([item])
   }
   return rows.map((row) => {
-    row.sort((a, b) => a.x - b.x)
+    const ordered = row.toSorted((a, b) => a.x - b.x)
     const words: Word[] = []
-    for (const it of row) {
+    for (const it of ordered) {
       const last = words.at(-1)
       if (last && it.x - last.right <= WORD_GAP && !/^\s/.test(it.str)) {
         last.text += it.str
@@ -93,7 +94,7 @@ function toLines(items: TextItem[]): Line[] {
 
 const money = (s: string) => {
   const v = Number(s.replace(/,|OD$/g, ""))
-  return Math.round((s.endsWith("OD") ? -v : v) * 100) / 100
+  return roundMoney(s.endsWith("OD") ? -v : v)
 }
 
 const pad = (n: number) => String(n).padStart(2, "0")
@@ -215,12 +216,12 @@ export function parseTdStatement(pages: TextItem[][]): TdStatement {
   // Every printed balance (one per day) has to follow from the rows above it.
   let mismatch: number | null = null
   if (openingBalance !== null) {
-    let running = openingBalance
-    const off = (printed: number) => Math.round((printed - running) * 100) / 100
+    let running = toCents(openingBalance)
+    const off = (printed: number) => toCents(printed) - running
     for (const t of transactions) {
-      running += t.amount
+      running += toCents(t.amount)
       if (t.runningBalance !== null && off(t.runningBalance) !== 0) {
-        mismatch = off(t.runningBalance)
+        mismatch = fromCents(off(t.runningBalance))
         break
       }
     }
@@ -229,7 +230,7 @@ export function parseTdStatement(pages: TextItem[][]): TdStatement {
       closingBalance !== null &&
       off(closingBalance) !== 0
     )
-      mismatch = off(closingBalance)
+      mismatch = fromCents(off(closingBalance))
   }
   return {
     accountNumber: number,

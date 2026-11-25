@@ -30,6 +30,7 @@ import {
   guardOwner,
   logAuthEvent,
   removedEmails,
+  signInBackoffBlocked,
   type AdminBody,
 } from "./hooks.ts"
 
@@ -120,6 +121,13 @@ export const auth = betterAuth({
       }
       if (DISABLED_PATHS.has(ctx.path))
         throw new APIError("NOT_FOUND", { message: "Not available." })
+      if (ctx.path === "/sign-in/email") {
+        const email = (ctx.body as { email?: unknown } | undefined)?.email
+        if (typeof email === "string" && signInBackoffBlocked(email))
+          throw new APIError("TOO_MANY_REQUESTS", {
+            message: "Too many failed sign-in attempts. Try again later.",
+          })
+      }
       // New passwords must meet the complexity rules, wherever they're set from.
       const newPasswordField = NEW_PASSWORD_FIELD.get(ctx.path)
       if (newPasswordField) {
@@ -135,11 +143,10 @@ export const auth = betterAuth({
           })
       }
 
-      if (
-        PASSWORD_CHANGE_ALLOWED.has(ctx.path) ||
-        ctx.path.startsWith("/two-factor/")
-      )
-        return
+      const twoFactorVerify =
+        ctx.path === "/two-factor/verify-totp" ||
+        ctx.path === "/two-factor/verify-backup-code"
+      if (PASSWORD_CHANGE_ALLOWED.has(ctx.path) || twoFactorVerify) return
       const session = await getSessionFromCtx(ctx)
       if (!session) return
       // Signed in with a temporary password: nothing else works until it's replaced.

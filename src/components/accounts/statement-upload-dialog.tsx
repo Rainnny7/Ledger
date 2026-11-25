@@ -4,7 +4,11 @@ import { toast } from "sonner"
 import { InstitutionBadge } from "@/components/accounts/institution"
 import { ImportSummary } from "@/components/accounts/statement-import-summary"
 import { StatementFileList } from "@/components/accounts/statement-file-list"
-import { ACCEPT, accepted } from "@/components/accounts/statement-upload-utils"
+import {
+  ACCEPT,
+  accepted,
+  STATEMENT_MAX_BYTES,
+} from "@/components/accounts/statement-upload-utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -183,7 +187,8 @@ function StatementUploadForm({
           Drop statements here, or click to choose
         </span>
         <span className="text-xs text-muted-foreground">
-          PDF statements or a .zip of them, from EasyWeb → Statements
+          PDF statements or a .zip of them, from EasyWeb → Statements (50 MB
+          total at most)
         </span>
       </button>
       <input
@@ -209,7 +214,7 @@ function StatementUploadForm({
       <DialogFooter>
         <Button
           onClick={onUpload}
-          disabled={busy || files.length === 0 || size > 100 * 1024 * 1024}
+          disabled={busy || files.length === 0 || size > STATEMENT_MAX_BYTES}
         >
           {busy ? <Loader2 className="animate-spin" /> : <Upload />}
           {busy

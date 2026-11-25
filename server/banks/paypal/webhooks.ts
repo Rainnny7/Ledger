@@ -72,6 +72,57 @@ export function recordCapture(
 
 export type WebhookResult = { status: 200 | 400 | 401 | 404; message: string }
 
+function applyWebhookEvent(
+  conn: { id: string; userId: string },
+  event: WebhookEvent,
+  precapture?: { capture: Capture | null; customId: string | null }
+) {
+  const r = event.resource ?? {}
+  switch (event.event_type) {
+    case "CHECKOUT.ORDER.APPROVED": {
+      const { capture, customId } = precapture ?? {
+        capture: null,
+        customId: null,
+      }
+      if (capture) recordCapture(conn, capture, customId)
+      break
+    }
+    case "PAYMENT.CAPTURE.COMPLETED":
+      recordCapture(conn, r as unknown as Capture, null)
+      break
+    case "PAYMENT.CAPTURE.REFUNDED":
+    case "PAYMENT.CAPTURE.REVERSED": {
+      const amount = r.amount as
+        | { value: string; currency_code: string }
+        | undefined
+      if (typeof r.id !== "string" || !amount) break
+      const value = Number(amount.value)
+      const reversal = event.event_type === "PAYMENT.CAPTURE.REVERSED"
+      const transactionId = reversal
+        ? null
+        : recordPaypalTransaction(conn.id, {
+            id: r.id,
+            date: day(r.create_time),
+            description: "Refund",
+            amount: -value,
+            currency: amount.currency_code,
+          })
+      const invoice = invoiceFor(conn.userId, r.custom_id)
+      if (invoice) {
+        recordInvoicePayment(invoice, {
+          amount: -value,
+          date: day(r.create_time ?? r.update_time),
+          method: "PayPal",
+          note: reversal ? "Reversed by PayPal" : "Refunded",
+          externalId: `${r.id}:${reversal ? "reversed" : "refund"}`,
+          transactionId,
+        })
+      }
+      break
+    }
+  }
+}
+
 export async function handlePaypalWebhook(
   connectionId: string,
   headers: Headers,
@@ -98,65 +149,39 @@ export async function handlePaypalWebhook(
   if (!(await verifyWebhook(conn.id, conn.webhookId, headers, event)))
     return { status: 401, message: "Signature check failed" }
 
-  // PayPal retries until it gets a 2xx; handle each delivery once.
-  const fresh = db
-    .prepare(
-      `INSERT INTO paypal_webhook_event (id, connection_id, type) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`
-    )
-    .run(event.id, conn.id, event.event_type)
-  if (!Number(fresh.changes)) return { status: 200, message: "Already handled" }
-  db.prepare(
-    `UPDATE bank_connection SET webhook_at = datetime('now') WHERE id = ?`
-  ).run(conn.id)
+  let precapture:
+    | { capture: Capture | null; customId: string | null }
+    | undefined
+  if (
+    event.event_type === "CHECKOUT.ORDER.APPROVED" &&
+    typeof event.resource?.id === "string"
+  ) {
+    precapture = await captureOrder(conn.id, event.resource.id)
+  }
 
-  const r = event.resource ?? {}
+  const exists = db
+    .prepare(`SELECT 1 FROM paypal_webhook_event WHERE id = ?`)
+    .get(event.id)
+  if (exists) return { status: 200, message: "Already handled" }
+
+  db.exec("BEGIN")
   try {
-    switch (event.event_type) {
-      case "CHECKOUT.ORDER.APPROVED": {
-        // The payer approved but didn't come back to the invoice page to finish: capture it now.
-        if (typeof r.id !== "string") break
-        const { capture, customId } = await captureOrder(conn.id, r.id)
-        if (capture) recordCapture(conn, capture, customId)
-        break
-      }
-      case "PAYMENT.CAPTURE.COMPLETED":
-        recordCapture(conn, r as unknown as Capture, null)
-        break
-      case "PAYMENT.CAPTURE.REFUNDED":
-      case "PAYMENT.CAPTURE.REVERSED": {
-        const amount = r.amount as
-          | { value: string; currency_code: string }
-          | undefined
-        if (typeof r.id !== "string" || !amount) break
-        const value = Number(amount.value)
-        const reversal = event.event_type === "PAYMENT.CAPTURE.REVERSED"
-        // A refund has its own transaction id; a reversal's isn't in the event, so the sync brings that one.
-        const transactionId = reversal
-          ? null
-          : recordPaypalTransaction(conn.id, {
-              id: r.id,
-              date: day(r.create_time),
-              description: "Refund",
-              amount: -value,
-              currency: amount.currency_code,
-            })
-        const invoice = invoiceFor(conn.userId, r.custom_id)
-        if (invoice) {
-          recordInvoicePayment(invoice, {
-            amount: -value,
-            date: day(r.create_time ?? r.update_time),
-            method: "PayPal",
-            note: reversal ? "Reversed by PayPal" : "Refunded",
-            externalId: `${r.id}:${reversal ? "reversed" : "refund"}`,
-            transactionId,
-          })
-        }
-        break
-      }
+    const inserted = db
+      .prepare(
+        `INSERT INTO paypal_webhook_event (id, connection_id, type) VALUES (?, ?, ?)`
+      )
+      .run(event.id, conn.id, event.event_type)
+    if (!Number(inserted.changes)) {
+      db.exec("ROLLBACK")
+      return { status: 200, message: "Already handled" }
     }
+    applyWebhookEvent(conn, event, precapture)
+    db.prepare(
+      `UPDATE bank_connection SET webhook_at = datetime('now') WHERE id = ?`
+    ).run(conn.id)
+    db.exec("COMMIT")
   } catch (e) {
-    // Let PayPal retry later.
-    db.prepare(`DELETE FROM paypal_webhook_event WHERE id = ?`).run(event.id)
+    db.exec("ROLLBACK")
     throw e
   }
   return { status: 200, message: "OK" }

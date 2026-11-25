@@ -6,8 +6,14 @@ import { BackupsCard } from "@/components/admin/backups-card"
 import { TasksCard } from "@/components/admin/tasks-card"
 import { UpdateStatus } from "@/components/admin/update-status"
 import { UsersCard } from "@/components/admin/users-card"
+import { useAdminSettings } from "@/components/admin/use-admin-settings"
+import { useSession } from "@/lib/auth-client"
 
 export function AdminPage() {
+  const { data: session } = useSession()
+  const settings = useAdminSettings()
+  const ownerId = settings.data?.ownerId ?? null
+  const showBackups = !!session?.user.id && session.user.id === ownerId
   return (
     <div className="grid gap-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -29,8 +35,8 @@ export function AdminPage() {
         </div>
         <UsersCard />
       </div>
-      <TasksCard />
-      <BackupsCard />
+      <TasksCard showBackupTask={showBackups} />
+      {showBackups ? <BackupsCard /> : null}
       <ActivityCard />
     </div>
   )

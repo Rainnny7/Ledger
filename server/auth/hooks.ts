@@ -1,6 +1,57 @@
 import { APIError, isAPIError } from "better-auth/api"
 import { audit, emailOf, getOwnerId } from "../admin.ts"
 
+const SIGN_IN_FAIL_WINDOW_MS = 15 * 60 * 1000
+const SIGN_IN_FAIL_MAX = 10
+const BACKOFF_CAP = 5000
+const signInFailures = new Map<string, number[]>()
+
+/** Shape check only — not deliverability; keeps failed sign-in audits from junk input. */
+export function isPlausibleEmail(email: string): boolean {
+  const e = email.trim()
+  return (
+    e.length > 0 &&
+    e.length <= 254 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) &&
+    !/[\r\n\0]/.test(e)
+  )
+}
+
+function trimBackoffMap() {
+  if (signInFailures.size <= BACKOFF_CAP) return
+  const now = Date.now()
+  for (const [key, times] of signInFailures) {
+    const live = times.filter((t) => now - t < SIGN_IN_FAIL_WINDOW_MS)
+    if (live.length === 0) signInFailures.delete(key)
+    else signInFailures.set(key, live)
+    if (signInFailures.size <= BACKOFF_CAP) break
+  }
+}
+
+/** Per-email sign-in backoff (in memory, bounded). */
+export function signInBackoffBlocked(email: string): boolean {
+  const key = email.trim().toLowerCase()
+  const now = Date.now()
+  const recent = (signInFailures.get(key) ?? []).filter(
+    (t) => now - t < SIGN_IN_FAIL_WINDOW_MS
+  )
+  signInFailures.set(key, recent)
+  trimBackoffMap()
+  return recent.length >= SIGN_IN_FAIL_MAX
+}
+
+export function recordSignInFailure(email: string) {
+  if (!isPlausibleEmail(email)) return
+  const key = email.trim().toLowerCase()
+  const now = Date.now()
+  const recent = (signInFailures.get(key) ?? []).filter(
+    (t) => now - t < SIGN_IN_FAIL_WINDOW_MS
+  )
+  recent.push(now)
+  signInFailures.set(key, recent)
+  trimBackoffMap()
+}
+
 /** index.ts puts the caller's real address here, replacing anything the client sent. */
 export const CLIENT_IP_HEADER = "x-ledger-client-ip"
 
@@ -98,12 +149,17 @@ export function logAuthEvent(
     const label = AUTH_EVENTS.get(ctx.path)
     if (!label) return
     const body = ctx.body as { email?: unknown } | undefined
+    const rawEmail = typeof body?.email === "string" ? body.email : null
     const bodyEmail =
-      typeof body?.email === "string" ? body.email.trim().toLowerCase() : null
+      rawEmail && isPlausibleEmail(rawEmail)
+        ? rawEmail.trim().toLowerCase()
+        : null
     const ip = clientIp(ctx)
     const sessionUser = ctx.context.session?.user
     if (isAPIError(returned)) {
       if (!AUDIT_FAILURES.has(ctx.path)) return
+      if (ctx.path === "/sign-in/email" && rawEmail)
+        recordSignInFailure(rawEmail)
       audit({
         kind: "auth",
         failed: true,
@@ -166,6 +222,8 @@ export type AdminBody =
   | { userId?: unknown; role?: unknown; email?: unknown }
   | undefined
 
+const validRole = (r: unknown) => r === "admin" || r === "user"
+
 /**
  * The owner's account is off-limits to other admins, and only the owner hands out (or takes back)
  * admin. Nobody can change their own role, so the owner always stays an admin.
@@ -173,7 +231,6 @@ export type AdminBody =
 export function guardOwner(path: string, actorId: string, body: AdminBody) {
   const ownerId = getOwnerId()
   const target = typeof body?.userId === "string" ? body.userId : null
-  const validRole = (r: unknown) => r === "admin" || r === "user"
   if (
     target &&
     target === ownerId &&

@@ -6,7 +6,11 @@
 import { randomUUID } from "node:crypto"
 import { unzipSync } from "fflate"
 import { getDocumentProxy } from "unpdf"
+import { toCents, toCentsOrNull } from "../../shared/money.ts"
 import { db } from "../db.ts"
+import { isoDate } from "../validation.ts"
+import { validateStatementRow } from "./statement-rows.ts"
+import { uploadKindForName, uploadKindFromBytes } from "./upload-bytes.ts"
 import { guessAccountType } from "./td/parse.ts"
 import {
   NotATdStatement,
@@ -42,6 +46,8 @@ export interface AccountResult {
   added: number
   /** Rows already there (an earlier upload, or a sync that covered those dates). */
   existing: number
+  /** Parsed rows that failed validation and were not imported. */
+  skipped: number
   from: string
   to: string
   /** Stretches no uploaded statement covers, between statements or up to where synced history starts. */
@@ -63,7 +69,16 @@ export function collectPdfs(uploads: UploadedFile[]): {
   let total = 0
   let count = 0
   for (const u of uploads) {
+    const kind = uploadKindFromBytes(u.bytes)
     if (/\.pdf$/i.test(u.name)) {
+      if (kind !== "pdf") {
+        rejected.push({
+          name: u.name,
+          status: "error",
+          message: "File is not a PDF",
+        })
+        continue
+      }
       if (u.bytes.byteLength > MAX_PDF_BYTES)
         rejected.push({
           name: u.name,
@@ -84,6 +99,14 @@ export function collectPdfs(uploads: UploadedFile[]): {
         name: u.name,
         status: "error",
         message: "Not a PDF or .zip file",
+      })
+      continue
+    }
+    if (uploadKindForName(u.name) !== "zip" || kind !== "zip") {
+      rejected.push({
+        name: u.name,
+        status: "error",
+        message: "File is not a .zip archive",
       })
       continue
     }
@@ -118,8 +141,17 @@ export function collectPdfs(uploads: UploadedFile[]): {
       })
       continue
     }
-    for (const [name, bytes] of Object.entries(entries))
+    for (const [name, bytes] of Object.entries(entries)) {
+      if (uploadKindFromBytes(bytes) !== "pdf") {
+        rejected.push({
+          name,
+          status: "error",
+          message: "Archive entry is not a PDF",
+        })
+        continue
+      }
       pdfs.push({ name: name.split("/").pop() ?? name, bytes })
+    }
   }
   return { pdfs, rejected }
 }
@@ -179,7 +211,7 @@ export async function importStatements(
 
   // One file at a time, in name order: each PDF is held open in memory while it's read, and the
   // first copy of a duplicate statement is the one kept.
-  for (const file of pdfs.sort((a, b) => a.name.localeCompare(b.name))) {
+  for (const file of pdfs.toSorted((a, b) => a.name.localeCompare(b.name))) {
     try {
       const statement = parseTdStatement(await pdfText(file.bytes))
       const key = `${statement.accountNumber}|${statement.from}|${statement.to}`
@@ -278,8 +310,10 @@ export async function importStatements(
        VALUES (?, ?, ?, ?, ?, ?, ?, 0) ON CONFLICT (account_id, fingerprint) DO NOTHING`
     )
 
-    for (const [number, list] of byAccount) {
-      list.sort((a, b) => a.statement.from.localeCompare(b.statement.from))
+    for (const [number, unsorted] of byAccount) {
+      const list = unsorted.toSorted((a, b) =>
+        a.statement.from.localeCompare(b.statement.from)
+      )
       const newest = list.at(-1)!.statement
       const numberMasked = `••••${last4(number)}`
       let account = tdAccounts.find(
@@ -301,8 +335,8 @@ export async function importStatements(
           name,
           type,
           numberMasked,
-          balance,
-          balance === null ? null : Math.max(0, -balance)
+          toCentsOrNull(balance),
+          balance === null ? null : toCents(Math.max(0, -balance))
         )
         account = { id, name, numberMasked, type, historyFrom: null }
         tdAccounts.push(account)
@@ -310,14 +344,28 @@ export async function importStatements(
 
       let added = 0
       let existing = 0
+      let skipped = 0
       const occurrences = new Map<string, number>()
       for (const { statement } of list) {
+        if (
+          !isoDate.safeParse(statement.from).success ||
+          !isoDate.safeParse(statement.to).success
+        ) {
+          skipped += statement.transactions.length
+          continue
+        }
         for (const t of statement.transactions) {
-          const base = `${t.date}|${t.description.toLowerCase()}|${t.amount.toFixed(2)}|c`
+          const row = validateStatementRow(t)
+          if (!row.ok) {
+            skipped++
+            continue
+          }
+          const v = row.row
+          const base = `${v.date}|${v.description.toLowerCase()}|${v.amount.toFixed(2)}|c`
           const n = occurrences.get(base) ?? 0
           occurrences.set(base, n + 1)
           // A sync has read every day from historyFrom on; its rows win there.
-          if (account.historyFrom && t.date >= account.historyFrom) {
+          if (account.historyFrom && v.date >= account.historyFrom) {
             existing++
             continue
           }
@@ -325,10 +373,10 @@ export async function importStatements(
             randomUUID(),
             account.id,
             `${base}|${n}`,
-            t.date,
-            t.description,
-            t.amount,
-            t.runningBalance
+            v.date,
+            v.description,
+            toCents(v.amount),
+            toCentsOrNull(v.runningBalance)
           )
           if (Number(r.changes) > 0) added++
           else existing++
@@ -352,6 +400,7 @@ export async function importStatements(
         statements: list.length,
         added,
         existing,
+        skipped,
         from: list[0].statement.from,
         to: newest.to,
         gaps,

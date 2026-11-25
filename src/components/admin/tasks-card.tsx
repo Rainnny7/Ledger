@@ -18,7 +18,11 @@ import { adminFetch, auditKey, backupsKey, tasksKey } from "@/lib/admin"
 import { formatRelative, formatTimestamp } from "@/lib/format"
 import { queryClient } from "@/lib/queries"
 
-export function TasksCard() {
+export function TasksCard({
+  showBackupTask = true,
+}: {
+  showBackupTask?: boolean
+}) {
   const tasks = useQuery({
     queryKey: tasksKey,
     queryFn: () => adminFetch<{ tasks: TaskInfo[] }>("tasks"),
@@ -74,66 +78,68 @@ export function TasksCard() {
         {tasks.error && (
           <p className="text-sm text-destructive">{tasks.error.message}</p>
         )}
-        {tasks.data?.tasks.map((t) => {
-          const last = t.lastRun
-          return (
-            <div
-              key={t.id}
-              className="flex flex-wrap items-start gap-3 rounded-lg border p-3"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{t.label}</span>
-                  <Badge variant="secondary">{every(t.intervalMs)}</Badge>
-                  {t.running ? (
-                    <Badge variant="outline" className="gap-1">
-                      <Loader2 className="size-3 animate-spin" /> Running
-                    </Badge>
-                  ) : last?.status === "error" ? (
-                    <Badge variant="destructive">Failed</Badge>
-                  ) : null}
-                </div>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  {t.description}
-                </p>
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  {last ? (
-                    <>
-                      Last run{" "}
-                      <Hint label={formatTimestamp(last.startedAt)}>
-                        <span className="cursor-default text-foreground">
-                          {formatRelative(last.startedAt)}
-                        </span>
-                      </Hint>
-                      {last.trigger === "manual" && " (run by hand)"}
-                      {last.durationMs !== null &&
-                        ` · took ${took(last.durationMs)}`}
-                      {last.summary && ` · ${last.summary}`}
-                    </>
-                  ) : (
-                    "Hasn’t run yet"
-                  )}
-                  {!t.running && t.nextRunAt && (
-                    <> · next {formatRelative(t.nextRunAt)}</>
-                  )}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={t.running || starting === t.id}
-                onClick={() => void run(t)}
+        {tasks.data?.tasks
+          .filter((t) => showBackupTask || t.id !== "backup")
+          .map((t) => {
+            const last = t.lastRun
+            return (
+              <div
+                key={t.id}
+                className="flex flex-wrap items-start gap-3 rounded-lg border p-3"
               >
-                {starting === t.id ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <CirclePlay />
-                )}{" "}
-                Run now
-              </Button>
-            </div>
-          )
-        })}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{t.label}</span>
+                    <Badge variant="secondary">{every(t.intervalMs)}</Badge>
+                    {t.running ? (
+                      <Badge variant="outline" className="gap-1">
+                        <Loader2 className="size-3 animate-spin" /> Running
+                      </Badge>
+                    ) : last?.status === "error" ? (
+                      <Badge variant="destructive">Failed</Badge>
+                    ) : null}
+                  </div>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {t.description}
+                  </p>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    {last ? (
+                      <>
+                        Last run{" "}
+                        <Hint label={formatTimestamp(last.startedAt)}>
+                          <span className="cursor-default text-foreground">
+                            {formatRelative(last.startedAt)}
+                          </span>
+                        </Hint>
+                        {last.trigger === "manual" && " (run by hand)"}
+                        {last.durationMs !== null &&
+                          ` · took ${took(last.durationMs)}`}
+                        {last.summary && ` · ${last.summary}`}
+                      </>
+                    ) : (
+                      "Hasn’t run yet"
+                    )}
+                    {!t.running && t.nextRunAt && (
+                      <> · next {formatRelative(t.nextRunAt)}</>
+                    )}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={t.running || starting === t.id}
+                  onClick={() => void run(t)}
+                >
+                  {starting === t.id ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <CirclePlay />
+                  )}{" "}
+                  Run now
+                </Button>
+              </div>
+            )
+          })}
       </CardContent>
     </Card>
   )

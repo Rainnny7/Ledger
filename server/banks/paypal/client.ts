@@ -23,6 +23,8 @@ const OTHER_API = SANDBOX ? LIVE_API : SANDBOX_API
 const basicAuth = (clientId: string, secret: string) =>
   `Basic ${Buffer.from(`${clientId.trim()}:${secret.trim()}`).toString("base64")}`
 
+const paypalMoney = (v?: { value: string }) => (v ? Number(v.value) : null)
+
 /** Whether that environment would hand out a token for these details (only used to explain a rejection). */
 async function acceptedBy(api: string, clientId: string, secret: string) {
   try {
@@ -188,7 +190,7 @@ export class PaypalClient implements BankClient {
     const full = since.some((s) => s === null)
     let from = oldest
     if (!full) {
-      const earliest = new Date(`${since.sort()[0]}T00:00:00Z`)
+      const earliest = new Date(`${since.toSorted()[0]}T00:00:00Z`)
       if (earliest > oldest) from = earliest
     }
 
@@ -231,7 +233,6 @@ export class PaypalClient implements BankClient {
     const primary = balances.find((b) => b.primary)?.currency
     return [...currencies].map((currency) => {
       const b = balances.find((x) => x.currency === currency)
-      const n = (v?: { value: string }) => (v ? Number(v.value) : null)
       return {
         externalKey: `paypal:${currency}`,
         name:
@@ -241,12 +242,12 @@ export class PaypalClient implements BankClient {
         type: "wallet",
         numberMasked: null,
         currency,
-        balance: n(b?.total_balance) ?? 0,
-        available: n(b?.available_balance),
+        balance: paypalMoney(b?.total_balance) ?? 0,
+        available: paypalMoney(b?.available_balance),
         overdraftLimit: null,
         overdraftUsed: null,
         creditLimit: null,
-        transactions: (byCurrency.get(currency) ?? []).sort((x, y) =>
+        transactions: (byCurrency.get(currency) ?? []).toSorted((x, y) =>
           x.date < y.date ? 1 : -1
         ),
         historyFrom: full ? from.toISOString().slice(0, 10) : null,
