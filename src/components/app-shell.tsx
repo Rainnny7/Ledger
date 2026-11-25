@@ -5,6 +5,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { Brand } from '@/components/brand'
 import { BriefcaseBusinessIcon } from '@/components/icons/briefcase-business'
 import { ChartPieIcon } from '@/components/icons/chart-pie'
+import { FileTextIcon } from '@/components/icons/file-text'
 import { LogoutIcon } from '@/components/icons/logout'
 import { MoonIcon } from '@/components/icons/moon'
 import { RefreshCWIcon } from '@/components/icons/refresh-cw'
@@ -39,6 +40,7 @@ const NAV: { to: string; label: string; icon: AnimatedIcon; count?: 'accounts' |
   { to: '/subscriptions', label: 'Subscriptions', icon: RefreshCWIcon, count: 'subscriptions' },
   { to: '/goals', label: 'Goals', icon: RocketIcon, count: 'goals' },
   { to: '/work', label: 'Work', icon: BriefcaseBusinessIcon },
+  { to: '/invoices', label: 'Invoices', icon: FileTextIcon },
 ]
 
 /** A nav link whose icon plays its animation when the link is hovered or focused. */
@@ -68,7 +70,7 @@ function NavItem({
       )}
     >
       <Icon ref={icon.ref} size={16} className="flex shrink-0" />
-      <span className="hidden md:inline">{label}</span>
+      <span className="hidden lg:inline">{label}</span>
       {count !== null && (
         <Badge variant={active ? 'default' : 'secondary'} className="h-4.5 min-w-4.5 px-1 text-[10px] tabular-nums">
           {count}

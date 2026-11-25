@@ -20,6 +20,9 @@ const SubscriptionsPage = lazy(() => import('@/pages/subscriptions-page').then((
 const SettingsPage = lazy(() => import('@/pages/settings-page').then((m) => ({ default: m.SettingsPage })))
 const GoalsPage = lazy(() => import('@/pages/goals-page').then((m) => ({ default: m.GoalsPage })))
 const WorkPage = lazy(() => import('@/pages/work-page').then((m) => ({ default: m.WorkPage })))
+const InvoicesPage = lazy(() => import('@/pages/invoices-page').then((m) => ({ default: m.InvoicesPage })))
+const InvoiceEditorPage = lazy(() => import('@/pages/invoice-editor-page').then((m) => ({ default: m.InvoiceEditorPage })))
+const PublicInvoicePage = lazy(() => import('@/pages/public-invoice-page').then((m) => ({ default: m.PublicInvoicePage })))
 const AdminPage = lazy(() => import('@/pages/admin-page').then((m) => ({ default: m.AdminPage })))
 
 function Page({ children }: { children: ReactNode }) {
@@ -89,6 +92,9 @@ export default function App() {
               <Route path="/subscriptions" element={<Page><SubscriptionsPage /></Page>} />
               <Route path="/goals" element={<Page><GoalsPage /></Page>} />
               <Route path="/work" element={<Page><WorkPage /></Page>} />
+              <Route path="/invoices" element={<Page><InvoicesPage /></Page>} />
+              <Route path="/invoices/new" element={<Page><InvoiceEditorPage /></Page>} />
+              <Route path="/invoices/:id" element={<Page><InvoiceEditorPage /></Page>} />
               <Route element={<NotInDemo />}>
                 <Route path="/settings" element={<Page><SettingsPage /></Page>} />
               </Route>
@@ -97,6 +103,8 @@ export default function App() {
               </Route>
             </Route>
           </Route>
+          {/* The share link you send people: no sign-in. */}
+          <Route path="/i/:token" element={<Page><PublicInvoicePage /></Page>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
