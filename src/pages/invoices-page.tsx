@@ -1,3 +1,7 @@
+import { WithContextMenu } from '@/components/app-context-menu'
+import { confirmDialog } from '@/components/confirm-dialog'
+import { ForeignMoney } from '@/components/money'
+import { Hint } from '@/components/hint'
 import {
   Ban,
   CopyPlus,
@@ -85,7 +89,7 @@ export function InvoicesPage() {
       demoMode ? readOnly() : fn(...a)
 
   async function removeMethod(m: PaymentMethod) {
-    if (!confirm(`Remove ${m.label}? Invoices that offered it stop showing it.`)) return
+    if (!(await confirmDialog({ title: `Remove ${m.label}?`, description: 'Invoices that offered it stop showing it.', action: 'Remove', destructive: true }))) return
     try {
       await api.deletePaymentMethod(m.id)
       toast.success(`${m.label} removed`)
@@ -202,8 +206,20 @@ export function InvoicesPage() {
                   </p>
                 ) : (
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {methods.map((m) => (
-                      <div key={m.id} className="flex items-start gap-3 rounded-lg border p-3">
+                    {methods.map((m) => {
+                      const methodItems = (
+                        <>
+                          <DropdownMenuItem onClick={() => setMethodDialog({ method: m })}>
+                            <Pencil /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem variant="destructive" onClick={() => void removeMethod(m)}>
+                            <Trash2 /> Remove
+                          </DropdownMenuItem>
+                        </>
+                      )
+                      return (
+                      <WithContextMenu key={m.id} menu={!demoMode && methodItems}>
+                      <div className="flex items-start gap-3 rounded-lg border p-3">
                         <Wallet className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">
@@ -223,18 +239,13 @@ export function InvoicesPage() {
                             <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={`${m.label} options`} />}>
                               <MoreHorizontal />
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setMethodDialog({ method: m })}>
-                                <Pencil /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem variant="destructive" onClick={() => void removeMethod(m)}>
-                                <Trash2 /> Remove
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
+                            <DropdownMenuContent align="end">{methodItems}</DropdownMenuContent>
                           </DropdownMenu>
                         )}
                       </div>
-                    ))}
+                      </WithContextMenu>
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -323,7 +334,7 @@ function InvoiceRow({
 
   async function remove() {
     if (demoMode) return readOnly()
-    if (!confirm(`Delete invoice ${inv.number}? Its link stops working. This can’t be undone.`)) return
+    if (!(await confirmDialog({ title: `Delete invoice ${inv.number}?`, description: 'Its link stops working. This can’t be undone.', action: 'Delete invoice', destructive: true }))) return
     try {
       await api.deleteInvoice(inv.id)
       toast.success(`${inv.number} deleted`)
@@ -332,7 +343,45 @@ function InvoiceRow({
     }
   }
 
+  const menuItems = (
+    <>
+      <DropdownMenuItem onClick={onShare}>
+        <Send /> Send / share
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => void download()}>
+        <Download /> Download PDF
+      </DropdownMenuItem>
+      {state !== 'paid' && state !== 'void' && (
+        <DropdownMenuItem onClick={onPay}>
+          <HandCoins /> Record payment
+        </DropdownMenuItem>
+      )}
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={onOpen}>
+        <Pencil /> Edit
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={onDuplicate}>
+        <CopyPlus /> Duplicate
+      </DropdownMenuItem>
+      {state === 'void' ? (
+        <DropdownMenuItem onClick={() => void setStatus('sent', `${inv.number} restored`)}>
+          <RotateCcw /> Restore
+        </DropdownMenuItem>
+      ) : (
+        state !== 'paid' && (
+          <DropdownMenuItem onClick={() => void setStatus('void', `${inv.number} voided`)}>
+            <Ban /> Void
+          </DropdownMenuItem>
+        )
+      )}
+      <DropdownMenuItem variant="destructive" onClick={() => void remove()}>
+        <Trash2 /> Delete
+      </DropdownMenuItem>
+    </>
+  )
+
   return (
+    <WithContextMenu menu={menuItems}>
     <div className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/40">
       <button type="button" onClick={onOpen} className="grid min-w-0 flex-1 gap-0.5 text-left">
         <span className="flex min-w-0 items-center gap-2">
@@ -344,51 +393,27 @@ function InvoiceRow({
         </span>
       </button>
       <div className="text-right">
-        <p className="text-sm font-semibold tabular-nums">{money(state === 'partial' || state === 'overdue' ? inv.balance : inv.total)}</p>
+        <p className="text-sm font-semibold tabular-nums">
+          <ForeignMoney value={state === 'partial' || state === 'overdue' ? inv.balance : inv.total} currency={inv.currency}>
+            {money(state === 'partial' || state === 'overdue' ? inv.balance : inv.total)}
+          </ForeignMoney>
+        </p>
         {inv.paid > 0 && inv.balance > 0 && <p className="text-xs text-muted-foreground tabular-nums">of {money(inv.total)}</p>}
       </div>
-      <Button variant="ghost" size="icon-sm" aria-label={`Send ${inv.number}`} title="Send" onClick={onShare} className="max-sm:hidden">
-        <Send />
-      </Button>
+      <Hint label="Send">
+        <Button variant="ghost" size="icon-sm" aria-label={`Send ${inv.number}`} onClick={onShare} className="max-sm:hidden">
+          <Send />
+        </Button>
+      </Hint>
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`${inv.number} options`} />}>
           {downloading ? <Loader2 className="animate-spin" /> : <MoreHorizontal />}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={onShare}>
-            <Send /> Send / share
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void download()}>
-            <Download /> Download PDF
-          </DropdownMenuItem>
-          {state !== 'paid' && state !== 'void' && (
-            <DropdownMenuItem onClick={onPay}>
-              <HandCoins /> Record payment
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onOpen}>
-            <Pencil /> Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onDuplicate}>
-            <CopyPlus /> Duplicate
-          </DropdownMenuItem>
-          {state === 'void' ? (
-            <DropdownMenuItem onClick={() => void setStatus('sent', `${inv.number} restored`)}>
-              <RotateCcw /> Restore
-            </DropdownMenuItem>
-          ) : (
-            state !== 'paid' && (
-              <DropdownMenuItem onClick={() => void setStatus('void', `${inv.number} voided`)}>
-                <Ban /> Void
-              </DropdownMenuItem>
-            )
-          )}
-          <DropdownMenuItem variant="destructive" onClick={() => void remove()}>
-            <Trash2 /> Delete
-          </DropdownMenuItem>
+          {menuItems}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
+    </WithContextMenu>
   )
 }

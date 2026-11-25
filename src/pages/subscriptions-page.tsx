@@ -1,3 +1,6 @@
+import { WithContextMenu } from '@/components/app-context-menu'
+import { confirmDialog } from '@/components/confirm-dialog'
+import { Money } from '@/components/money'
 import type { ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, LogOut, MoreHorizontal, Pause, Pencil, Play, Plus, Repeat, Share2, Sparkles, Trash2, X } from 'lucide-react'
 import { AnimatedMoney } from '@/components/count-up'
@@ -127,7 +130,7 @@ export function SubscriptionsPage() {
   }
 
   async function remove(s: Subscription) {
-    if (!confirm(`Stop tracking ${s.name}?`)) return
+    if (!(await confirmDialog({ title: `Stop tracking ${s.name}?`, description: 'It’s removed from your subscriptions. Your transactions aren’t affected.', action: 'Stop tracking', destructive: true }))) return
     try {
       await api.deleteSubscription(s.id)
       toast.success(`${s.name} removed`)
@@ -213,7 +216,7 @@ export function SubscriptionsPage() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{g.name}</div>
                   <div className="truncate text-xs text-muted-foreground">
-                    {formatMoney(g.amount, suggestionCurrency(g))} · {cycleLabel(g.cycle).toLowerCase()} · seen {g.occurrences}×, next {dueLabel(g.nextDue)}
+                    <Money value={g.amount} currency={suggestionCurrency(g)} /> · {cycleLabel(g.cycle).toLowerCase()} · seen {g.occurrences}×, next {dueLabel(g.nextDue)}
                   </div>
                 </div>
                 <Button size="sm" onClick={() => void track(g)}>
@@ -261,7 +264,7 @@ export function SubscriptionsPage() {
                         <span className="block truncate font-medium">{s.name}</span>
                         <span className="block text-xs text-muted-foreground">{dueLabel(date)}</span>
                       </span>
-                      <span className="font-medium tabular-nums">{formatMoney(s.amount, s.currency)}</span>
+                      <span className="font-medium tabular-nums"><Money value={s.amount} currency={s.currency} /></span>
                     </button>
                   </li>
                 ))}
@@ -312,9 +315,38 @@ export function SubscriptionsPage() {
                 {sorted.map((s) => {
                   const account = accounts.find((a) => a.id === s.accountId)
                   const changed = s.lastCharge && Math.abs(Math.abs(s.lastCharge.amount) - s.amount) >= 0.01
-                  return (
+                  const menuItems = (
+                      <>
+                        {s.access !== 'view' && (
+                          <>
+                            <DropdownMenuItem onClick={() => edit(s)}>
+                              <Pencil /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => void toggle(s)}>
+                              {s.active ? <Pause /> : <Play />} {s.active ? 'Pause' : 'Resume'}
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {s.access === 'owner' ? (
+                          <>
+                            <DropdownMenuItem onClick={() => (demoMode ? toast.error('Demo mode is read-only. Exit demo mode to make changes.') : setSharing(s))}>
+                              <Share2 /> Share
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem variant="destructive" onClick={() => void remove(s)}>
+                              <Trash2 /> Delete
+                            </DropdownMenuItem>
+                          </>
+                        ) : (
+                          <DropdownMenuItem variant="destructive" onClick={() => void leaveShared('subscription', s)}>
+                            <LogOut /> Remove from my list
+                          </DropdownMenuItem>
+                        )}
+                      </>
+                    )
+                    return (
+                    <WithContextMenu key={s.id} className="w-48" menu={menuItems}>
                     <TableRow
-                      key={s.id}
                       className={cn(s.access !== 'view' && 'cursor-pointer', !s.active && 'opacity-60')}
                       onClick={() => edit(s)}
                     >
@@ -367,9 +399,9 @@ export function SubscriptionsPage() {
                           '—'
                         )}
                       </TableCell>
-                      <TableCell className="text-right font-medium tabular-nums">{formatMoney(s.amount, s.currency)}</TableCell>
+                      <TableCell className="text-right font-medium tabular-nums"><Money value={s.amount} currency={s.currency} /></TableCell>
                       <TableCell className="hidden text-right text-muted-foreground tabular-nums lg:table-cell">
-                        {formatMoney(s.monthly, s.currency)}
+                        <Money value={s.monthly} currency={s.currency} />
                       </TableCell>
                       <TableCell className="pr-4" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
@@ -377,35 +409,12 @@ export function SubscriptionsPage() {
                             <MoreHorizontal />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            {s.access !== 'view' && (
-                              <>
-                                <DropdownMenuItem onClick={() => edit(s)}>
-                                  <Pencil /> Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => void toggle(s)}>
-                                  {s.active ? <Pause /> : <Play />} {s.active ? 'Pause' : 'Resume'}
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            {s.access === 'owner' ? (
-                              <>
-                                <DropdownMenuItem onClick={() => (demoMode ? toast.error('Demo mode is read-only. Exit demo mode to make changes.') : setSharing(s))}>
-                                  <Share2 /> Share
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem variant="destructive" onClick={() => void remove(s)}>
-                                  <Trash2 /> Delete
-                                </DropdownMenuItem>
-                              </>
-                            ) : (
-                              <DropdownMenuItem variant="destructive" onClick={() => void leaveShared('subscription', s)}>
-                                <LogOut /> Remove from my list
-                              </DropdownMenuItem>
-                            )}
+                            {menuItems}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
+                    </WithContextMenu>
                   )
                 })}
               </TableBody>

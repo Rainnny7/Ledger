@@ -1,3 +1,6 @@
+import { TransactionMenuItems, WithContextMenu } from '@/components/app-context-menu'
+import { Hint } from '@/components/hint'
+import { Money } from '@/components/money'
 import { shownRunningBalance, useIncludeOverdraft } from '@/components/account-figures'
 import { StickyNote } from 'lucide-react'
 import { Fragment, useMemo } from 'react'
@@ -5,7 +8,7 @@ import { CategoryBadge, CategoryIcon } from '@/components/tx-bits'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { Account, Transaction } from '@/lib/api'
-import { formatDayHeading, formatLongDate, formatMoney } from '@/lib/format'
+import { formatDayHeading, formatLongDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -46,16 +49,21 @@ export function TransactionsTable({ transactions, accounts, onSelect, showBalanc
           <Fragment key={date}>
             <TableRow className="border-b-0 bg-muted/40 hover:bg-muted/40">
               <TableCell colSpan={cols} className="px-4 py-1.5 text-xs font-medium text-muted-foreground">
-                <time dateTime={date} title={formatLongDate(date)}>
-                  {formatDayHeading(date)}
-                </time>
+                <Hint label={formatLongDate(date)} side="right">
+                  <time dateTime={date} className="cursor-default">
+                    {formatDayHeading(date)}
+                  </time>
+                </Hint>
               </TableCell>
             </TableRow>
             {items.map((t) => {
               const account = byId.get(t.accountId)
               return (
-                <TableRow
+                <WithContextMenu
                   key={t.id}
+                  menu={<TransactionMenuItems transaction={t} currency={account?.currency} onOpen={() => onSelect(t)} />}
+                >
+                <TableRow
                   tabIndex={0}
                   className="cursor-pointer"
                   onClick={() => onSelect(t)}
@@ -96,14 +104,15 @@ export function TransactionsTable({ transactions, accounts, onSelect, showBalanc
                       t.amount > 0 && 'text-emerald-600 dark:text-emerald-400',
                     )}
                   >
-                    {formatMoney(t.amount, account?.currency, { sign: true })}
+                    <Money value={t.amount} currency={account?.currency} sign />
                   </TableCell>
                   {showBalance && (
                     <TableCell className="hidden pr-4 text-right text-muted-foreground tabular-nums sm:table-cell">
-                      {formatMoney(shownRunningBalance(t, account, includeOverdraft), account?.currency)}
+                      <Money value={shownRunningBalance(t, account, includeOverdraft)} currency={account?.currency} />
                     </TableCell>
                   )}
                 </TableRow>
+                </WithContextMenu>
               )
             })}
           </Fragment>

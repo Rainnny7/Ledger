@@ -1,4 +1,7 @@
-import { Check, Loader2, Pencil, Trash2, UserPlus, Users, X } from 'lucide-react'
+import { copyText, WithContextMenu } from '@/components/app-context-menu'
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
+import { confirmDialog } from '@/components/confirm-dialog'
+import { Check, Copy, Loader2, Pencil, Trash2, UserPlus, Users, X } from 'lucide-react'
 import { type FormEvent, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ContactAvatar } from '@/components/share-bits'
@@ -152,7 +155,7 @@ function ContactRow({ contact: c, sharing }: { contact: Contact; sharing: number
 
   async function remove() {
     const extra = sharing > 0 ? ` You'll keep sharing ${sharing} item${sharing === 1 ? '' : 's'} with them; stop that from each item's Share menu.` : ''
-    if (!confirm(`Remove ${c.name || c.email} from your contacts?${extra}`)) return
+    if (!(await confirmDialog({ title: `Remove ${c.name || c.email} from your contacts?`, description: extra.trim() || undefined, action: 'Remove', destructive: true }))) return
     try {
       await api.deleteContact(c.id)
       toast.success('Contact removed')
@@ -161,7 +164,28 @@ function ContactRow({ contact: c, sharing }: { contact: Contact; sharing: number
     }
   }
 
+  function rename() {
+    setName(c.name ?? '')
+    setEditing(true)
+  }
+
+  const menuItems = (
+    <>
+      <DropdownMenuItem onClick={rename}>
+        <Pencil /> Rename
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => void copyText(c.email, 'Email')}>
+        <Copy /> Copy email
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem variant="destructive" onClick={() => void remove()}>
+        <Trash2 /> Remove
+      </DropdownMenuItem>
+    </>
+  )
+
   return (
+    <WithContextMenu menu={!editing && menuItems}>
     <li className="group flex items-center gap-3 py-3">
       <ContactAvatar contact={c} className="size-9 text-xs" />
       {editing ? (
@@ -197,10 +221,7 @@ function ContactRow({ contact: c, sharing }: { contact: Contact; sharing: number
             variant="ghost"
             size="icon-sm"
             aria-label={`Rename ${c.email}`}
-            onClick={() => {
-              setName(c.name ?? '')
-              setEditing(true)
-            }}
+            onClick={rename}
           >
             <Pencil />
           </Button>
@@ -210,5 +231,6 @@ function ContactRow({ contact: c, sharing }: { contact: Contact; sharing: number
         </div>
       )}
     </li>
+    </WithContextMenu>
   )
 }

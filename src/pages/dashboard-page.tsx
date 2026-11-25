@@ -1,10 +1,13 @@
+import { LinkMenuItems, TransactionMenuItems, WithContextMenu } from '@/components/app-context-menu'
+import { confirmDialog } from '@/components/confirm-dialog'
+import { Money } from '@/components/money'
 import type { ReactNode } from 'react'
 import { RefreshCWIcon } from '@/components/icons/refresh-cw'
 import { useAnimatedIcon } from '@/components/icons/use-animated-icon'
-import { AlertTriangle, CalendarClock, ChevronDown, ChevronRight, History, KeyRound, MoreHorizontal, Plus, Trash2, Upload, Zap, ZapOff } from 'lucide-react'
+import { AlertTriangle, CalendarClock, ChevronDown, ChevronRight, History, KeyRound, MoreHorizontal, Plus, RefreshCw, Trash2, Upload, Zap, ZapOff } from 'lucide-react'
 import { AnimatedMoney } from '@/components/count-up'
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { BalanceLabel, BalanceValue, CreditMeter, OverdraftMeter, overdraftAllowance, signedBalance, useIncludeOverdraft } from '@/components/account-figures'
 import { BalanceChart, CashflowChart } from '@/components/charts'
@@ -15,7 +18,8 @@ import { InstitutionBadge, isProviderId, PROVIDERS } from '@/components/institut
 import { RangePicker, type RangeKey, rangeStart } from '@/components/range-picker'
 import { StatementUploadDialog } from '@/components/statement-upload-dialog'
 import { TransactionSheet } from '@/components/transaction-sheet'
-import { CategoryIcon, RelativeDate } from '@/components/tx-bits'
+import { CategoryIcon, RelativeDate, SyncTime } from '@/components/tx-bits'
+import { Hint } from '@/components/hint'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -113,7 +117,7 @@ export function DashboardPage() {
   )
 
   async function remove(c: Connection) {
-    if (!confirm(`Remove ${c.label} and all of its synced data?`)) return
+    if (!(await confirmDialog({ title: `Remove ${c.label}?`, description: 'Its accounts, transactions and saved sign-in are deleted from Ledger. Your bank account itself isn’t touched.', action: 'Remove', destructive: true }))) return
     await api.deleteConnection(c.id)
     toast.success('Connection removed')
   }
@@ -263,8 +267,11 @@ export function DashboardPage() {
                 {transactions.slice(0, 6).map((t) => {
                   const account = accounts.find((a) => a.id === t.accountId)
                   return (
-                  <button
+                  <WithContextMenu
                     key={t.id}
+                    menu={<TransactionMenuItems transaction={t} currency={account?.currency} onOpen={() => setSelected(t)} />}
+                  >
+                  <button
                     type="button"
                     onClick={() => setSelected(t)}
                     className="flex items-center gap-3 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
@@ -277,29 +284,98 @@ export function DashboardPage() {
                       </span>
                     </span>
                     <span className={cn('font-medium tabular-nums', t.amount > 0 && 'text-emerald-600 dark:text-emerald-400')}>
-                      {formatMoney(t.amount, account?.currency, { sign: true })}
+                      <Money value={t.amount} currency={account?.currency} sign />
                     </span>
                   </button>
+                  </WithContextMenu>
                   )
                 })}
               </CardContent>
             </Card>
           </div>
 
-          {connections.map((c) => (
+          {connections.map((c) => {
+            const refreshItems = (
+              <>
+                <DropdownMenuItem onClick={() => setDialog({ open: true, connection: c, full: true })}>
+                  <History />
+                  <div className="grid">
+                    <span>Force full refresh</span>
+                    <span className="text-xs text-muted-foreground">
+                      Re-read {isProviderId(c.institution) ? PROVIDERS[c.institution].history : 'all'} of history
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+                {c.institution === 'td' && (
+                  <DropdownMenuItem onClick={() => setUpload({ open: true, connectionId: c.id })}>
+                    <Upload />
+                    <div className="grid">
+                      <span>Upload statements</span>
+                      <span className="text-xs text-muted-foreground">Older history from PDF statements or a .zip</span>
+                    </div>
+                  </DropdownMenuItem>
+                )}
+              </>
+            )
+            const optionItems = (
+              <>
+                {c.institution === 'paypal' && (
+                  <>
+                    <DropdownMenuItem onClick={() => void toggleInstant(c)}>
+                      {c.instantUpdates ? <ZapOff /> : <Zap />}
+                      <div className="grid">
+                        <span>{c.instantUpdates ? 'Turn off instant updates' : 'Turn on instant updates'}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Webhooks for payments made through your PayPal app. Needs a public https PUBLIC_URL.
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                {canForget(c) && (
+                  <DropdownMenuItem onClick={() => void forget(c)}>
+                    <KeyRound /> Forget saved password
+                  </DropdownMenuItem>
+                )}
+                {canForget(c) && <DropdownMenuSeparator />}
+                <DropdownMenuItem variant="destructive" onClick={() => void remove(c)}>
+                  <Trash2 /> Remove connection
+                </DropdownMenuItem>
+              </>
+            )
+            return (
             <section key={c.id} className="grid gap-3">
+              <WithContextMenu
+                className="w-64"
+                menu={
+                  <>
+                    <DropdownMenuItem onClick={() => setDialog({ open: true, connection: c })}>
+                      <RefreshCw /> Refresh
+                    </DropdownMenuItem>
+                    {refreshItems}
+                    <DropdownMenuSeparator />
+                    {optionItems}
+                  </>
+                }
+              >
               <div className="flex items-center gap-3">
                 <InstitutionBadge institution={c.institution} className="size-8" />
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">{c.label}</div>
                   <div className="text-xs text-muted-foreground">
-                    {c.usernameMasked} · synced {formatRelative(c.lastSyncedAt)}
+                    {c.usernameMasked} ·{' '}
+                    <SyncTime at={c.lastSyncedAt} next={c.nextSyncAt} savedCredentials={c.savedCredentials} error={c.lastError} />
                     {c.instantUpdates && (
-                      <span title="PayPal sends Ledger webhooks for app payments">
-                        {' '}
-                        · <Zap className="inline size-3 text-primary" /> instant
-                        {c.lastEventAt ? `, last event ${formatRelative(c.lastEventAt)}` : ''}
-                      </span>
+                      <>
+                        {' · '}
+                        <Hint label="PayPal sends Ledger webhooks for app payments">
+                          <span className="cursor-default">
+                            <Zap className="inline size-3 text-primary" /> instant
+                            {c.lastEventAt ? `, last event ${formatRelative(c.lastEventAt)}` : ''}
+                          </span>
+                        </Hint>
+                      </>
                     )}
                   </div>
                 </div>
@@ -320,24 +396,7 @@ export function DashboardPage() {
                       <ChevronDown />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-64">
-                      <DropdownMenuItem onClick={() => setDialog({ open: true, connection: c, full: true })}>
-                        <History />
-                        <div className="grid">
-                          <span>Force full refresh</span>
-                          <span className="text-xs text-muted-foreground">
-                            Re-read {isProviderId(c.institution) ? PROVIDERS[c.institution].history : 'all'} of history
-                          </span>
-                        </div>
-                      </DropdownMenuItem>
-                      {c.institution === 'td' && (
-                        <DropdownMenuItem onClick={() => setUpload({ open: true, connectionId: c.id })}>
-                          <Upload />
-                          <div className="grid">
-                            <span>Upload statements</span>
-                            <span className="text-xs text-muted-foreground">Older history from PDF statements or a .zip</span>
-                          </div>
-                        </DropdownMenuItem>
-                      )}
+                      {refreshItems}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -346,32 +405,11 @@ export function DashboardPage() {
                     <MoreHorizontal />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-64">
-                    {c.institution === 'paypal' && (
-                      <>
-                        <DropdownMenuItem onClick={() => void toggleInstant(c)}>
-                          {c.instantUpdates ? <ZapOff /> : <Zap />}
-                          <div className="grid">
-                            <span>{c.instantUpdates ? 'Turn off instant updates' : 'Turn on instant updates'}</span>
-                            <span className="text-xs text-muted-foreground">
-                              Webhooks for payments made through your PayPal app. Needs a public https PUBLIC_URL.
-                            </span>
-                          </div>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                      </>
-                    )}
-                    {canForget(c) && (
-                      <DropdownMenuItem onClick={() => void forget(c)}>
-                        <KeyRound /> Forget saved password
-                      </DropdownMenuItem>
-                    )}
-                    {canForget(c) && <DropdownMenuSeparator />}
-                    <DropdownMenuItem variant="destructive" onClick={() => void remove(c)}>
-                      <Trash2 /> Remove connection
-                    </DropdownMenuItem>
+                    {optionItems}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+              </WithContextMenu>
 
               {c.lastError && (
                 <p className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
@@ -387,7 +425,8 @@ export function DashboardPage() {
                   ))}
               </div>
             </section>
-          ))}
+            )
+          })}
         </>
       )}
 
@@ -475,7 +514,7 @@ function UpcomingList({ items, empty, suggestions }: { items: Subscription[]; em
                 {days <= 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `Due ${formatRelativeDate(s.nextDue)}`}
               </span>
             </span>
-            <span className="font-medium tabular-nums">{formatMoney(s.amount, s.currency)}</span>
+            <span className="font-medium tabular-nums"><Money value={s.amount} currency={s.currency} /></span>
           </li>
         )
       })}
@@ -484,11 +523,14 @@ function UpcomingList({ items, empty, suggestions }: { items: Subscription[]; em
 }
 
 function AccountCard({ account: a }: { account: Account }) {
+  const navigate = useNavigate()
+  const to = `/accounts/${a.id}`
   // The whole card opens the account: the link sits underneath, the card lets clicks fall through to
   // it, and only the deposit-details button takes clicks itself.
   return (
+    <WithContextMenu menu={<LinkMenuItems to={to} label="Open account" onOpen={() => void navigate(to)} />}>
     <div className="group relative rounded-xl has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50">
-      <Link to={`/accounts/${a.id}`} aria-label={`Open ${a.name}`} className="absolute inset-0 rounded-xl focus-visible:outline-none" />
+      <Link to={to} aria-label={`Open ${a.name}`} className="absolute inset-0 rounded-xl focus-visible:outline-none" />
       <Card className="pointer-events-none relative h-full transition-colors group-hover:bg-muted/50">
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
@@ -522,7 +564,7 @@ function AccountCard({ account: a }: { account: Account }) {
             {a.available !== null && (
               <div className="text-right">
                 <div className="text-xs text-muted-foreground">{a.type === 'credit' ? 'Available credit' : 'Available'}</div>
-                <div className="text-sm tabular-nums">{formatMoney(a.available, a.currency)}</div>
+                <div className="text-sm tabular-nums"><Money value={a.available} currency={a.currency} /></div>
               </div>
             )}
           </div>
@@ -531,6 +573,7 @@ function AccountCard({ account: a }: { account: Account }) {
         </CardContent>
       </Card>
     </div>
+    </WithContextMenu>
   )
 }
 
@@ -560,15 +603,10 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 function RefreshButton({ onClick }: { onClick: () => void }) {
   const icon = useAnimatedIcon<HTMLButtonElement>()
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      className="rounded-r-none"
-      title="Fetch new transactions since the last sync"
-      {...icon.handlers}
-      onClick={onClick}
-    >
-      <RefreshCWIcon ref={icon.ref} size={14} className="flex" /> Refresh
-    </Button>
+    <Hint label="Fetch new transactions since the last sync">
+      <Button variant="outline" size="sm" className="rounded-r-none" {...icon.handlers} onClick={onClick}>
+        <RefreshCWIcon ref={icon.ref} size={14} className="flex" /> Refresh
+      </Button>
+    </Hint>
   )
 }

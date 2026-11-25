@@ -1,3 +1,5 @@
+import { DatePicker } from '@/components/date-picker'
+import { Hint } from '@/components/hint'
 import { ArrowLeft, ChevronDown, Download, ExternalLink, Eye, Loader2, Plus, Save, Send, X } from 'lucide-react'
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
@@ -396,12 +398,10 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
                   <Input id="inv-number" value={d.number} maxLength={40} onChange={(e) => set('number', e.target.value)} />
                 </Field>
                 <Field id="inv-date" label="Issued">
-                  <Input
+                  <DatePicker
                     id="inv-date"
-                    type="date"
                     value={d.issueDate}
-                    onChange={(e) => {
-                      const v = e.target.value
+                    onChange={(v) => {
                       setD((x) => ({ ...x, issueDate: v, dueDate: x.dueDate && /^\d{4}-\d{2}-\d{2}$/.test(v) ? addDays(v, dueDays) : x.dueDate }))
                       setDirty(true)
                     }}
@@ -430,13 +430,14 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
                       </button>
                     )
                   })}
-                  <Input
-                    type="date"
+                  <DatePicker
                     aria-label="Due date"
-                    className="h-8 w-40"
+                    placeholder="Due date"
+                    className="w-44"
                     value={d.dueDate ?? ''}
                     min={d.issueDate}
-                    onChange={(e) => set('dueDate', e.target.value || null)}
+                    clearable
+                    onChange={(v) => set('dueDate', v || null)}
                   />
                 </div>
               </div>
@@ -520,10 +521,9 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
               </div>
               <div className="flex flex-wrap gap-2">
                 {THEMES.map((t) => (
+                  <Hint key={t.id} label={t.label}>
                   <button
-                    key={t.id}
                     type="button"
-                    title={t.label}
                     aria-label={`${t.label} colours`}
                     aria-pressed={d.theme === t.id}
                     onClick={() => set('theme', t.id)}
@@ -533,6 +533,7 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
                     )}
                     style={{ backgroundColor: t.swatch }}
                   />
+                  </Hint>
                 ))}
               </div>
             </CardContent>

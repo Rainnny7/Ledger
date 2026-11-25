@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from 'react'
+import { ForeignMoney } from '@/components/money'
 import { formatMoney, getDisplayCurrency } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -63,7 +64,7 @@ export function CountUp({
   )
 }
 
-/** formatMoney, counting up. */
+/** formatMoney, counting up. In another currency, hovering it shows the amount in the person's own. */
 export function AnimatedMoney({
   value,
   currency = getDisplayCurrency(),
@@ -75,5 +76,9 @@ export function AnimatedMoney({
   sign?: boolean
   className?: string
 }) {
-  return <CountUp value={value} format={(n) => formatMoney(n, currency, { sign })} className={className} />
+  return (
+    <ForeignMoney value={value} currency={currency} sign={sign}>
+      <CountUp value={value} format={(n) => formatMoney(n, currency, { sign })} className={className} />
+    </ForeignMoney>
+  )
 }

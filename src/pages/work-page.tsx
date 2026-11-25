@@ -1,3 +1,7 @@
+import { WithContextMenu } from '@/components/app-context-menu'
+import { confirmDialog } from '@/components/confirm-dialog'
+import { Money } from '@/components/money'
+import { Hint } from '@/components/hint'
 import type { ReactNode } from 'react'
 import {
   Archive,
@@ -110,7 +114,7 @@ export function WorkPage() {
 
   async function removeJob(j: WorkJob) {
     const bills = j.invoices.length
-    if (!confirm(`Delete ${j.name}${bills ? ` and its ${bills} bill${bills === 1 ? '' : 's'}, payments and logged hours` : ''}? This can’t be undone.`)) return
+    if (!(await confirmDialog({ title: `Delete ${j.name}?`, description: `${bills ? `Its ${bills} bill${bills === 1 ? '' : 's'}, payments and logged hours are deleted too. ` : ''}This can’t be undone.`, action: 'Delete job', destructive: true }))) return
     try {
       await api.deleteWorkJob(j.id)
       toast.success(`${j.name} deleted`)
@@ -262,7 +266,36 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
     }
   }
 
+  const menuItems = (
+    <>
+      {!readonly && (
+        <DropdownMenuItem onClick={() => actions.onEdit(j)}>
+          <Pencil /> Edit job
+        </DropdownMenuItem>
+      )}
+      {owner ? (
+        <>
+          <DropdownMenuItem onClick={() => actions.onShare(j)}>
+            <Share2 /> Share
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => actions.onArchive(j)}>
+            {j.archived ? <ArchiveRestore /> : <Archive />} {j.archived ? 'Restore' : 'Archive'}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onClick={() => actions.onDelete(j)}>
+            <Trash2 /> Delete
+          </DropdownMenuItem>
+        </>
+      ) : (
+        <DropdownMenuItem variant="destructive" onClick={() => actions.onLeave(j)}>
+          <LogOut /> Remove from my jobs
+        </DropdownMenuItem>
+      )}
+    </>
+  )
+
   return (
+    <WithContextMenu menu={!demoMode && menuItems}>
     <Card className="gap-0">
       <CardHeader className="flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl" style={tintStyle(j.color)}>
@@ -274,7 +307,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
             <ShareBadge item={j} onClick={() => actions.onShare(j)} />
           </CardTitle>
           <CardDescription className="truncate">
-            {money(j.rate)}/hr
+            <Money value={j.rate} currency={j.currency} />/hr
             {schedule && ` · paid ${schedule}`}
           </CardDescription>
         </div>
@@ -284,29 +317,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
               <MoreHorizontal />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {!readonly && (
-                <DropdownMenuItem onClick={() => actions.onEdit(j)}>
-                  <Pencil /> Edit job
-                </DropdownMenuItem>
-              )}
-              {owner ? (
-                <>
-                  <DropdownMenuItem onClick={() => actions.onShare(j)}>
-                    <Share2 /> Share
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => actions.onArchive(j)}>
-                    {j.archived ? <ArchiveRestore /> : <Archive />} {j.archived ? 'Restore' : 'Archive'}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive" onClick={() => actions.onDelete(j)}>
-                    <Trash2 /> Delete
-                  </DropdownMenuItem>
-                </>
-              ) : (
-                <DropdownMenuItem variant="destructive" onClick={() => actions.onLeave(j)}>
-                  <LogOut /> Remove from my jobs
-                </DropdownMenuItem>
-              )}
+              {menuItems}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -316,7 +327,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase">{j.owner ? `Owed to ${shortName(j.owner)}` : 'Owed to you'}</p>
-            <p className="text-3xl font-semibold tabular-nums">{money(j.owed)}</p>
+            <p className="text-3xl font-semibold tabular-nums"><Money value={j.owed} currency={j.currency} /></p>
             <p className="mt-0.5 text-sm text-muted-foreground">{jobNudge(j, money)}</p>
           </div>
           {!readonly && !j.archived && (
@@ -342,7 +353,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-medium text-muted-foreground uppercase">Not billed yet</h3>
               <span className="text-xs text-muted-foreground tabular-nums">
-                {formatDuration(j.unbilledHours)} · {money(j.unbilledValue)}
+                {formatDuration(j.unbilledHours)} · <Money value={j.unbilledValue} currency={j.currency} />
               </span>
             </div>
             <ul className="grid text-sm">
@@ -402,6 +413,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
         )}
       </CardContent>
     </Card>
+    </WithContextMenu>
   )
 }
 
@@ -431,7 +443,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
 
   async function remove() {
     const n = inv.payments.length
-    if (!confirm(`Delete this ${money(inv.total)} bill${n ? ` and its ${n} payment${n === 1 ? '' : 's'}` : ''}? Logged shifts on it go back to “not billed”.`)) return
+    if (!(await confirmDialog({ title: `Delete this ${money(inv.total)} bill?`, description: `${n ? `Its ${n} payment${n === 1 ? '' : 's'} are deleted too. ` : ''}Logged shifts on it go back to “not billed”.`, action: 'Delete bill', destructive: true }))) return
     try {
       await api.deleteWorkInvoice(inv.id)
       toast.success('Bill deleted')
@@ -450,7 +462,45 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
     }
   }
 
+  const menuItems = (
+    <>
+      {inv.status !== 'paid' && !j.archived && (
+        <DropdownMenuItem onClick={() => onPay(j, inv.id)}>
+          <HandCoins /> Record payment
+        </DropdownMenuItem>
+      )}
+      {/* Invoices go out under the owner's business details. */}
+      {j.access === 'owner' && (
+        <DropdownMenuItem render={<Link to={`/invoices/new?fromBill=${inv.id}`} />}>
+          <FileText /> Make an invoice
+        </DropdownMenuItem>
+      )}
+      <DropdownMenuItem onClick={() => onBill(j, inv)}>
+        <Pencil /> Edit bill
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem variant="destructive" onClick={() => void remove()}>
+        <Trash2 /> Delete bill
+      </DropdownMenuItem>
+    </>
+  )
+
   return (
+    <WithContextMenu
+      menu={
+        <>
+          <DropdownMenuItem onClick={() => void copy(invoiceText(inv), 'Bill')}>
+            <Copy /> Copy as a message
+          </DropdownMenuItem>
+          {!readonly && (
+            <>
+              <DropdownMenuSeparator />
+              {menuItems}
+            </>
+          )}
+        </>
+      }
+    >
     <div className="grid gap-3 rounded-xl border p-4">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
@@ -459,38 +509,23 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
             <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', status.className)}>{status.label}</span>
           </p>
           <p className="text-xs text-muted-foreground tabular-nums">
-            {formatHours(inv.hours)} hrs × {money(inv.rate)}
+            {formatHours(inv.hours)} hrs × <Money value={inv.rate} currency={j.currency} />
             {Math.abs(inv.total - Math.round(inv.hours * inv.rate * 100) / 100) > 0.005 && ' (agreed total)'}
             {inv.counterHours !== null && ` · tracker at ${formatHours(inv.counterHours)}`}
           </p>
         </div>
-        <Button variant="ghost" size="icon-xs" aria-label="Copy for chat" title="Copy as a message" onClick={() => void copy(invoiceText(inv), 'Bill')}>
-          <Copy />
-        </Button>
+        <Hint label="Copy as a message">
+          <Button variant="ghost" size="icon-xs" aria-label="Copy for chat" onClick={() => void copy(invoiceText(inv), 'Bill')}>
+            <Copy />
+          </Button>
+        </Hint>
         {!readonly && (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label="Bill options" />}>
               <MoreHorizontal />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {inv.status !== 'paid' && !j.archived && (
-                <DropdownMenuItem onClick={() => onPay(j, inv.id)}>
-                  <HandCoins /> Record payment
-                </DropdownMenuItem>
-              )}
-              {/* Invoices go out under the owner's business details. */}
-              {j.access === 'owner' && (
-                <DropdownMenuItem render={<Link to={`/invoices/new?fromBill=${inv.id}`} />}>
-                  <FileText /> Make an invoice
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={() => onBill(j, inv)}>
-                <Pencil /> Edit bill
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => void remove()}>
-                <Trash2 /> Delete bill
-              </DropdownMenuItem>
+              {menuItems}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -498,7 +533,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
 
       <div className="grid gap-1.5">
         <div className="flex items-baseline justify-between gap-2 tabular-nums">
-          <span className="text-xl font-semibold">{inv.status === 'paid' ? money(inv.total) : money(inv.remaining)}</span>
+          <span className="text-xl font-semibold"><Money value={inv.status === 'paid' ? inv.total : inv.remaining} currency={j.currency} /></span>
           <span className="text-xs text-muted-foreground">
             {inv.status === 'paid' ? `paid ${inv.paidAt ? formatShortDate(inv.paidAt) : ''}` : `left of ${money(inv.total)}`}
           </span>
@@ -506,7 +541,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
         <div className="h-1.5 overflow-hidden rounded-full bg-muted">
           <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${Math.round(inv.progress * 100)}%`, ...accentStyle(j.color) }} />
         </div>
-        {inv.overpaid > 0 && <p className="text-xs text-amber-600 dark:text-amber-400">Overpaid by {money(inv.overpaid)}</p>}
+        {inv.overpaid > 0 && <p className="text-xs text-amber-600 dark:text-amber-400">Overpaid by <Money value={inv.overpaid} currency={j.currency} /></p>}
       </div>
 
       {(inv.proofUrl || inv.note) && (
@@ -526,28 +561,28 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
             {shown.map((p) => (
               <li key={p.id} className="group flex items-center gap-2 rounded-md px-2 py-1 odd:bg-muted/40">
                 <span className="w-14 shrink-0 text-muted-foreground tabular-nums">{formatShortDate(p.date)}</span>
-                <span className="text-emerald-600 tabular-nums dark:text-emerald-400">+{money(p.amount)}</span>
+                <span className="text-emerald-600 tabular-nums dark:text-emerald-400">+<Money value={p.amount} currency={j.currency} /></span>
                 {p.receivedAmount && p.receivedCurrency && (
-                  <span
-                    className="shrink-0 text-xs text-muted-foreground tabular-nums"
-                    title={`Landed as ${formatMoney(p.receivedAmount, p.receivedCurrency)} · 1 = ${(p.receivedAmount / p.amount).toFixed(4)}`}
-                  >
-                    → {formatMoney(p.receivedAmount, p.receivedCurrency)}
-                  </span>
+                  <Hint label={`Landed as ${formatMoney(p.receivedAmount, p.receivedCurrency)} ${p.receivedCurrency} · 1 ${j.currency} = ${(p.receivedAmount / p.amount).toFixed(4)} ${p.receivedCurrency}`}>
+                    <span className="shrink-0 cursor-default text-xs text-muted-foreground tabular-nums">
+                      → {formatMoney(p.receivedAmount, p.receivedCurrency)}
+                    </span>
+                  </Hint>
                 )}
                 <span className="flex min-w-0 flex-1 items-center justify-end gap-1 truncate text-xs text-muted-foreground tabular-nums">
                   {p.transactionId && <Link2 className="size-3 shrink-0" aria-label="Linked to a transaction" />}
                   {p.remainingAfter > 0 ? `${money(p.remainingAfter)} left` : 'cleared'}
                 </span>
+                <Hint label={`Copy: ${paymentLine(p)}`}>
                 <button
                   type="button"
                   aria-label="Copy update"
-                  title={paymentLine(p)}
                   className="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
                   onClick={() => void copy(paymentLine(p), 'Update')}
                 >
                   <Copy className="size-3.5" />
                 </button>
+                </Hint>
                 {!readonly && (
                   <button
                     type="button"
@@ -569,6 +604,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
         </div>
       )}
     </div>
+    </WithContextMenu>
   )
 }
 

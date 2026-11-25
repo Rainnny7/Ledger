@@ -1,3 +1,4 @@
+import { Money } from '@/components/money'
 import { ArrowRight, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
@@ -57,9 +58,9 @@ export function GoalsSpotlight() {
                   <GoalStatusPill status={g.status} />
                 </div>
                 <p className="text-sm tabular-nums">
-                  <span className="font-semibold">{formatMoney(g.saved, g.currency)}</span>
-                  <span className="text-muted-foreground"> / {formatMoney(g.target, g.currency)}</span>
-                  <span className="text-muted-foreground"> · {formatMoney(g.remaining, g.currency)} left</span>
+                  <span className="font-semibold"><Money value={g.saved} currency={g.currency} /></span>
+                  <span className="text-muted-foreground"> / <Money value={g.target} currency={g.currency} /></span>
+                  <span className="text-muted-foreground"> · <Money value={g.remaining} currency={g.currency} /> left</span>
                 </p>
               </div>
               {!demoMode && (

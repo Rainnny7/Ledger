@@ -1,3 +1,6 @@
+import { WithContextMenu } from '@/components/app-context-menu'
+import { confirmDialog } from '@/components/confirm-dialog'
+import { Money } from '@/components/money'
 import type { ReactNode } from 'react'
 import { Archive, ArchiveRestore, ChevronDown, Link2, LogOut, MoreHorizontal, Pencil, Plus, Share2, Target, Trash2, Trophy, Users, X } from 'lucide-react'
 import { AnimatedMoney } from '@/components/count-up'
@@ -19,7 +22,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, type Goal, type GoalInput } from '@/lib/api'
 import { demoMode } from '@/lib/demo'
-import { formatDate, formatMoney, formatShortDate, isoDate } from '@/lib/format'
+import { formatDate, formatShortDate, isoDate } from '@/lib/format'
 import { useConverter } from '@/lib/currency'
 import { useGoals } from '@/lib/queries'
 import { cn } from '@/lib/utils'
@@ -68,7 +71,7 @@ export function GoalsPage() {
   }
 
   async function remove(g: Goal) {
-    if (!confirm(`Delete “${g.name}” and its ${g.payments.length} payment${g.payments.length === 1 ? '' : 's'}?`)) return
+    if (!(await confirmDialog({ title: `Delete “${g.name}”?`, description: `Its ${g.payments.length} payment${g.payments.length === 1 ? '' : 's'} are deleted too. This can’t be undone.`, action: 'Delete goal', destructive: true }))) return
     try {
       await api.deleteGoal(g.id)
       toast.success('Goal deleted')
@@ -233,7 +236,44 @@ function GoalCard({
     }
   }
 
+  const menuItems = (
+    <>
+      {!done && !g.archived && canEdit && (
+        <>
+          <DropdownMenuItem onClick={() => onPay(g)}>
+            <Plus /> {g.kind === 'payoff' ? 'Log a payment' : 'Add money'}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+        </>
+      )}
+      {canEdit && (
+        <DropdownMenuItem onClick={() => onEdit(g)}>
+          <Pencil /> Edit
+        </DropdownMenuItem>
+      )}
+      {owner ? (
+        <>
+          <DropdownMenuItem onClick={() => onShare(g)}>
+            <Share2 /> Share
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onArchive(g)}>
+            {g.archived ? <ArchiveRestore /> : <Archive />} {g.archived ? 'Restore' : 'Archive'}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onClick={() => onDelete(g)}>
+            <Trash2 /> Delete
+          </DropdownMenuItem>
+        </>
+      ) : (
+        <DropdownMenuItem variant="destructive" onClick={() => onLeave(g)}>
+          <LogOut /> Remove from my goals
+        </DropdownMenuItem>
+      )}
+    </>
+  )
+
   return (
+    <WithContextMenu menu={menuItems}>
     <Card className="gap-0">
       <CardHeader className="flex items-start gap-3">
         <GoalIcon goal={g} />
@@ -254,29 +294,7 @@ function GoalCard({
             <MoreHorizontal />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {canEdit && (
-              <DropdownMenuItem onClick={() => onEdit(g)}>
-                <Pencil /> Edit
-              </DropdownMenuItem>
-            )}
-            {owner ? (
-              <>
-                <DropdownMenuItem onClick={() => onShare(g)}>
-                  <Share2 /> Share
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onArchive(g)}>
-                  {g.archived ? <ArchiveRestore /> : <Archive />} {g.archived ? 'Restore' : 'Archive'}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={() => onDelete(g)}>
-                  <Trash2 /> Delete
-                </DropdownMenuItem>
-              </>
-            ) : (
-              <DropdownMenuItem variant="destructive" onClick={() => onLeave(g)}>
-                <LogOut /> Remove from my goals
-              </DropdownMenuItem>
-            )}
+            {menuItems}
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
@@ -287,13 +305,13 @@ function GoalCard({
           <div className="min-w-0 flex-1">
             <p className="text-2xl font-semibold tabular-nums">
               <AnimatedMoney value={g.saved} currency={g.currency} />
-              <span className="text-sm font-normal text-muted-foreground"> / {formatMoney(g.target, g.currency)}</span>
+              <span className="text-sm font-normal text-muted-foreground"> / <Money value={g.target} currency={g.currency} /></span>
             </p>
             <p className="mt-0.5 text-sm text-muted-foreground">{goalNudge(g)}</p>
           </div>
           {!done && (
             <div className="shrink-0 text-right">
-              <p className="text-lg font-semibold tabular-nums">{formatMoney(g.remaining, g.currency)}</p>
+              <p className="text-lg font-semibold tabular-nums"><Money value={g.remaining} currency={g.currency} /></p>
               <p className="text-xs text-muted-foreground">{g.kind === 'payoff' ? 'left to pay' : 'left to save'}</p>
             </div>
           )}
@@ -313,7 +331,7 @@ function GoalCard({
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-medium text-muted-foreground uppercase">Payments</h3>
               {g.pacePerMonth > 0 && !done && (
-                <span className="text-xs text-muted-foreground">~{formatMoney(g.pacePerMonth, g.currency)}/month lately</span>
+                <span className="text-xs text-muted-foreground">~<Money value={g.pacePerMonth} currency={g.currency} />/month lately</span>
               )}
             </div>
             <ul className="grid text-sm">
@@ -325,7 +343,7 @@ function GoalCard({
                     <span className="truncate">{p.note}</span>
                   </span>
                   <span className={cn('tabular-nums', p.amount < 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
-                    {formatMoney(p.amount, g.currency, { sign: true })}
+                    <Money value={p.amount} currency={g.currency} sign />
                   </span>
                   {canEdit && (
                   <button
@@ -349,6 +367,7 @@ function GoalCard({
         )}
       </CardContent>
     </Card>
+    </WithContextMenu>
   )
 }
 

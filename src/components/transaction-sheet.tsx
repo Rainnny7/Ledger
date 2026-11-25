@@ -1,3 +1,4 @@
+import { Money } from '@/components/money'
 import { shownRunningBalance, useIncludeOverdraft } from '@/components/account-figures'
 import { Loader2, Repeat, Target } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -122,7 +123,7 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
                     t.amount > 0 && 'text-emerald-600 dark:text-emerald-400',
                   )}
                 >
-                  {formatMoney(t.amount, currency, { sign: true })}
+                  <Money value={t.amount} currency={currency} sign />
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                   <RelativeDate date={t.date} seenAt={t.createdAt} />
@@ -140,7 +141,7 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
                 {t.runningBalance !== null && (
                   <>
                     <dt className="text-muted-foreground">Balance after</dt>
-                    <dd className="tabular-nums">{formatMoney(shownRunningBalance(t, account, includeOverdraft), currency)}</dd>
+                    <dd className="tabular-nums"><Money value={shownRunningBalance(t, account, includeOverdraft)} currency={currency} /></dd>
                   </>
                 )}
                 <dt className="text-muted-foreground">Account</dt>
@@ -272,7 +273,7 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
                       >
                         <span className="text-muted-foreground">{formatLongDate(x.date)}</span>
                         <span className={cn('tabular-nums', x.amount > 0 && 'text-emerald-600 dark:text-emerald-400')}>
-                          {formatMoney(x.amount, currency, { sign: true })}
+                          <Money value={x.amount} currency={currency} sign />
                         </span>
                       </button>
                     </li>

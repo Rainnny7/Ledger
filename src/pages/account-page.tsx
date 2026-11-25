@@ -1,3 +1,4 @@
+import { Money } from '@/components/money'
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Download, History, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
@@ -165,7 +166,7 @@ function AccountView({ account: a, transactions }: { account: Account; transacti
         <Card size="sm">
           <CardHeader>
             <CardDescription>{a.type === 'credit' ? 'Available credit' : 'Available'}</CardDescription>
-            <CardTitle className="text-2xl! font-semibold tabular-nums">{formatMoney(a.available, a.currency)}</CardTitle>
+            <CardTitle className="text-2xl! font-semibold tabular-nums"><Money value={a.available} currency={a.currency} /></CardTitle>
           </CardHeader>
         </Card>
         <Card size="sm">
@@ -175,7 +176,7 @@ function AccountView({ account: a, transactions }: { account: Account; transacti
               {debt ? (
                 formatMoney(a.creditLimit ?? (a.available !== null && a.balance !== null ? a.available + a.balance : null), a.currency)
               ) : (a.overdraftUsed ?? 0) > 0 ? (
-                <span className="text-destructive">{formatMoney(a.overdraftUsed, a.currency)}</span>
+                <span className="text-destructive"><Money value={a.overdraftUsed} currency={a.currency} /></span>
               ) : a.overdraftLimit ? (
                 'Not in use'
               ) : (
@@ -239,11 +240,11 @@ function AccountView({ account: a, transactions }: { account: Account; transacti
             <div className="flex items-center gap-4 text-sm">
               <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                 <ArrowDownLeft className="size-4" />
-                <span className="tabular-nums">{formatMoney(totals.moneyIn, a.currency)}</span>
+                <span className="tabular-nums"><Money value={totals.moneyIn} currency={a.currency} /></span>
               </span>
               <span className="flex items-center gap-1 text-muted-foreground">
                 <ArrowUpRight className="size-4" />
-                <span className="tabular-nums">{formatMoney(totals.moneyOut, a.currency)}</span>
+                <span className="tabular-nums"><Money value={totals.moneyOut} currency={a.currency} /></span>
               </span>
               <Button variant="outline" size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
                 <Download /> CSV

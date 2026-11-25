@@ -1,3 +1,6 @@
+import { DatePicker } from '@/components/date-picker'
+import { Hint } from '@/components/hint'
+import { Money } from '@/components/money'
 import { Loader2, Minus, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -179,7 +182,7 @@ export function GoalDialog({
               </button>
             </div>
             {hasDate ? (
-              <Input id="goal-date" type="date" value={date} min={isoDate()} onChange={(e) => setDate(e.target.value)} required />
+              <DatePicker id="goal-date" value={date} min={isoDate()} onChange={setDate} />
             ) : (
               <p className="text-xs text-muted-foreground">A deadline lets Ledger tell you how much to put aside each week or month.</p>
             )}
@@ -189,10 +192,9 @@ export function GoalDialog({
             <Label>Icon</Label>
             <div className="grid grid-cols-8 gap-1.5">
               {Object.entries(GOAL_ICONS).map(([key, { icon: Icon, label }]) => (
+                <Hint key={key} label={label}>
                 <button
-                  key={key}
                   type="button"
-                  title={label}
                   aria-label={label}
                   aria-pressed={icon === key}
                   onClick={() => setIcon(key)}
@@ -203,6 +205,7 @@ export function GoalDialog({
                 >
                   <Icon className="size-4" />
                 </button>
+                </Hint>
               ))}
             </div>
           </div>
@@ -211,10 +214,9 @@ export function GoalDialog({
             <Label>Colour</Label>
             <div className="flex flex-wrap gap-2">
               {Object.entries(GOAL_COLORS).map(([key, c]) => (
+                <Hint key={key} label={c.label}>
                 <button
-                  key={key}
                   type="button"
-                  title={c.label}
                   aria-label={c.label}
                   aria-pressed={color === key}
                   onClick={() => setColor(key)}
@@ -224,6 +226,7 @@ export function GoalDialog({
                   )}
                   style={accentStyle(key)}
                 />
+                </Hint>
               ))}
             </div>
           </div>
@@ -331,7 +334,7 @@ export function GoalPaymentDialog({ draft, onClose }: { draft: PaymentDraft | nu
           <DialogDescription>
             {goal && (
               <>
-                {goal.name} · {formatMoney(goal.saved, goal.currency)} of {formatMoney(goal.target, goal.currency)}
+                {goal.name} · <Money value={goal.saved} currency={goal.currency} /> of <Money value={goal.target} currency={goal.currency} />
               </>
             )}
           </DialogDescription>
@@ -363,7 +366,7 @@ export function GoalPaymentDialog({ draft, onClose }: { draft: PaymentDraft | nu
               <div className="flex flex-wrap gap-1.5">
                 {quick.map((q) => (
                   <Button key={q.label} type="button" size="xs" variant="secondary" onClick={() => setAmount(String(q.value))}>
-                    {q.label} · {formatMoney(q.value, goal?.currency)}
+                    {q.label} · <Money value={q.value} currency={goal?.currency} />
                   </Button>
                 ))}
               </div>
@@ -373,7 +376,7 @@ export function GoalPaymentDialog({ draft, onClose }: { draft: PaymentDraft | nu
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
             <div className="grid min-w-0 gap-2">
               <Label htmlFor="pay-date">Date</Label>
-              <Input id="pay-date" type="date" value={date} max={isoDate()} onChange={(e) => setDate(e.target.value)} required />
+              <DatePicker id="pay-date" value={date} max={isoDate()} onChange={setDate} />
             </div>
             <div className="grid min-w-0 gap-2">
               <Label htmlFor="pay-note">Note</Label>
@@ -386,7 +389,7 @@ export function GoalPaymentDialog({ draft, onClose }: { draft: PaymentDraft | nu
               <div className="flex justify-between">
                 <span className="text-muted-foreground">After this</span>
                 <span className="font-medium tabular-nums">
-                  {formatMoney(after, goal.currency)} · {pct}%
+                  <Money value={after} currency={goal.currency} /> · {pct}%
                 </span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-muted">

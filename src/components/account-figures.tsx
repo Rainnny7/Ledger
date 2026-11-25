@@ -1,3 +1,4 @@
+import { Money } from '@/components/money'
 import { AnimatedMoney } from '@/components/count-up'
 import { Progress } from '@/components/ui/progress'
 import type { Account, Transaction } from '@/lib/api'
@@ -92,7 +93,7 @@ export function CreditMeter({ account }: { account: Account }) {
       <div className="flex items-baseline justify-between text-xs">
         <span className="text-muted-foreground">Credit used</span>
         <span className="tabular-nums text-muted-foreground">
-          {Math.round((used / limit) * 100)}% of {formatMoney(limit, account.currency)}
+          {Math.round((used / limit) * 100)}% of <Money value={limit} currency={account.currency} />
         </span>
       </div>
       <Progress value={Math.min(100, (used / limit) * 100)} className="h-1.5" />

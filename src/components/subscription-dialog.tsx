@@ -1,3 +1,4 @@
+import { DatePicker } from '@/components/date-picker'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -200,7 +201,7 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
           )}
           <div className="grid min-w-0 gap-2">
             <Label htmlFor="sub-date">Billing date</Label>
-            <Input id="sub-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+            <DatePicker id="sub-date" value={date} onChange={setDate} />
             <p className="text-xs text-muted-foreground">Any past or upcoming charge date — the next one is worked out for you.</p>
           </div>
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">

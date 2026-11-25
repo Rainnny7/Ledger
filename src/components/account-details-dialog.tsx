@@ -1,3 +1,4 @@
+import { Hint } from '@/components/hint'
 import { Check, Copy, Eye, EyeOff, Landmark, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -26,16 +27,17 @@ export function AccountDetailsButton({
   const [open, setOpen] = useState(false)
   return (
     <>
-      <Button
-        variant={variant}
-        size={size}
-        className={className}
-        aria-label="Direct deposit & limits"
-        title="Direct deposit & limits"
-        onClick={() => setOpen(true)}
-      >
-        <Landmark /> <span className={labelClassName}>Direct deposit & limits</span>
-      </Button>
+      <Hint label="Direct deposit & limits">
+        <Button
+          variant={variant}
+          size={size}
+          className={className}
+          aria-label="Direct deposit & limits"
+          onClick={() => setOpen(true)}
+        >
+          <Landmark /> <span className={labelClassName}>Direct deposit & limits</span>
+        </Button>
+      </Hint>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

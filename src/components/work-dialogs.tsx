@@ -1,3 +1,6 @@
+import { DatePicker } from '@/components/date-picker'
+import { Hint } from '@/components/hint'
+import { Money } from '@/components/money'
 import { Clock, Copy, Loader2, Timer } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -146,16 +149,16 @@ export function WorkJobDialog({ open, job, onClose }: { open: boolean; job?: Wor
             <Label>Colour</Label>
             <div className="flex flex-wrap gap-2">
               {Object.entries(GOAL_COLORS).map(([key, c]) => (
+                <Hint key={key} label={c.label}>
                 <button
-                  key={key}
                   type="button"
-                  title={c.label}
                   aria-label={c.label}
                   aria-pressed={color === key}
                   onClick={() => setColor(key)}
                   className={cn('size-7 rounded-full ring-offset-2 ring-offset-background transition-transform hover:scale-110', color === key && 'ring-2 ring-foreground/70')}
                   style={accentStyle(key)}
                 />
+                </Hint>
               ))}
             </div>
           </div>
@@ -234,7 +237,7 @@ export function WorkEntryDialog({ job, onClose }: { job: WorkJob | null; onClose
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
             <div className="grid min-w-0 gap-2">
               <Label htmlFor="entry-date">Date</Label>
-              <Input id="entry-date" type="date" value={date} max={isoDate()} onChange={(e) => setDate(e.target.value)} required />
+              <DatePicker id="entry-date" value={date} max={isoDate()} onChange={setDate} />
             </div>
             <div className="grid min-w-0 gap-2">
               <Label htmlFor="entry-note">Note</Label>
@@ -434,7 +437,7 @@ export function WorkInvoiceDialog({ draft, onClose }: { draft: InvoiceDraft | nu
           </div>
           {totalTouched && autoTotal !== null && totalN !== null && Math.abs(totalN - autoTotal) > 0.005 && (
             <p className="-mt-2 text-xs text-muted-foreground">
-              Agreed total — {formatMoney(autoTotal, job?.currency)} at the hourly rate.
+              Agreed total — <Money value={autoTotal} currency={job?.currency} /> at the hourly rate.
             </p>
           )}
 
@@ -453,7 +456,7 @@ export function WorkInvoiceDialog({ draft, onClose }: { draft: InvoiceDraft | nu
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-3">
             <div className="grid min-w-0 gap-2">
               <Label htmlFor="inv-date">Billed on</Label>
-              <Input id="inv-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              <DatePicker id="inv-date" value={date} onChange={setDate} />
             </div>
             <div className="grid min-w-0 gap-2">
               <Label htmlFor="inv-proof">Proof link</Label>
@@ -587,7 +590,7 @@ export function WorkPaymentDialog({ draft, onClose }: { draft: WorkPaymentDraft 
           <DialogDescription>
             {job && (
               <>
-                {job.name} · {formatMoney(job.owed, job.currency)} owed
+                {job.name} · <Money value={job.owed} currency={job.currency} /> owed
               </>
             )}
           </DialogDescription>
@@ -631,7 +634,7 @@ export function WorkPaymentDialog({ draft, onClose }: { draft: WorkPaymentDraft 
                 <div className="flex flex-wrap gap-1.5">
                   {quick.map((q) => (
                     <Button key={q.label} type="button" size="xs" variant="secondary" onClick={() => setAmount(String(q.value))}>
-                      {q.label} · {formatMoney(q.value, job?.currency)}
+                      {q.label} · <Money value={q.value} currency={job?.currency} />
                     </Button>
                   ))}
                 </div>
@@ -641,7 +644,7 @@ export function WorkPaymentDialog({ draft, onClose }: { draft: WorkPaymentDraft 
             <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
               <div className="grid min-w-0 gap-2">
                 <Label htmlFor="wp-date">Date</Label>
-                <Input id="wp-date" type="date" value={date} max={isoDate()} onChange={(e) => setDate(e.target.value)} required />
+                <DatePicker id="wp-date" value={date} max={isoDate()} onChange={setDate} />
               </div>
               <div className="grid min-w-0 gap-2">
                 <Label htmlFor="wp-note">Note</Label>
@@ -696,7 +699,7 @@ export function WorkPaymentDialog({ draft, onClose }: { draft: WorkPaymentDraft 
                     style={{ width: `${Math.min(100, ((invoice.total - Math.max(0, after)) / (invoice.total || 1)) * 100)}%`, ...accentStyle(job!.color) }}
                   />
                 </div>
-                {after < -0.005 && <p className="text-xs text-amber-600 dark:text-amber-400">That’s {formatMoney(-after, job?.currency)} more than this bill needs.</p>}
+                {after < -0.005 && <p className="text-xs text-amber-600 dark:text-amber-400">That’s <Money value={-after} currency={job?.currency} /> more than this bill needs.</p>}
               </div>
             )}
 

@@ -1,3 +1,5 @@
+import { DatePicker } from '@/components/date-picker'
+import { confirmDialog } from '@/components/confirm-dialog'
 import { Check, Copy, Download, ExternalLink, Loader2, Mail, RefreshCw, Send, Share2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -142,7 +144,7 @@ export function ShareDialog({ invoice, methods, onClose }: { invoice: Invoice | 
   }
 
   async function resetLink() {
-    if (!confirm('Make a new link? The old one stops working, so anyone you sent it to will need the new one.')) return
+    if (!(await confirmDialog({ title: 'Make a new link?', description: 'The old one stops working, so anyone you sent it to will need the new one.', action: 'Make new link' }))) return
     setBusy('reset')
     try {
       await api.resetInvoiceLink(inv.id)
@@ -282,17 +284,29 @@ export function RecordPaymentDialog({ invoice, methods, onClose }: { invoice: In
             </div>
             <div className="grid min-w-0 gap-2">
               <Label htmlFor="pay-date">Date</Label>
-              <Input id="pay-date" type="date" value={date} max={isoDate()} onChange={(e) => setDate(e.target.value)} required />
+              <DatePicker id="pay-date" value={date} max={isoDate()} onChange={setDate} />
             </div>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="pay-method">Paid by</Label>
-            <Input id="pay-method" list="pay-methods" value={method} maxLength={60} onChange={(e) => setMethod(e.target.value)} placeholder="e.g. e-Transfer" />
-            <datalist id="pay-methods">
-              {labels.map((l) => (
-                <option key={l} value={l} />
-              ))}
-            </datalist>
+            <Input id="pay-method" value={method} maxLength={60} onChange={(e) => setMethod(e.target.value)} placeholder="e.g. e-Transfer" autoComplete="off" />
+            {labels.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {labels.slice(0, 6).map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => setMethod(l)}
+                    className={cn(
+                      'h-6 rounded-full border px-2.5 text-xs transition-colors hover:bg-muted',
+                      method === l && 'border-primary bg-primary/10 text-primary hover:bg-primary/15',
+                    )}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="pay-note">Note</Label>
