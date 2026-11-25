@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import {
 	type Account,
 	api,
@@ -205,7 +206,7 @@ export function useSubscriptionForm(
 			onSaved?.()
 			onClose()
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setSaving(false)
 		}

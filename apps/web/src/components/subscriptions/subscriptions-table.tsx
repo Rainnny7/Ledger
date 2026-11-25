@@ -11,6 +11,7 @@ import {
 	Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { subscriptionDueLabel } from "@/components/subscriptions/subscription-utils"
 import { CategoryIcon } from "@/components/transactions/tx-bits"
 import { Badge } from "@/components/ui/badge"
@@ -53,7 +54,7 @@ async function toggleSubscription(subscription: Subscription) {
 				: `${subscription.name} resumed`
 		)
 	} catch (error) {
-		toast.error((error as Error).message)
+		toastError((error as Error).message)
 	}
 }
 
@@ -73,7 +74,7 @@ async function removeSubscription(subscription: Subscription) {
 		await api.deleteSubscription(subscription.id)
 		toast.success(`${subscription.name} removed`)
 	} catch (error) {
-		toast.error((error as Error).message)
+		toastError((error as Error).message)
 	}
 }
 

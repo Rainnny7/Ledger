@@ -17,6 +17,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card"
+import { QueryError } from "@/components/ui/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
 
 /** Recurring charges, upcoming payments, and calendar view. */
@@ -40,8 +41,11 @@ export function SubscriptionsPage() {
 				</Button>
 			</div>
 
-			{page.error && (
-				<p className="text-sm text-destructive">{page.error.message}</p>
+			{page.error && !page.data && (
+				<QueryError
+					message={page.error.message}
+					onRetry={() => void page.reload()}
+				/>
 			)}
 
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

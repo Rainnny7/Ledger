@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { parseAsString, useQueryState, useQueryStates } from "nuqs"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import type { SubscriptionDraft } from "@/components/subscriptions/subscription-form"
 import { subscriptionOccurrences } from "@/components/subscriptions/subscription-utils"
 import { splitShared } from "@/lib/sharing"
@@ -14,7 +15,7 @@ async function dismissSuggestion(suggestion: RecurringSuggestion) {
 	try {
 		await api.dismissSuggestion(suggestion.id)
 	} catch (error) {
-		toast.error((error as Error).message)
+		toastError((error as Error).message)
 	}
 }
 
@@ -23,7 +24,7 @@ async function dismissSuggestion(suggestion: RecurringSuggestion) {
  * prefill/focus and the edit, share and track flows.
  */
 export function useSubscriptionsPage() {
-	const { data, loading, error } = useSubscriptions()
+	const { data, loading, error, reload } = useSubscriptions()
 	const overview = useOverview()
 	const [focusParam] = useQueryState("focus", parseAsString.withDefault(""))
 	const [prefill, setPrefill] = useQueryStates(
@@ -169,7 +170,7 @@ export function useSubscriptionsPage() {
 			})
 			toast.success(`Tracking ${suggestion.name}`)
 		} catch (caughtError) {
-			toast.error((caughtError as Error).message)
+			toastError((caughtError as Error).message)
 		}
 	}
 
@@ -177,6 +178,7 @@ export function useSubscriptionsPage() {
 		data,
 		loading,
 		error,
+		reload,
 		accounts,
 		suggestions,
 		active,
