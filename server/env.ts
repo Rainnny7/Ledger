@@ -53,4 +53,8 @@ export const env = {
   /** The fallback when live rates fail: Frankfurter's daily ECB reference rates. */
   fxRatesUrl:
     process.env.FX_RATES_URL ?? "https://api.frankfurter.dev/v1/latest",
+  /** GitHub `owner/repo` checked for newer releases (private repos fail quietly). */
+  updateRepo: process.env.UPDATE_REPO ?? "rainnny7/ledger",
+  /** Set UPDATE_CHECK=false to skip polling GitHub. */
+  updateCheck: process.env.UPDATE_CHECK !== "false",
 }

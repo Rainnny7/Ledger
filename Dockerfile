@@ -19,7 +19,8 @@ FROM node:24-slim
 ENV NODE_ENV=production \
     PORT=3001 \
     DATA_DIR=/data \
-    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    LEDGER_INSTALL=docker
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
