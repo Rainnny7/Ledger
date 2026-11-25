@@ -241,3 +241,10 @@
 @utility bg-sunset {
   background-image: linear-gradient(135deg, var(--sunset-peach) 0%, var(--sunset-pink) 55%, var(--sunset-violet) 100%);
 }
+
+/* Theme switch: the new theme is revealed by a circle the toggle animates, not a cross-fade. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
