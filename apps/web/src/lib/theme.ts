@@ -6,7 +6,7 @@
 import { useTheme } from "next-themes"
 import { useCallback, useEffect, useRef } from "react"
 import { flushSync } from "react-dom"
-import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import {
 	isThemeChoice,
 	type ThemeChoice,
@@ -64,14 +64,18 @@ export function useAppTheme() {
 					.updateUser({ theme: next })
 					.then(({ error }) => {
 						if (error) {
-							toast.error(
+							toastError(
 								error.message ?? "Couldn’t save your theme"
 							)
 						}
 					})
 			}
 
-			if (!origin || reducedMotion() || !("startViewTransition" in document)) {
+			if (
+				!origin ||
+				reducedMotion() ||
+				!("startViewTransition" in document)
+			) {
 				apply()
 				return
 			}

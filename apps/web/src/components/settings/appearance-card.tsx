@@ -104,7 +104,9 @@ export function AppearanceCard() {
 								type="button"
 								role="radio"
 								aria-checked={selected}
-								onClick={(event) => change(option.id, event.currentTarget)}
+								onClick={(event) =>
+									change(option.id, event.currentTarget)
+								}
 								className={cn(
 									"grid gap-2.5 rounded-xl border p-2.5 text-left transition-colors outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50",
 									selected &&
