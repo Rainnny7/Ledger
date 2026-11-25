@@ -9,6 +9,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card"
+import { QueryError } from "@/components/ui/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { Transaction } from "@/lib/api"
 import { useSession } from "@/lib/auth-client"
@@ -210,8 +211,11 @@ export function TaxesPage() {
 				</div>
 			</div>
 
-			{txq.error && (
-				<p className="text-sm text-destructive">{txq.error.message}</p>
+			{txq.error && !txq.data && (
+				<QueryError
+					message={txq.error.message}
+					onRetry={() => void txq.reload()}
+				/>
 			)}
 
 			<TaxSummaryCard

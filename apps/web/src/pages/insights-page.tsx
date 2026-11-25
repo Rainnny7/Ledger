@@ -1,3 +1,4 @@
+import { QueryError } from "@/components/ui/query-error"
 import { X } from "lucide-react"
 import { AnimatedMoney } from "@/components/common/count-up"
 import { CashflowChart, CategoryBars } from "@/components/common/charts"
@@ -49,10 +50,11 @@ export function InsightsPage() {
 				/>
 			</div>
 
-			{page.txq.error && (
-				<p className="text-sm text-destructive">
-					{page.txq.error.message}
-				</p>
+			{page.txq.error && !page.txq.data && (
+				<QueryError
+					message={page.txq.error.message}
+					onRetry={() => void page.txq.reload()}
+				/>
 			)}
 
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
