@@ -48,6 +48,7 @@ import {
   type ForwardRefExoticComponent,
   type RefAttributes,
   useEffect,
+  useRef,
 } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 
@@ -100,7 +101,7 @@ function NavItem({
       aria-current={active ? "page" : undefined}
       {...icon.handlers}
       className={cn(
-        "flex h-8 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+        "flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm sm:gap-2 sm:px-2.5 font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
         active &&
           "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
       )}
@@ -117,6 +118,67 @@ function NavItem({
       )}
     </NavLink>
     </WithContextMenu>
+  );
+}
+
+/**
+ * The main nav. When the links don't fit (small phones) it scrolls sideways, fading out the edge
+ * on whichever side has more links, and keeps the current page's link in view.
+ */
+function ScrollNav({
+  pathname,
+  children,
+}: {
+  pathname: string;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const nav = ref.current;
+    if (!nav) return;
+    const update = () => {
+      const max = nav.scrollWidth - nav.clientWidth;
+      nav.style.setProperty("--fade-l", nav.scrollLeft > 1 ? "1.5rem" : "0px");
+      nav.style.setProperty(
+        "--fade-r",
+        nav.scrollLeft < max - 1 ? "1.5rem" : "0px",
+      );
+    };
+    update();
+    nav.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(nav);
+    for (const child of Array.from(nav.children)) observer.observe(child);
+    return () => {
+      nav.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, []);
+
+  // Bring the current page's link into view, without moving the page itself.
+  useEffect(() => {
+    const nav = ref.current;
+    const link = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !link) return;
+    const pad = 24;
+    const left = link.offsetLeft;
+    const right = left + link.offsetWidth;
+    if (left - pad < nav.scrollLeft) {
+      nav.scrollTo({ left: left - pad, behavior: "smooth" });
+    } else if (right + pad > nav.scrollLeft + nav.clientWidth) {
+      nav.scrollTo({ left: right + pad - nav.clientWidth, behavior: "smooth" });
+    }
+  }, [pathname]);
+
+  return (
+    <nav
+      ref={ref}
+      aria-label="Main"
+      className="relative flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [--fade-l:0px] [--fade-r:0px] [mask-image:linear-gradient(to_right,transparent,#000_var(--fade-l),#000_calc(100%-var(--fade-r)),transparent)] sm:gap-1 [&::-webkit-scrollbar]:hidden"
+    >
+      {children}
+    </nav>
   );
 }
 
@@ -251,11 +313,11 @@ export function AppShell() {
         </div>
       )}
       <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
-          <Link to="/" aria-label="Ledger home">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-3 sm:gap-4 sm:px-4">
+          <Link to="/" aria-label="Ledger home" className="shrink-0">
             <Brand hideNameOnMobile />
           </Link>
-          <nav className="flex flex-1 items-center gap-1" aria-label="Main">
+          <ScrollNav pathname={pathname}>
             {NAV.map((item) => (
               <NavItem
                 key={item.to}
@@ -269,8 +331,8 @@ export function AppShell() {
                 }
               />
             ))}
-          </nav>
-          <div className="flex items-center gap-1">
+          </ScrollNav>
+          <div className="flex shrink-0 items-center gap-1">
             <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger
