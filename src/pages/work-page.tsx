@@ -510,7 +510,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
         </>
       }
     >
-    <div className="grid gap-3 rounded-xl border p-4">
+    <div className="grid min-w-0 gap-3 rounded-xl border p-4">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-sm font-medium">
@@ -560,7 +560,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
               <ExternalLink className="size-3" /> Proof
             </a>
           )}
-          {inv.note && <span className="truncate">{inv.note}</span>}
+          {inv.note && <span className="min-w-0 break-words whitespace-pre-line">{inv.note}</span>}
         </div>
       )}
 
