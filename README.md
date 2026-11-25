@@ -19,6 +19,7 @@ I wanted one place to see my transactions, how much I'm earning, what subscripti
 - **Subscriptions**: track recurring payments on any schedule, see them on a calendar, and get suggestions for recurring charges it spots in your transactions.
 - **Goals**: save up for something or pay something off. Log payments as you go and it tells you what you need to put in each month to hit your deadline.
 - **Work**: log hours for side work, bill them, and track each payment until you're paid in full.
+- **Invoices**: make an invoice from scratch or from a Work bill in a few clicks, pick from three PDF designs, and choose how you want to be paid (e-Transfer, PayPal.me, PayPal checkout, crypto, bank transfer, cash and more). Share a link the client can open without signing in, or send them the PDF. Payments made through PayPal checkout are marked paid on the spot.
 - **Automatic refresh**: saved connections are refreshed every 6 hours in the background.
 - **Multi-user**: the first account is the admin. Admins can add users, open or close sign-ups, and see an audit log. Two-factor sign-in is supported.
 - **Demo mode**: fills every page with made-up data, handy for showing it off (the screenshots here use it).
@@ -71,6 +72,11 @@ bun run build && bun run start     # serves the app and API from one port
 
 **PayPal.** Uses PayPal's official REST API. Create a **Live** app on [developer.paypal.com](https://developer.paypal.com/dashboard/applications/live) with a Business account, turn on **Transaction Search**, and paste the app's Client ID and Secret into Ledger.
 
+**PayPal instant updates (optional).** Choose **Turn on instant updates** from the connection's menu and Ledger registers a webhook with your PayPal app. Two limits apply:
+
+- PayPal [webhooks](https://developer.paypal.com/api/rest/webhooks/) only fire for payments that go through your REST app, such as invoice checkouts. Everything else still comes in through the Transaction Search sync, which PayPal can lag by about 3 hours.
+- PayPal has to be able to reach the server, so `PUBLIC_URL` must be a public `https://` address (for example a tunnel or your own domain).
+
 ## Security
 
 - Your bank password is only saved if you tick **Save credentials**. Saved credentials, API keys and account numbers are encrypted with AES-256-GCM using `APP_SECRET` (generated into `data/.secret` if you don't set one).
@@ -86,6 +92,7 @@ All optional. See [`.env.example`](.env.example).
 | --- | --- | --- |
 | `PORT` | `3001` | API port |
 | `APP_URL` | `http://localhost:5173` | Public URL of the app |
+| `PUBLIC_URL` | `APP_URL` | Address used for invoice share links and PayPal webhooks (must be public `https://` for webhooks) |
 | `APP_SECRET` | generated | Signs sessions and encrypts saved credentials |
 | `DATA_DIR` | `./data` | Where the database lives |
 | `TD_HEADLESS` | `true` | `false` to watch the browser sign in |
