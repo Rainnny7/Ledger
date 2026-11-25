@@ -4,7 +4,10 @@
  * One scheduler tick a minute checks which tasks are due. A task never runs twice at once, and
  * its last run (when, how long, what happened) is kept in app_setting so it survives restarts.
  */
+import { mkdirSync, readdirSync, rmSync, statSync } from 'node:fs'
+import path from 'node:path'
 import { db, getSetting, setSetting } from './db.ts'
+import { DATA_DIR } from './env.ts'
 import { DEMO_USER_ID } from './demo.ts'
 import { syncInBackground } from './banks/sessions.ts'
 import { refreshRates } from './fx.ts'
@@ -85,6 +88,40 @@ async function tidyUp(): Promise<string> {
   return `Removed ${Number(sessions)} expired session${sessions === 1 ? '' : 's'} and ${Number(codes)} expired code${codes === 1 ? '' : 's'}`
 }
 
+export const BACKUP_DIR = path.join(DATA_DIR, 'backups')
+/** How many daily copies to keep. */
+const BACKUPS_KEPT = Number(process.env.BACKUPS_KEPT ?? 14)
+
+/** Backups on disk, newest first. */
+export function listBackups() {
+  try {
+    return readdirSync(BACKUP_DIR)
+      .filter((f) => /^ledger-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.db$/.test(f))
+      .map((name) => {
+        const st = statSync(path.join(BACKUP_DIR, name))
+        return { name, size: st.size, createdAt: st.mtime.toISOString() }
+      })
+      .sort((a, b) => b.name.localeCompare(a.name))
+  } catch {
+    return []
+  }
+}
+
+/**
+ * A consistent copy of the whole database (VACUUM INTO is safe while the app is writing). Saved
+ * bank details stay encrypted in it, so restoring needs the same APP_SECRET / data/.secret.
+ */
+async function backUp(): Promise<string> {
+  mkdirSync(BACKUP_DIR, { recursive: true })
+  const name = `ledger-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.db`
+  const file = path.join(BACKUP_DIR, name)
+  db.prepare('VACUUM INTO ?').run(file)
+  const old = listBackups().slice(Math.max(1, BACKUPS_KEPT))
+  for (const b of old) rmSync(path.join(BACKUP_DIR, b.name), { force: true })
+  const mb = (statSync(file).size / 1024 / 1024).toFixed(1)
+  return `Saved ${name} (${mb} MB)${old.length ? ` · removed ${old.length} older` : ''}`
+}
+
 const TASKS: Task[] = [
   {
     id: 'bank-refresh',
@@ -101,6 +138,14 @@ const TASKS: Task[] = [
       'Fetches live mid-market exchange rates (from Coinbase) used to show amounts in each person’s own currency. If those can’t be reached it uses the European Central Bank’s daily reference rates instead, and if both fail the last good rates stay in use.',
     intervalMs: HOUR,
     run: refreshRates,
+  },
+  {
+    id: 'backup',
+    label: 'Back up database',
+    description:
+      'Saves a copy of the whole database to data/backups, keeping the most recent 14 (BACKUPS_KEPT). Download one from Admin → Tasks. Restoring needs the same APP_SECRET, since saved bank details stay encrypted.',
+    intervalMs: 24 * HOUR,
+    run: backUp,
   },
   {
     id: 'tidy-up',

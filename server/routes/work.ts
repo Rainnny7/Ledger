@@ -4,16 +4,13 @@ import { z } from 'zod'
 import { currencyCode, isoDate } from '../validation.ts'
 import type { auth } from '../auth.ts'
 import { db } from '../db.ts'
+import { todayIso } from '../today.ts'
 import { access, canEdit, forgetItem, listWithShared, viewOne } from '../sharing.ts'
 import { summarizeJob, type WorkEntryRow, type WorkInvoiceRow, type WorkJobRow, type WorkPaymentRow } from '../finance/work.ts'
 
 type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
 export const work = new Hono<Vars>()
 
-function todayIso() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 const round2 = (n: number) => Math.round(n * 100) / 100
 const MAX_MONEY = 100_000_000
 

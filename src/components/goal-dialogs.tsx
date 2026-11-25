@@ -2,7 +2,7 @@ import { DatePicker } from '@/components/date-picker'
 import { Hint } from '@/components/hint'
 import { Money } from '@/components/money'
 import { Loader2, Minus, Plus } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { CurrencySelect } from '@/components/currency-select'
 import { GOAL_COLORS, GOAL_ICONS, GoalIcon, accentStyle } from '@/components/goal-bits'
@@ -56,8 +56,14 @@ export function GoalDialog({
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
+  // Fill the form each time it opens (during render, so it never flashes the previous goal).
+  const formFor = open ? (goal ?? preset ?? 'new') : null
+  const [filledFor, setFilledFor] = useState<typeof formFor>(null)
+  if (formFor !== filledFor) {
+    setFilledFor(formFor)
+    if (open) fill()
+  }
+  function fill() {
     const src = goal ?? preset ?? {}
     setName(src.name ?? '')
     setKind(src.kind ?? 'save')
@@ -71,7 +77,7 @@ export function GoalDialog({
     setIcon(src.icon ?? 'target')
     setColor(src.color ?? 'sunset')
     setNotes(src.notes ?? '')
-  }, [open, goal, preset])
+  }
 
   const targetN = Number(target)
   const startN = Number(starting || 0)
@@ -275,13 +281,16 @@ export function GoalPaymentDialog({ draft, onClose }: { draft: PaymentDraft | nu
   const [saving, setSaving] = useState(false)
   const goal = draft?.goal
 
-  useEffect(() => {
-    if (!draft) return
-    setDirection('in')
-    setAmount(draft.amount ? String(Math.abs(draft.amount)) : '')
-    setDate(draft.date ?? isoDate())
-    setNote(draft.note ?? '')
-  }, [draft])
+  const [filledFrom, setFilledFrom] = useState<typeof draft>(null)
+  if (draft !== filledFrom) {
+    setFilledFrom(draft)
+    if (draft) {
+      setDirection('in')
+      setAmount(draft.amount ? String(Math.abs(draft.amount)) : '')
+      setDate(draft.date ?? isoDate())
+      setNote(draft.note ?? '')
+    }
+  }
 
   const value = Number(amount)
   const valid = Number.isFinite(value) && value > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date)

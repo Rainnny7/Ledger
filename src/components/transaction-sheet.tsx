@@ -1,7 +1,7 @@
 import { Money } from '@/components/money'
 import { shownRunningBalance, useIncludeOverdraft } from '@/components/account-figures'
 import { Loader2, Repeat, Target } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { GoalIcon } from '@/components/goal-bits'
@@ -48,12 +48,15 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
   // Goals this transaction has already been counted toward.
   const linked = t ? (goals ?? []).filter((g) => g.payments.some((p) => p.transactionId === t.id)) : []
 
-  useEffect(() => {
-    if (!t) return
-    setCategory(t.category)
-    setApplyAll(t.categorySource === 'rule')
-    setNote(t.note ?? '')
-  }, [t])
+  const [filledFrom, setFilledFrom] = useState<typeof t>(null)
+  if (t !== filledFrom) {
+    setFilledFrom(t)
+    if (t) {
+      setCategory(t.category)
+      setApplyAll(t.categorySource === 'rule')
+      setNote(t.note ?? '')
+    }
+  }
 
   const account = accounts.find((a) => a.id === t?.accountId)
   const includeOverdraft = useIncludeOverdraft()

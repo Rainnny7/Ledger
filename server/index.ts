@@ -1,4 +1,4 @@
-import { existsSync, rmSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
 import path from 'node:path'
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
@@ -19,7 +19,8 @@ import { invoices, publicInvoices } from './routes/invoices.ts'
 import { handlePaypalWebhook } from './banks/paypal/webhooks.ts'
 import { sharing } from './routes/sharing.ts'
 import { work } from './routes/work.ts'
-import { hasTask, listTasks, runTask, startScheduler } from './tasks.ts'
+import { inTimeZone } from './today.ts'
+import { BACKUP_DIR, hasTask, listBackups, listTasks, runTask, startScheduler } from './tasks.ts'
 
 await migrateAuthTables()
 migrateAppTables()
@@ -97,7 +98,8 @@ app.use('/api/banks/*', async (c, next) => {
   } else {
     c.set('user', session.user)
   }
-  await next()
+  // "Today" in the caller's time zone, for due dates and deadlines.
+  await inTimeZone(c.req.header('x-timezone'), next)
 })
 app.route('/api/banks', banks)
 app.route('/api/banks', finance)
@@ -154,6 +156,19 @@ app.post('/api/admin/tasks/:id/run', (c) => {
   // It can take minutes (a browser per bank); the page polls for the result.
   void runTask(id, 'manual')
   return c.json({ tasks: listTasks() }, 202)
+})
+app.get('/api/admin/backups', (c) => c.json({ backups: listBackups() }))
+app.get('/api/admin/backups/:name', (c) => {
+  const name = c.req.param('name')
+  // Only names the backup task writes, so the path can't leave the backups folder.
+  if (!listBackups().some((b) => b.name === name)) return c.json({ error: 'Not found' }, 404)
+  const user = c.var.user
+  audit({ kind: 'admin', ip: c.req.header(CLIENT_IP_HEADER), actorId: user.id, actorEmail: user.email, action: 'Downloaded backup', detail: name })
+  const bytes = readFileSync(path.join(BACKUP_DIR, name))
+  return c.body(bytes, 200, {
+    'Content-Type': 'application/vnd.sqlite3',
+    'Content-Disposition': `attachment; filename="${name}"`,
+  })
 })
 app.get('/api/admin/audit', (c) => {
   const kind = c.req.query('kind')

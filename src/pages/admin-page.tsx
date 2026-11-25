@@ -1,12 +1,8 @@
-import { Hint } from '@/components/hint'
 import { useQuery } from '@tanstack/react-query'
 import {
   Ban,
-  CirclePlay,
-  ListChecks,
   Crown,
   Dices,
-  History,
   KeyRound,
   Loader2,
   LogOut,
@@ -18,7 +14,7 @@ import {
   UserCheck,
   UserPlus,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -39,12 +35,12 @@ import { Label } from '@/components/ui/label'
 import { isStrongPassword, PASSWORD_MAX, PasswordRules } from '@/components/password-rules'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { authClient, useSession } from '@/lib/auth-client'
 import { setDemoMode } from '@/lib/demo'
-import { formatRelative, formatTimestamp } from '@/lib/format'
 import { queryClient } from '@/lib/queries'
-import { cn } from '@/lib/utils'
+import { adminFetch, auditKey } from '@/lib/admin'
+import { ActivityCard } from '@/components/admin-activity'
+import { BackupsCard, TasksCard } from '@/components/admin-tasks'
 
 /** The server's built-in demo user; it holds the sample data, not a real account. */
 const DEMO_EMAIL = 'demo@ledger.invalid'
@@ -62,25 +58,11 @@ interface AdminUser {
 
 const usersKey = ['admin', 'users'] as const
 const settingsKey = ['admin', 'settings'] as const
-const auditKey = ['admin', 'audit'] as const
 
 interface AdminSettings {
   registrationOpen: boolean
   /** The account that set this Ledger up: only it can manage admins or its own account. */
   ownerId: string | null
-}
-
-const tasksKey = ['admin', 'tasks'] as const
-
-interface AuditEntry {
-  id: string
-  at: string
-  kind: 'admin' | 'auth'
-  ip: string | null
-  actorEmail: string | null
-  action: string
-  targetEmail: string | null
-  detail: string | null
 }
 
 export function AdminPage() {
@@ -96,23 +78,13 @@ export function AdminPage() {
       </div>
       <UsersCard />
       <TasksCard />
+      <BackupsCard />
       <ActivityCard />
     </div>
   )
 }
 
 // ---------------------------------------------------------------- instance settings
-
-async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api/admin/${path}`, {
-    ...init,
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error((data as { error?: string }).error ?? 'Request failed')
-  return data as T
-}
 
 const useAdminSettings = () => useQuery({ queryKey: settingsKey, queryFn: () => adminFetch<AdminSettings>('settings') })
 
@@ -713,174 +685,5 @@ function ConfirmDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-// ---------------------------------------------------------------- audit log
-
-interface TaskInfo {
-  id: string
-  label: string
-  description: string
-  intervalMs: number
-  running: boolean
-  nextRunAt: string | null
-  lastRun: {
-    startedAt: string
-    finishedAt: string | null
-    durationMs: number | null
-    status: 'running' | 'ok' | 'error'
-    summary: string | null
-    trigger: 'schedule' | 'manual'
-  } | null
-}
-
-const every = (ms: number) => {
-  const h = ms / 3_600_000
-  return h >= 24 && h % 24 === 0 ? (h === 24 ? 'Daily' : `Every ${h / 24} days`) : `Every ${h} hours`
-}
-const took = (ms: number) => (ms < 1000 ? `${ms} ms` : ms < 60_000 ? `${Math.round(ms / 1000)} s` : `${Math.round(ms / 60_000)} min`)
-
-function TasksCard() {
-  const tasks = useQuery({
-    queryKey: tasksKey,
-    queryFn: () => adminFetch<{ tasks: TaskInfo[] }>('tasks'),
-    // Keep checking while something runs, so the result shows up when it's done.
-    refetchInterval: (q) => (q.state.data?.tasks.some((t) => t.running) ? 3000 : 60_000),
-  })
-  const [starting, setStarting] = useState<string | null>(null)
-  // When the exchange-rate task finishes, pick up the new rates everywhere in the app.
-  const fxFinished = tasks.data?.tasks.find((t) => t.id === 'fx-rates')?.lastRun?.finishedAt
-  useEffect(() => {
-    if (fxFinished) void queryClient.invalidateQueries({ queryKey: ['fx'] })
-  }, [fxFinished])
-
-  async function run(t: TaskInfo) {
-    setStarting(t.id)
-    try {
-      const data = await adminFetch<{ tasks: TaskInfo[] }>(`tasks/${t.id}/run`, { method: 'POST' })
-      queryClient.setQueryData(tasksKey, data)
-      void queryClient.invalidateQueries({ queryKey: auditKey })
-      toast.success(`${t.label} started`)
-    } catch (err) {
-      toast.error((err as Error).message)
-    } finally {
-      setStarting(null)
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ListChecks className="size-4 text-muted-foreground" /> Tasks
-        </CardTitle>
-        <CardDescription>Jobs that run in the background on their own. Run one now if you don’t want to wait.</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-2">
-        {tasks.isPending && <Skeleton className="h-16 w-full" />}
-        {tasks.error && <p className="text-sm text-destructive">{tasks.error.message}</p>}
-        {tasks.data?.tasks.map((t) => {
-          const last = t.lastRun
-          return (
-            <div key={t.id} className="flex flex-wrap items-start gap-3 rounded-lg border p-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{t.label}</span>
-                  <Badge variant="secondary">{every(t.intervalMs)}</Badge>
-                  {t.running ? (
-                    <Badge variant="outline" className="gap-1">
-                      <Loader2 className="size-3 animate-spin" /> Running
-                    </Badge>
-                  ) : last?.status === 'error' ? (
-                    <Badge variant="destructive">Failed</Badge>
-                  ) : null}
-                </div>
-                <p className="mt-0.5 text-sm text-muted-foreground">{t.description}</p>
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  {last ? (
-                    <>
-                      Last run{' '}
-                      <Hint label={formatTimestamp(last.startedAt)}>
-                        <span className="cursor-default text-foreground">{formatRelative(last.startedAt)}</span>
-                      </Hint>
-                      {last.trigger === 'manual' && ' (run by hand)'}
-                      {last.durationMs !== null && ` · took ${took(last.durationMs)}`}
-                      {last.summary && ` · ${last.summary}`}
-                    </>
-                  ) : (
-                    'Hasn’t run yet'
-                  )}
-                  {!t.running && t.nextRunAt && <> · next {formatRelative(t.nextRunAt)}</>}
-                </p>
-              </div>
-              <Button variant="outline" size="sm" disabled={t.running || starting === t.id} onClick={() => void run(t)}>
-                {starting === t.id ? <Loader2 className="animate-spin" /> : <CirclePlay />} Run now
-              </Button>
-            </div>
-          )
-        })}
-      </CardContent>
-    </Card>
-  )
-}
-
-type AuditFilter = 'all' | 'admin' | 'auth'
-
-function ActivityCard() {
-  const [filter, setFilter] = useState<AuditFilter>('all')
-  const [showAll, setShowAll] = useState(false)
-  const audit = useQuery({
-    queryKey: [...auditKey, filter],
-    queryFn: () => adminFetch<{ entries: AuditEntry[] }>(filter === 'all' ? 'audit' : `audit?kind=${filter}`),
-  })
-  const entries = audit.data?.entries ?? []
-  const shown = showAll ? entries : entries.slice(0, 25)
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <History className="size-4 text-muted-foreground" /> Audit log
-        </CardTitle>
-        <CardDescription>Admin changes, sign-ins and sign-outs (failed attempts too), with who did it and from where.</CardDescription>
-        <CardAction>
-          <ToggleGroup value={[filter]} onValueChange={(v) => v[0] && setFilter(v[0] as AuditFilter)} variant="outline" size="sm">
-            <ToggleGroupItem value="all">All</ToggleGroupItem>
-            <ToggleGroupItem value="admin">Admin</ToggleGroupItem>
-            <ToggleGroupItem value="auth">Sign-ins</ToggleGroupItem>
-          </ToggleGroup>
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        {audit.isPending && <Skeleton className="h-16 w-full" />}
-        {audit.error && <p className="text-sm text-destructive">{audit.error.message}</p>}
-        {audit.data && entries.length === 0 && <p className="text-sm text-muted-foreground">Nothing yet.</p>}
-        {entries.length > 0 && (
-          <ul className="grid gap-0.5 text-sm">
-            {shown.map((e) => {
-              const failed = e.action.endsWith('(failed)')
-              return (
-                <li key={e.id} className="flex flex-wrap items-baseline gap-x-2 rounded-md px-2 py-1.5 hover:bg-muted/60">
-                  <span className={cn('font-medium', failed && 'text-destructive')}>{e.action}</span>
-                  {e.targetEmail && <span className="min-w-0 truncate">{e.targetEmail}</span>}
-                  {e.detail && <span className="text-muted-foreground">{e.detail}</span>}
-                  <Hint label={formatTimestamp(e.at)} side="left">
-                    <span className="ml-auto cursor-default text-xs text-muted-foreground">
-                      {e.actorEmail ?? 'unknown'}
-                      {e.ip && ` · ${e.ip}`} · {formatRelative(e.at)}
-                    </span>
-                  </Hint>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-        {entries.length > 25 && (
-          <button type="button" className="mt-2 text-xs font-medium text-primary hover:underline" onClick={() => setShowAll((v) => !v)}>
-            {showAll ? 'Show less' : `Show all ${entries.length}`}
-          </button>
-        )}
-      </CardContent>
-    </Card>
   )
 }

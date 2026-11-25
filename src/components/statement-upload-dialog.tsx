@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, FileArchive, FileText, Loader2, Upload, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { InstitutionBadge } from '@/components/institution'
@@ -30,12 +30,16 @@ export function StatementUploadDialog({ open, onOpenChange, connectionId }: Prop
   const [result, setResult] = useState<StatementImport | null>(null)
   const input = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setFiles([])
-    setError(null)
-    setResult(null)
-  }, [open])
+  // Start fresh each time the dialog opens.
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) {
+      setFiles([])
+      setError(null)
+      setResult(null)
+    }
+  }
 
   function add(list: FileList | null) {
     const picked = [...(list ?? [])]

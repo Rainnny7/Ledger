@@ -12,7 +12,9 @@
     "preview": "vite preview",
     "lint": "oxlint",
     "typecheck": "tsc -b && tsc -p tsconfig.server.json",
-    "test": "bun test server"
+    "test": "bun test server src",
+    "format": "prettier --write src server shared",
+    "format:check": "prettier --check src server shared"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -52,6 +54,8 @@
     "@vitejs/plugin-react": "^6.1.2",
     "concurrently": "^10.0.7",
     "oxlint": "^1.90.0",
+    "prettier": "^3.10.1",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "shadcn": "^4.23.0",
     "typescript": "~7.0.2",
     "vite": "^8.3.6"

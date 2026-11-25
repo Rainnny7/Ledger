@@ -19,6 +19,7 @@ import { ChangeTemporaryPasswordPage } from '@/pages/temporary-password-page'
 const DashboardPage = lazy(() => import('@/pages/dashboard-page').then((m) => ({ default: m.DashboardPage })))
 const AccountPage = lazy(() => import('@/pages/account-page').then((m) => ({ default: m.AccountPage })))
 const InsightsPage = lazy(() => import('@/pages/insights-page').then((m) => ({ default: m.InsightsPage })))
+const TransactionsPage = lazy(() => import('@/pages/transactions-page').then((m) => ({ default: m.TransactionsPage })))
 const SubscriptionsPage = lazy(() => import('@/pages/subscriptions-page').then((m) => ({ default: m.SubscriptionsPage })))
 const ContactsPage = lazy(() => import('@/pages/contacts-page').then((m) => ({ default: m.ContactsPage })))
 const SettingsPage = lazy(() => import('@/pages/settings-page').then((m) => ({ default: m.SettingsPage })))
@@ -94,6 +95,7 @@ const router = createBrowserRouter(
         <Route element={<AppShell />}>
           <Route index element={<Page><DashboardPage /></Page>} />
           <Route path="/accounts/:id" element={<Page><AccountPage /></Page>} />
+          <Route path="/transactions" element={<Page><TransactionsPage /></Page>} />
           <Route path="/insights" element={<Page><InsightsPage /></Page>} />
           <Route path="/subscriptions" element={<Page><SubscriptionsPage /></Page>} />
           <Route path="/goals" element={<Page><GoalsPage /></Page>} />

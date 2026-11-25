@@ -1,4 +1,4 @@
-import { signedBalance } from '@/components/account-figures'
+import { signedBalance } from './balances'
 import type { Account, Category, Transaction } from './api'
 import { NON_SPEND } from './categories'
 import { addDays, isoDate } from './format'

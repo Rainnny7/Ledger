@@ -1,15 +1,13 @@
 import { Money } from '@/components/money'
 import { AnimatedMoney } from '@/components/count-up'
 import { Progress } from '@/components/ui/progress'
-import type { Account, Transaction } from '@/lib/api'
+import type { Account } from '@/lib/api'
 import { useSession } from '@/lib/auth-client'
 import { useDemoPrefs } from '@/lib/demo'
 import { formatMoney } from '@/lib/format'
 import { cn } from '@/lib/utils'
-
-export function isDebtAccount(a: Pick<Account, 'type'>) {
-  return a.type === 'credit' || a.type === 'loan'
-}
+import { isDebtAccount, shownBalance } from '@/lib/balances'
+export { isDebtAccount, overdraftAllowance, shownBalance, shownRunningBalance, signedBalance } from '@/lib/balances'
 
 /**
  * Settings → Preferences: whether balances count the overdraft you can still draw on. On by default
@@ -19,32 +17,6 @@ export function useIncludeOverdraft() {
   const { data } = useSession()
   const demo = useDemoPrefs()
   return demo.includeOverdraft ?? (data?.user as { includeOverdraft?: boolean | null } | undefined)?.includeOverdraft ?? true
-}
-
-/** The overdraft a chequing/savings account comes with: its limit, or failing that available − balance. */
-export function overdraftAllowance(a: Pick<Account, 'type' | 'balance' | 'available' | 'overdraftLimit'>) {
-  if (isDebtAccount(a)) return 0
-  if (a.overdraftLimit) return a.overdraftLimit
-  if (a.available === null || a.balance === null) return 0
-  return Math.max(0, Math.round((a.available - a.balance) * 100) / 100)
-}
-
-/** The balance to show for an account, with its overdraft added when that preference is on. */
-export function shownBalance(a: Account, includeOverdraft: boolean) {
-  if (a.balance === null) return null
-  return includeOverdraft ? a.balance + overdraftAllowance(a) : a.balance
-}
-
-/** Value that counts toward net worth: debts subtract. */
-export function signedBalance(a: Account, includeOverdraft = false) {
-  if (a.balance === null) return 0
-  return isDebtAccount(a) ? -Math.abs(a.balance) : (shownBalance(a, includeOverdraft) ?? 0)
-}
-
-/** A transaction's balance-after, on the same basis as the account's balance. */
-export function shownRunningBalance(t: Pick<Transaction, 'runningBalance'>, account: Account | undefined, includeOverdraft: boolean) {
-  if (t.runningBalance === null) return null
-  return includeOverdraft && account ? t.runningBalance + overdraftAllowance(account) : t.runningBalance
 }
 
 export function BalanceLabel({ account }: { account: Account }) {

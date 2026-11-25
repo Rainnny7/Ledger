@@ -1,5 +1,5 @@
 import { QueryClient, useQuery, type UseQueryResult } from '@tanstack/react-query'
-import { ApiError, api, DATA_CHANGED } from '@/lib/api'
+import { ApiError, api, DATA_CHANGED, TRANSACTION_UPDATED, type Transaction } from '@/lib/api'
 import { addDays, isoDate } from '@/lib/format'
 
 /**
@@ -18,9 +18,53 @@ export const queryClient = new QueryClient({
   },
 })
 
-// Any successful write (sync, category change, subscription edit…) can affect every view.
+/**
+ * Which cached data a write to an API path can change. Anything not listed (connecting a bank,
+ * uploading statements, or a change with no path) refetches everything.
+ */
+const AFFECTS: [RegExp, readonly string[]][] = [
+  // Categories and notes show in every transaction list, the charts built on them, and the
+  // subscriptions matched to a merchant.
+  [/^\/transactions\/merchant$/, ['transactions', 'account', 'subscriptions', 'budgets']],
+  // A single row is patched into the cached lists (below); only what's worked out on the server reloads.
+  [/^\/transactions/, ['subscriptions', 'budgets']],
+  [/^\/subscriptions/, ['subscriptions']],
+  [/^\/goals/, ['goals']],
+  [/^\/advice/, ['advice']],
+  [/^\/budgets/, ['budgets']],
+  // A bill and the invoice made from it share their payments.
+  [/^\/work/, ['work', 'invoices']],
+  [/^\/(invoices|invoice-profile|payment-methods)/, ['invoices', 'work']],
+  [/^\/contacts/, ['contacts', 'shares', 'goals', 'subscriptions', 'work']],
+  [/^\/shares/, ['shares', 'goals', 'subscriptions', 'work']],
+  // Instant updates and forgetting a password only change the connection itself.
+  [/^\/connections\/[^/]+\/(instant-updates|forget-credentials)/, ['overview', 'invoices']],
+]
+
+export function keysAffectedBy(path: string | undefined): readonly string[] | null {
+  if (!path) return null
+  return AFFECTS.find(([re]) => re.test(path))?.[1] ?? null
+}
+
+/** Puts an edited transaction into every cached list that has it. */
+export function patchCachedTransaction(tx: Transaction) {
+  const swap = (list: Transaction[]) => (list.some((t) => t.id === tx.id) ? list.map((t) => (t.id === tx.id ? tx : t)) : list)
+  queryClient.setQueriesData<{ transactions: Transaction[] }>({ queryKey: ['transactions'] }, (d) =>
+    d ? { ...d, transactions: swap(d.transactions) } : d,
+  )
+  queryClient.setQueriesData<{ transactions: Transaction[] }>({ queryKey: ['account'] }, (d) =>
+    d && Array.isArray(d.transactions) ? { ...d, transactions: swap(d.transactions) } : d,
+  )
+}
+
+// After a successful write, refetch what it could have changed (everything when unsure).
 if (typeof window !== 'undefined') {
-  window.addEventListener(DATA_CHANGED, () => void queryClient.invalidateQueries())
+  window.addEventListener(DATA_CHANGED, (e) => {
+    const keys = keysAffectedBy((e as CustomEvent<string | undefined>).detail)
+    if (!keys) return void queryClient.invalidateQueries()
+    void queryClient.invalidateQueries({ predicate: (q) => keys.includes(String(q.queryKey[0])) })
+  })
+  window.addEventListener(TRANSACTION_UPDATED, (e) => patchCachedTransaction((e as CustomEvent<Transaction>).detail))
 }
 
 export const queryKeys = {
@@ -30,6 +74,7 @@ export const queryKeys = {
   work: ['work'] as const,
   invoices: ['invoices'] as const,
   contacts: ['contacts'] as const,
+  budgets: ['budgets'] as const,
   transactions: (from: string | null) => ['transactions', from ?? 'all'] as const,
   account: (id: string) => ['account', id] as const,
   accountDetails: (id: string) => ['account', id, 'details'] as const,
@@ -55,6 +100,7 @@ export const useGoals = () => view(useQuery({ queryKey: queryKeys.goals, queryFn
 export const useWork = () => view(useQuery({ queryKey: queryKeys.work, queryFn: api.work }))
 export const useContacts = () => view(useQuery({ queryKey: queryKeys.contacts, queryFn: api.contacts }))
 export const useInvoices = () => view(useQuery({ queryKey: queryKeys.invoices, queryFn: api.invoices }))
+export const useBudgets = () => view(useQuery({ queryKey: queryKeys.budgets, queryFn: api.budgets }))
 
 /** Dashboard window: enough history for every chart range (the 1-year view plus a month of slack). */
 export const DASHBOARD_FROM_DAYS = 400

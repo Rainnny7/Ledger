@@ -1,6 +1,6 @@
 import { DatePicker } from '@/components/date-picker'
 import { Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { CurrencySelect } from '@/components/currency-select'
 import { Button } from '@/components/ui/button'
@@ -49,8 +49,13 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (!draft) return
+  // Fill the form when a new draft opens (during render, so it never shows stale values first).
+  const [filledFrom, setFilledFrom] = useState<typeof draft>(null)
+  if (draft !== filledFrom) {
+    setFilledFrom(draft)
+    if (draft) fill(draft)
+  }
+  function fill(draft: NonNullable<typeof filledFrom>) {
     setName(draft.name ?? '')
     setAmount(draft.amount ? String(draft.amount) : '')
     setCurrency(draft.currency ?? accounts.find((a) => a.id === draft.accountId)?.currency ?? getDisplayCurrency())
@@ -64,8 +69,7 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
     setCategory(draft.category ?? 'subscriptions')
     setAccountId(draft.accountId ?? NO_ACCOUNT)
     setNotes(draft.notes ?? '')
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when a new draft opens
-  }, [draft])
+  }
 
   const accountItems = [
     { value: NO_ACCOUNT, label: 'Not linked' },

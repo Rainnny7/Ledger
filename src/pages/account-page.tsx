@@ -5,7 +5,7 @@ import { Link, useParams } from 'react-router'
 import { AccountDetailsButton } from '@/components/account-details-dialog'
 import { BalanceLabel, BalanceValue, CreditMeter, isDebtAccount, OverdraftMeter, shownRunningBalance, useIncludeOverdraft } from '@/components/account-figures'
 import { BalanceChart, CategoryBars } from '@/components/charts'
-import { RangePicker, type RangeKey, rangeStart } from '@/components/range-picker'
+import { RANGES, RangePicker, type RangeKey, rangeStart } from '@/components/range-picker'
 import { TransactionSheet } from '@/components/transaction-sheet'
 import { TransactionsTable } from '@/components/transactions-table'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +20,7 @@ import { CATEGORY_LIST, CATEGORY_META } from '@/lib/categories'
 import { balanceSeries, downloadCsv, spendByCategory } from '@/lib/finance'
 import { ACCOUNT_TYPE_LABEL, formatLongDate, formatRelative } from '@/lib/format'
 import { useAccount } from '@/lib/queries'
+import { useUrlState } from '@/lib/url-state'
 
 type Flow = 'all' | 'in' | 'out'
 const PAGE = 100
@@ -73,11 +74,13 @@ const periodItems = [
 const categoryItems = [{ value: 'all', label: 'All categories' }, ...CATEGORY_LIST.map((c) => ({ value: c, label: CATEGORY_META[c].label }))]
 
 function AccountView({ account: a, transactions }: { account: Account; transactions: Transaction[] }) {
-  const [query, setQuery] = useState('')
-  const [flow, setFlow] = useState<Flow>('all')
-  const [category, setCategory] = useState<Category | 'all'>('all')
-  const [period, setPeriod] = useState<RangeKey>('all')
-  const [chartRange, setChartRange] = useState<RangeKey>('90d')
+  // Filters live in the URL, so reloading or coming back to the account keeps them.
+  const ranges = Object.keys(RANGES) as RangeKey[]
+  const [query, setQuery] = useUrlState<string>('q', '')
+  const [flow, setFlow] = useUrlState<Flow>('flow', 'all', ['all', 'in', 'out'])
+  const [category, setCategory] = useUrlState<Category | 'all'>('category', 'all', ['all', ...CATEGORY_LIST])
+  const [period, setPeriod] = useUrlState<RangeKey>('period', 'all', ranges)
+  const [chartRange, setChartRange] = useUrlState<RangeKey>('chart', '90d', ranges)
   const [limit, setLimit] = useState(PAGE)
   const [selected, setSelected] = useState<Transaction | null>(null)
   const includeOverdraft = useIncludeOverdraft()
@@ -213,7 +216,7 @@ function AccountView({ account: a, transactions }: { account: Account; transacti
               data={breakdown.slice(0, 7)}
               selected={category === 'all' ? null : category}
               onSelect={(c) => {
-                setCategory((cur) => (cur === c ? 'all' : c))
+                setCategory(category === c ? 'all' : c)
                 resetLimit()
               }}
             />

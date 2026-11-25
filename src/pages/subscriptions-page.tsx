@@ -4,7 +4,7 @@ import { Money } from '@/components/money'
 import type { ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, LogOut, MoreHorizontal, Pause, Pencil, Play, Plus, Repeat, Share2, Sparkles, Trash2, X } from 'lucide-react'
 import { AnimatedMoney } from '@/components/count-up'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { type SubscriptionDraft, SubscriptionDialog } from '@/components/subscription-dialog'
@@ -31,6 +31,7 @@ import { useConverter } from '@/lib/currency'
 import { demoMode } from '@/lib/demo'
 import { useOverview, useSubscriptions } from '@/lib/queries'
 import { cn } from '@/lib/utils'
+import { useNow } from '@/lib/use-now'
 
 /** Every billing date of `s` between from..to (inclusive), anchored on its next due date. */
 function occurrences(s: Subscription, from: string, to: string) {
@@ -86,6 +87,18 @@ export function SubscriptionsPage() {
       .sort((a, b) => a.date.localeCompare(b.date))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subs])
+
+  // Links from the Advisor (`?focus=id,id`) highlight the plans or spotted charges a tip is about.
+  const focusParam = params.get('focus') ?? ''
+  const focus = useMemo(() => new Set(focusParam.split(',').filter(Boolean)), [focusParam])
+  const scrolledTo = useRef('')
+  useEffect(() => {
+    if (!focusParam || !data || scrolledTo.current === focusParam) return
+    const el = document.querySelector('[data-focused="true"]')
+    if (!el) return
+    scrolledTo.current = focusParam
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [focusParam, data])
 
   // "Track as subscription" from a transaction lands here with a prefilled draft.
   useEffect(() => {
@@ -211,7 +224,11 @@ export function SubscriptionsPage() {
           </CardHeader>
           <CardContent className="grid gap-2 sm:grid-cols-2">
             {suggestions.map((g) => (
-              <div key={g.id} className="flex items-center gap-3 rounded-lg border p-3">
+              <div
+                key={g.id}
+                data-focused={focus.has(g.id) || undefined}
+                className={cn('flex items-center gap-3 rounded-lg border p-3', focus.has(g.id) && 'border-primary/50 bg-primary/8 ring-1 ring-primary/30')}
+              >
                 <CategoryIcon category={g.category} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{g.name}</div>
@@ -347,7 +364,12 @@ export function SubscriptionsPage() {
                     return (
                     <WithContextMenu key={s.id} className="w-48" menu={menuItems}>
                     <TableRow
-                      className={cn(s.access !== 'view' && 'cursor-pointer', !s.active && 'opacity-60')}
+                      data-focused={focus.has(s.id) || undefined}
+                      className={cn(
+                        s.access !== 'view' && 'cursor-pointer',
+                        !s.active && 'opacity-60',
+                        focus.has(s.id) && 'bg-primary/8 shadow-[inset_3px_0_0_var(--color-primary)] hover:bg-primary/12',
+                      )}
                       onClick={() => edit(s)}
                     >
                       <TableCell className="w-full max-w-0 pl-4">
@@ -472,18 +494,16 @@ function CalendarCard({
   onAdd: (date: string) => void
 }) {
   const [offset, setOffset] = useState(0)
-  const now = new Date()
+  const now = useNow()
   const first = new Date(now.getFullYear(), now.getMonth() + offset, 1)
   const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate()
   const start = isoDate(first)
   const end = isoDate(new Date(first.getFullYear(), first.getMonth(), daysInMonth))
-  const today = isoDate()
+  const today = isoDate(now)
 
-  const byDay = useMemo(() => {
-    const map = new Map<string, Subscription[]>()
-    for (const s of subs) for (const d of occurrences(s, start, end)) map.set(d, [...(map.get(d) ?? []), s])
-    return map
-  }, [subs, start, end])
+  // The React Compiler memoizes this; a manual useMemo here only stopped it from optimizing.
+  const byDay = new Map<string, Subscription[]>()
+  for (const s of subs) for (const d of occurrences(s, start, end)) byDay.set(d, [...(byDay.get(d) ?? []), s])
   const fx = useConverter()
   const total = fx.sum([...byDay.values()].flat().map((s) => [s.amount, s.currency]))
 

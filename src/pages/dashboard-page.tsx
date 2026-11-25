@@ -12,7 +12,9 @@ import { toast } from 'sonner'
 import { BalanceLabel, BalanceValue, CreditMeter, OverdraftMeter, overdraftAllowance, signedBalance, useIncludeOverdraft } from '@/components/account-figures'
 import { BalanceChart, CashflowChart } from '@/components/charts'
 import { ConnectDialog } from '@/components/connect-dialog'
+import { AdvisorSpotlight } from '@/components/advisor-spotlight'
 import { GoalsSpotlight } from '@/components/goals-spotlight'
+import { NeedsAttention } from '@/components/needs-attention'
 import { AccountDetailsButton } from '@/components/account-details-dialog'
 import { InstitutionBadge, isProviderId, PROVIDERS } from '@/components/institution'
 import { RangePicker, type RangeKey, rangeStart } from '@/components/range-picker'
@@ -46,11 +48,12 @@ import { inHomeCurrency, useConverter } from '@/lib/currency'
 import { DEMO_IDENTITY, demoMode } from '@/lib/demo'
 import { useDashboardTransactions, useOverview, useSubscriptions } from '@/lib/queries'
 import { cn } from '@/lib/utils'
+import { useNow } from '@/lib/use-now'
 
 /** "Good morning, Sam", by the clock on this device. */
 function Greeting() {
   const { data } = useSession()
-  const hour = new Date().getHours()
+  const hour = useNow().getHours()
   const part = hour < 5 ? 'evening' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'
   // Demo mode shows the made-up person, never the signed-in user's own name.
   const name = demoMode ? DEMO_IDENTITY.name : data?.user.name
@@ -90,21 +93,22 @@ export function DashboardPage() {
 
   const cadTx = home.transactions
 
+  const now = useNow()
   const spend = useMemo(() => {
-    const today = isoDate()
-    const d = new Date()
+    const d = now
+    const today = isoDate(d)
     const prevStart = startOfMonth(new Date(d.getFullYear(), d.getMonth() - 1, 1))
     const prevMonthDays = new Date(d.getFullYear(), d.getMonth(), 0).getDate()
     // Same day-of-month last month, for a like-for-like comparison.
     const prevSameDay = isoDate(new Date(d.getFullYear(), d.getMonth() - 1, Math.min(d.getDate(), prevMonthDays)))
-    const month = cadTx.filter((t) => t.date >= startOfMonth() && t.date <= today)
+    const month = cadTx.filter((t) => t.date >= startOfMonth(d) && t.date <= today)
     return {
       now: totalSpent(month),
       pending: pendingSpent(month),
       debt: totalDebtPaid(month),
       prev: totalSpent(cadTx.filter((t) => t.date >= prevStart && t.date <= prevSameDay)),
     }
-  }, [cadTx])
+  }, [cadTx, now])
 
   const series = useMemo(() => balanceSeries(cad, cadTx, rangeStart(range), includeOverdraft), [cad, cadTx, range, includeOverdraft])
   const flow = useMemo(() => monthlyCashflow(cadTx, lastMonths(6)), [cadTx])
@@ -170,7 +174,9 @@ export function DashboardPage() {
         <EmptyState onAdd={() => setDialog({ open: true, connection: null })} />
       ) : (
         <>
+          <NeedsAttention connections={connections} transactions={cadTx} converter={converter} />
           <GoalsSpotlight />
+          <AdvisorSpotlight />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Stat
               label="Total balance"

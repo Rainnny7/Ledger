@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { currencyCode, isoDate } from '../validation.ts'
 import type { auth } from '../auth.ts'
 import { db } from '../db.ts'
+import { todayIso } from '../today.ts'
 import {
   addCycle,
   amountTolerance,
@@ -25,15 +26,37 @@ import { GOAL_KINDS, type GoalPaymentRow, type GoalRow, summarizeGoal } from '..
 type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
 export const finance = new Hono<Vars>()
 
-function todayIso() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 // ---------------------------------------------------------------- exchange rates
 
 /** Daily reference rates, for showing mixed-currency totals in your own currency. */
 finance.get('/fx', async (c) => c.json(await getRates()))
+
+/** Monthly spending limits per category. */
+finance.get('/budgets', (c) => {
+  const budgets = db
+    .prepare(`SELECT category, amount, currency, updated_at AS updatedAt FROM budget WHERE user_id = ? ORDER BY category`)
+    .all(c.var.user.id)
+  return c.json({ budgets })
+})
+
+finance.put('/budgets/:category', async (c) => {
+  const category = z.enum(CATEGORIES).safeParse(c.req.param('category'))
+  const body = z
+    .object({ amount: z.number().positive().max(1e9), currency: currencyCode })
+    .safeParse(await c.req.json().catch(() => ({})))
+  if (!category.success || !body.success) return c.json({ error: 'Invalid budget' }, 400)
+  db.prepare(
+    `INSERT INTO budget (user_id, category, amount, currency) VALUES (?, ?, ?, ?)
+       ON CONFLICT (user_id, category) DO UPDATE SET amount = excluded.amount, currency = excluded.currency, updated_at = datetime('now')`,
+  ).run(c.var.user.id, category.data, Math.round(body.data.amount * 100) / 100, body.data.currency)
+  return c.json({ ok: true })
+})
+
+finance.delete('/budgets/:category', (c) => {
+  db.prepare(`DELETE FROM budget WHERE user_id = ? AND category = ?`).run(c.var.user.id, c.req.param('category'))
+  return c.json({ ok: true })
+})
 
 // ---------------------------------------------------------------- transactions
 
@@ -154,6 +177,28 @@ const patchTx = z.object({
   /** Also file every transaction from this merchant under the category (now and in future syncs). */
   applyToMerchant: z.boolean().optional(),
   note: z.string().max(500).nullable().optional(),
+})
+
+/** Files several transactions under one category (null puts them back on automatic). */
+finance.patch('/transactions/bulk', async (c) => {
+  const body = z
+    .object({ ids: z.array(z.string().min(1).max(80)).min(1).max(5000), category: z.enum(CATEGORIES).nullable() })
+    .safeParse(await c.req.json().catch(() => ({})))
+  if (!body.success) return c.json({ error: 'Invalid request' }, 400)
+  const update = db.prepare(
+    `UPDATE bank_transaction SET category_override = ?
+      WHERE id = ? AND account_id IN (SELECT a.id FROM bank_account a JOIN bank_connection c ON c.id = a.connection_id WHERE c.user_id = ?)`,
+  )
+  let updated = 0
+  db.exec('BEGIN')
+  try {
+    for (const id of new Set(body.data.ids)) updated += Number(update.run(body.data.category, id, c.var.user.id).changes)
+    db.exec('COMMIT')
+  } catch (e) {
+    db.exec('ROLLBACK')
+    throw e
+  }
+  return c.json({ updated })
 })
 
 finance.patch('/transactions/:id', async (c) => {
@@ -547,4 +592,41 @@ finance.delete('/goals/:id/payments/:pid', (c) => {
   if (!canEditGoal(userId, goalId)) return c.json({ error: 'Not found' }, 404)
   const r = db.prepare(`DELETE FROM goal_payment WHERE id = ? AND goal_id = ?`).run(c.req.param('pid'), goalId)
   return r.changes ? c.json({ goal: viewGoal(userId, goalId) }) : c.json({ error: 'Not found' }, 404)
+})
+
+// ---------------------------------------------------------------- advisor
+
+/** Tips the user hid. Snoozed ones come back once their date passes. */
+finance.get('/advice/dismissed', (c) => {
+  const rows = db
+    .prepare(`SELECT tip_id AS id, until FROM advice_dismissed WHERE user_id = ? AND (until IS NULL OR until > ?)`)
+    .all(c.var.user.id, todayIso()) as { id: string; until: string | null }[]
+  return c.json({ dismissed: rows })
+})
+
+finance.post('/advice/dismiss', async (c) => {
+  // `days` snoozes the tip; without it the tip stays hidden for good.
+  const body = z
+    .object({ id: z.string().min(1).max(300), days: z.number().int().min(1).max(366).optional() })
+    .safeParse(await c.req.json().catch(() => ({})))
+  if (!body.success) return c.json({ error: 'Invalid request' }, 400)
+  let until: string | null = null
+  if (body.data.days) {
+    const d = new Date()
+    d.setDate(d.getDate() + body.data.days)
+    until = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+  db.prepare(
+    `INSERT INTO advice_dismissed (user_id, tip_id, until) VALUES (?, ?, ?)
+     ON CONFLICT (user_id, tip_id) DO UPDATE SET until = excluded.until, created_at = datetime('now')`,
+  ).run(c.var.user.id, body.data.id, until)
+  return c.json({ ok: true })
+})
+
+/** Brings one hidden tip back (`?id=`), or all of them. */
+finance.delete('/advice/dismissed', (c) => {
+  const id = c.req.query('id')
+  if (id) db.prepare(`DELETE FROM advice_dismissed WHERE user_id = ? AND tip_id = ?`).run(c.var.user.id, id)
+  else db.prepare(`DELETE FROM advice_dismissed WHERE user_id = ?`).run(c.var.user.id)
+  return c.json({ ok: true })
 })

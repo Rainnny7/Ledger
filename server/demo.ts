@@ -15,7 +15,7 @@ import { merchantKeyOf } from './finance/categorize.ts'
 
 export const DEMO_USER_ID = 'ledger-demo'
 export const DEMO_EMAIL = 'demo@ledger.invalid'
-const SEED_VERSION = '5'
+const SEED_VERSION = '6'
 
 const iso = (d: Date) => d.toISOString().slice(0, 10)
 const round = (n: number) => Math.round(n * 100) / 100
@@ -158,7 +158,13 @@ function seed(today: Date) {
   db.prepare(`DELETE FROM bank_connection WHERE user_id = ?`).run(DEMO_USER_ID)
   db.prepare(`DELETE FROM subscription WHERE user_id = ?`).run(DEMO_USER_ID)
   db.prepare(`DELETE FROM subscription_dismissed WHERE user_id = ?`).run(DEMO_USER_ID)
+  db.prepare(`DELETE FROM advice_dismissed WHERE user_id = ?`).run(DEMO_USER_ID)
   db.prepare(`DELETE FROM category_rule WHERE user_id = ?`).run(DEMO_USER_ID)
+  db.prepare(`DELETE FROM budget WHERE user_id = ?`).run(DEMO_USER_ID)
+  const budget = db.prepare(`INSERT INTO budget (user_id, category, amount, currency) VALUES (?, ?, ?, 'CAD')`)
+  for (const [category, amount] of [['groceries', 600], ['food', 250], ['shopping', 300], ['entertainment', 80]] as const) {
+    budget.run(DEMO_USER_ID, category, amount)
+  }
   db.prepare(`DELETE FROM goal WHERE user_id = ?`).run(DEMO_USER_ID) // payments cascade
   db.prepare(`DELETE FROM work_job WHERE user_id = ?`).run(DEMO_USER_ID) // bills, shifts, payments cascade
 

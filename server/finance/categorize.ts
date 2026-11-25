@@ -3,27 +3,9 @@
  * merchant name, a stable merchant key, and a spending category. Pure functions — unit-tested.
  */
 
-export const CATEGORIES = [
-  'income',
-  'transfers',
-  'food',
-  'groceries',
-  'transport',
-  'shopping',
-  'subscriptions',
-  'bills',
-  'entertainment',
-  'health',
-  'fees',
-  'debt',
-  'cash',
-  'other',
-] as const
-export type Category = (typeof CATEGORIES)[number]
+import { PRESET_CYCLES, type Category, type Cycle, type CycleUnit, type PresetCycle } from '../../shared/categories.ts'
 
-export function isCategory(v: unknown): v is Category {
-  return typeof v === 'string' && (CATEGORIES as readonly string[]).includes(v)
-}
+export { CATEGORIES, isCategory, PRESET_CYCLES, type Category, type Cycle, type CycleUnit, type PresetCycle } from '../../shared/categories.ts'
 
 interface Known {
   re: RegExp
@@ -169,7 +151,25 @@ export function merchantKeyOf(name: string): string {
 }
 
 /** Classify one transaction. `amount` sign matters (negative = money out). */
+/**
+ * Results by description and sign. Every list of transactions is classified on each request, and
+ * the same few thousand descriptions come up over and over, so the regex work is done once each.
+ */
+const classified = new Map<string, Classified>()
+const CACHE_LIMIT = 50_000
+
+/** Merchant name, merchant key and automatic category for a bank description. */
 export function classify(description: string, amount: number): Classified {
+  const key = `${Math.sign(amount)}|${description}`
+  const hit = classified.get(key)
+  if (hit) return hit
+  const result = classifyUncached(description, amount)
+  if (classified.size >= CACHE_LIMIT) classified.clear()
+  classified.set(key, result)
+  return result
+}
+
+function classifyUncached(description: string, amount: number): Classified {
   const raw = description.replace(/\s+/g, ' ').trim()
   const cleaned = stripNoise(raw)
 
@@ -204,11 +204,6 @@ export function classify(description: string, amount: number): Classified {
 
 // ---------------------------------------------------------------- recurring detection
 
-/** Named billing periods. Anything else is stored as "every-<n>-<weeks|months|years>". */
-export const PRESET_CYCLES = ['weekly', 'biweekly', 'monthly', 'quarterly', 'semiannual', 'yearly', 'biennial', 'triennial'] as const
-export type PresetCycle = (typeof PRESET_CYCLES)[number]
-export type CycleUnit = 'weeks' | 'months' | 'years'
-export type Cycle = PresetCycle | `every-${number}-${CycleUnit}`
 
 const CUSTOM_CYCLE = /^every-(\d{1,3})-(weeks|months|years)$/
 /** Upper bound per unit for custom periods (2 years of weeks, 10 years of months, 10 years). */

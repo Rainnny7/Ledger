@@ -4,7 +4,8 @@ import { Money } from '@/components/money'
 import type { ReactNode } from 'react'
 import { Archive, ArchiveRestore, ChevronDown, Link2, LogOut, MoreHorizontal, Pencil, Plus, Share2, Target, Trash2, Trophy, Users, X } from 'lucide-react'
 import { AnimatedMoney } from '@/components/count-up'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { GoalBar, GoalIcon, goalNudge, GoalRing, GoalStatusPill } from '@/components/goal-bits'
 import { GoalDialog, GoalPaymentDialog, type PaymentDraft } from '@/components/goal-dialogs'
@@ -47,6 +48,18 @@ export function GoalsPage() {
   const [paying, setPaying] = useState<PaymentDraft | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const [sharing, setSharing] = useState<Goal | null>(null)
+
+  // Links from the Advisor (`?focus=id`) bring the goal a tip is about into view.
+  const [params] = useSearchParams()
+  const focusParam = params.get('focus') ?? ''
+  const scrolledTo = useRef('')
+  useEffect(() => {
+    if (!focusParam || !data || scrolledTo.current === focusParam) return
+    const el = document.querySelector('[data-focused="true"]')
+    if (!el) return
+    scrolledTo.current = focusParam
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [focusParam, data])
 
   // Totals and sections are your own goals; ones shared with you get their own section.
   const { own: goals, shared } = useMemo(() => splitShared(data?.goals ?? []), [data])
@@ -226,6 +239,8 @@ function GoalCard({
   const [showAll, setShowAll] = useState(false)
   const payments = showAll ? g.payments : g.payments.slice(0, 3)
   const done = g.status === 'done'
+  const [params] = useSearchParams()
+  const focused = (params.get('focus') ?? '').split(',').includes(g.id)
 
   async function removePayment(id: string) {
     try {
@@ -274,7 +289,7 @@ function GoalCard({
 
   return (
     <WithContextMenu menu={menuItems}>
-    <Card className="gap-0">
+    <Card className={cn('gap-0', focused && 'ring-2 ring-primary/60')} data-focused={focused || undefined}>
       <CardHeader className="flex items-start gap-3">
         <GoalIcon goal={g} />
         <div className="min-w-0 flex-1">

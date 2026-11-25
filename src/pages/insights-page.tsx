@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
-import { X } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, X } from 'lucide-react'
 import { AnimatedMoney } from '@/components/count-up'
 import { useMemo, useState } from 'react'
 import { CashflowChart, CategoryBars } from '@/components/charts'
-import { RangePicker, type RangeKey, rangeStart } from '@/components/range-picker'
+import { BudgetsCard } from '@/components/budgets-card'
+import { RANGES, RangePicker, type RangeKey, rangeStart } from '@/components/range-picker'
 import { TransactionSheet } from '@/components/transaction-sheet'
 import { TransactionsTable } from '@/components/transactions-table'
 import { CategoryIcon } from '@/components/tx-bits'
@@ -13,18 +14,28 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { Category, Transaction } from '@/lib/api'
 import { CATEGORY_META } from '@/lib/categories'
 import { isSpend, lastMonths, monthlyCashflow, spendByCategory, topMerchants, totalDebtPaid, totalIncome, totalSpent } from '@/lib/finance'
-import { daysFromToday, formatMoney, isoDate } from '@/lib/format'
+import { addDays, daysFromToday, formatMoney, isoDate } from '@/lib/format'
 import { inHomeCurrency, useConverter } from '@/lib/currency'
 import { useOverview, useTransactions } from '@/lib/queries'
+import { CATEGORY_LIST } from '@/lib/categories'
+import { useUrlState } from '@/lib/url-state'
+import { cn } from '@/lib/utils'
 
 const PAGE = 50
 
 export function InsightsPage() {
   const overview = useOverview()
   const txq = useTransactions(null)
-  const [range, setRange] = useState<RangeKey>('30d')
-  const [category, setCategory] = useState<Category | null>(null)
-  const [merchant, setMerchant] = useState<string | null>(null)
+  // Kept in the URL, so a reload or the back button lands on the same view.
+  const [range, setRange] = useUrlState<RangeKey>('range', '30d', Object.keys(RANGES) as RangeKey[])
+  const [categoryParam, setCategoryParam] = useUrlState<Category | ''>('category', '', CATEGORY_LIST)
+  const [merchantParam, setMerchantParam] = useUrlState<string>('merchant', '')
+  const category = categoryParam || null
+  const merchant = merchantParam || null
+  const setCategory = (next: Category | null | ((cur: Category | null) => Category | null)) =>
+    setCategoryParam((typeof next === 'function' ? next(category) : next) ?? '')
+  const setMerchant = (next: string | null | ((cur: string | null) => string | null)) =>
+    setMerchantParam((typeof next === 'function' ? next(merchant) : next) ?? '')
   const [selected, setSelected] = useState<Transaction | null>(null)
   const [limit, setLimit] = useState(PAGE)
 
@@ -47,6 +58,17 @@ export function InsightsPage() {
     const days = Math.max(1, -daysFromToday(from && from > earliest ? from : earliest) + 1)
     return { spent, income, debt, net: income - spent - debt, perDay: spent / days, days }
   }, [inPeriod, from])
+
+  // The same length of time just before, for "vs previous 30 days". Only when there's history
+  // reaching back that far, or the comparison would be against an empty stretch.
+  const previous = useMemo(() => {
+    const days = RANGES[range].days
+    if (!days || !from) return null
+    const prevFrom = addDays(from, -days)
+    if (!all.length || all[all.length - 1].date > prevFrom) return null
+    const txs = all.filter((t) => t.date >= prevFrom && t.date < from)
+    return { spent: totalSpent(txs), income: totalIncome(txs), label: `vs previous ${RANGES[range].label}` }
+  }, [all, from, range])
 
   const categories = useMemo(() => spendByCategory(inPeriod), [inPeriod])
   const merchants = useMemo(() => topMerchants(category ? inPeriod.filter((t) => t.category === category) : inPeriod), [inPeriod, category])
@@ -82,8 +104,20 @@ export function InsightsPage() {
       {txq.error && <p className="text-sm text-destructive">{txq.error.message}</p>}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Spent" value={<AnimatedMoney value={stats.spent} />} hint="Net of refunds; excludes transfers & loan payments" loading={loading} />
-        <Stat label="Income" value={<AnimatedMoney value={stats.income} />} hint="Pay and other money in" loading={loading} />
+        <Stat
+          label="Spent"
+          value={<AnimatedMoney value={stats.spent} />}
+          hint="Net of refunds; excludes transfers & loan payments"
+          change={previous && { now: stats.spent, before: previous.spent, label: previous.label, goodWhenUp: false }}
+          loading={loading}
+        />
+        <Stat
+          label="Income"
+          value={<AnimatedMoney value={stats.income} />}
+          hint="Pay and other money in"
+          change={previous && { now: stats.income, before: previous.income, label: previous.label, goodWhenUp: true }}
+          loading={loading}
+        />
         <Stat
           label="Net"
           value={<AnimatedMoney value={stats.net} sign />}
@@ -99,6 +133,8 @@ export function InsightsPage() {
           {home.skipped.length > 0 && ` · ${home.skipped.join(', ')} accounts left out until rates load`}.
         </p>
       )}
+
+      <BudgetsCard transactions={all} converter={converter} loading={loading} />
 
       <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-3">
@@ -233,12 +269,15 @@ function Stat({
   value,
   negative,
   hint,
+  change,
   loading,
 }: {
   label: string
   value: ReactNode
   negative?: boolean
   hint?: string
+  /** Compared with the period before; `goodWhenUp` picks which direction shows green. */
+  change?: { now: number; before: number; label: string; goodWhenUp: boolean } | null
   loading?: boolean
 }) {
   return (
@@ -250,8 +289,30 @@ function Stat({
         ) : (
           <CardTitle className={`text-2xl! font-semibold tabular-nums ${negative ? 'text-destructive' : ''}`}>{value}</CardTitle>
         )}
+        {change && !loading && <Change {...change} />}
         {hint && !loading && <p className="text-xs text-muted-foreground">{hint}</p>}
       </CardHeader>
     </Card>
+  )
+}
+
+function Change({ now, before, label, goodWhenUp }: { now: number; before: number; label: string; goodWhenUp: boolean }) {
+  if (before <= 0) return null
+  const pct = ((now - before) / before) * 100
+  if (Math.abs(pct) < 0.5) return <p className="text-xs text-muted-foreground">About the same {label}</p>
+  const up = pct > 0
+  const Icon = up ? ArrowUpRight : ArrowDownRight
+  return (
+    <p
+      className={cn(
+        'flex items-center gap-0.5 text-xs font-medium',
+        up === goodWhenUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive',
+      )}
+      title={`${formatMoney(before)} ${label.replace(/^vs /, 'in the ')}`}
+    >
+      <Icon className="size-3.5" />
+      {Math.abs(pct) >= 1000 ? '10×+' : `${Math.round(Math.abs(pct))}%`}
+      <span className="font-normal text-muted-foreground">{label}</span>
+    </p>
   )
 }

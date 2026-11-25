@@ -6,6 +6,7 @@ import { StickyNote } from 'lucide-react'
 import { Fragment, useMemo } from 'react'
 import { CategoryBadge, CategoryIcon } from '@/components/tx-bits'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { Account, Transaction } from '@/lib/api'
 import { formatDayHeading, formatLongDate } from '@/lib/format'
@@ -17,10 +18,12 @@ interface Props {
   onSelect: (t: Transaction) => void
   showBalance?: boolean
   showAccount?: boolean
+  /** Turns on a checkbox per row for picking several at once. */
+  selection?: { ids: ReadonlySet<string>; toggle: (t: Transaction, range: boolean) => void }
 }
 
 /** Transactions grouped under a heading per day (newest first, as given). */
-export function TransactionsTable({ transactions, accounts, onSelect, showBalance, showAccount }: Props) {
+export function TransactionsTable({ transactions, accounts, onSelect, showBalance, showAccount, selection }: Props) {
   const includeOverdraft = useIncludeOverdraft()
   const byId = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts])
   const days = useMemo(() => {
@@ -32,12 +35,13 @@ export function TransactionsTable({ transactions, accounts, onSelect, showBalanc
     }
     return out
   }, [transactions])
-  const cols = 3 + (showBalance ? 1 : 0)
+  const cols = 3 + (showBalance ? 1 : 0) + (selection ? 1 : 0)
 
   return (
     <Table>
       <TableHeader className="sr-only">
         <TableRow>
+          {selection && <TableHead>Selected</TableHead>}
           <TableHead>Merchant</TableHead>
           <TableHead>Category</TableHead>
           <TableHead>Amount</TableHead>
@@ -65,6 +69,7 @@ export function TransactionsTable({ transactions, accounts, onSelect, showBalanc
                 >
                 <TableRow
                   tabIndex={0}
+                  data-state={selection?.ids.has(t.id) ? 'selected' : undefined}
                   className="cursor-pointer"
                   onClick={() => onSelect(t)}
                   onKeyDown={(e) => {
@@ -74,6 +79,18 @@ export function TransactionsTable({ transactions, accounts, onSelect, showBalanc
                     }
                   }}
                 >
+                  {selection && (
+                    <TableCell className="w-0 pr-0 pl-4" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        aria-label={`Select ${t.merchant}`}
+                        checked={selection.ids.has(t.id)}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          selection.toggle(t, e.shiftKey)
+                        }}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="w-full max-w-0 pl-4">
                     <div className="flex items-center gap-3">
                       <CategoryIcon category={t.category} className="hidden sm:flex" />

@@ -87,6 +87,25 @@ export function migrateAppTables() {
       PRIMARY KEY (user_id, merchant_key)
     );
 
+    -- Advisor tips the user hid: until a date (snoozed) or for good (until NULL).
+    CREATE TABLE IF NOT EXISTS advice_dismissed (
+      user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+      tip_id TEXT NOT NULL,
+      until TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, tip_id)
+    );
+
+    -- A monthly spending limit per category, in the user's home currency.
+    CREATE TABLE IF NOT EXISTS budget (
+      user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+      category TEXT NOT NULL,
+      amount REAL NOT NULL,
+      currency TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, category)
+    );
+
     -- Savings / pay-off goals and the partial payments logged toward them.
     CREATE TABLE IF NOT EXISTS goal (
       id TEXT PRIMARY KEY,

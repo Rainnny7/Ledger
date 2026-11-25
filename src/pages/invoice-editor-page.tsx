@@ -3,7 +3,8 @@ import { Hint } from '@/components/hint'
 import { ArrowLeft, ChevronDown, Download, ExternalLink, Eye, Loader2, Plus, Save, Send, X } from 'lucide-react'
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ForeignMoney } from '@/components/money'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { Link, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router'
+import { confirmDialog } from '@/components/confirm-dialog'
 import { toast } from 'sonner'
 import { fail, PaymentMethodDialog, pdfFileName, renderPdf, saveBlob, ShareDialog, StateBadge, invoiceState } from '@/components/invoice-bits'
 import { Button } from '@/components/ui/button'
@@ -149,7 +150,14 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
   const [methodDialog, setMethodDialog] = useState<{ method: PaymentMethod | null } | null>(null)
   const [showFrom, setShowFrom] = useState(!initial.from.name)
   const [showMore, setShowMore] = useState(!!(initial.client.phone || initial.client.taxId))
-  const [dirty, setDirty] = useState(false)
+  const [dirty, setDirtyState] = useState(false)
+  // Also kept in a ref for the navigation guard below: saving clears it and navigates in the same
+  // tick, before a re-render would tell the guard.
+  const dirtyRef = useRef(false)
+  const setDirty = (v: boolean) => {
+    dirtyRef.current = v
+    setDirtyState(v)
+  }
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
     setD((x) => ({ ...x, [k]: v }))
@@ -217,13 +225,23 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
     }
   }, [saved, params, setParams])
 
-  // Warn before leaving with unsaved changes.
+  // Warn before leaving with unsaved changes: closing the tab, and moving elsewhere in the app.
   useEffect(() => {
     if (!dirty) return
     const warn = (e: BeforeUnloadEvent) => e.preventDefault()
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => dirtyRef.current && currentLocation.pathname !== nextLocation.pathname)
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return
+    void confirmDialog({
+      title: 'Leave without saving?',
+      description: 'Your changes to this invoice haven’t been saved.',
+      action: 'Leave',
+      destructive: true,
+    }).then((leave) => (leave ? blocker.proceed() : blocker.reset()))
+  }, [blocker])
 
   const state = saved ? invoiceState(saved) : null
   const liveSaved = saved ? (data.invoices.find((i) => i.id === saved.id) ?? saved) : null

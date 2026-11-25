@@ -1,11 +1,16 @@
-import { LinkMenuItems, WithContextMenu } from "@/components/app-context-menu";
+import { LinkMenuItems } from "@/components/app-context-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Brand } from "@/components/brand";
+import { CommandPalette, openCommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BriefcaseBusinessIcon } from "@/components/icons/briefcase-business";
 import { ChartPieIcon } from "@/components/icons/chart-pie";
 import { FileTextIcon } from "@/components/icons/file-text";
 import { LogoutIcon } from "@/components/icons/logout";
+import { ReceiptIcon } from "@/components/icons/receipt";
 import { RefreshCWIcon } from "@/components/icons/refresh-cw";
+import { LightbulbIcon } from "@/components/icons/lightbulb";
 import { RocketIcon } from "@/components/icons/rocket";
 import { SettingsIcon } from "@/components/icons/settings";
 import { ShieldCheckIcon } from "@/components/icons/shield-check";
@@ -43,7 +48,7 @@ import {
 } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { MonitorPlay, X } from "lucide-react";
+import { MonitorPlay, Search, X } from "lucide-react";
 import {
   type ForwardRefExoticComponent,
   type RefAttributes,
@@ -63,6 +68,7 @@ const NAV: {
   count?: "accounts" | "subscriptions" | "goals" | "work";
 }[] = [
   { to: "/", label: "Bank Accounts", icon: WalletIcon, count: "accounts" },
+  { to: "/transactions", label: "Transactions", icon: ReceiptIcon },
   { to: "/insights", label: "Insights", icon: ChartPieIcon },
   {
     to: "/subscriptions",
@@ -71,6 +77,7 @@ const NAV: {
     count: "subscriptions",
   },
   { to: "/goals", label: "Goals", icon: RocketIcon, count: "goals" },
+  { to: "/advisor", label: "Advisor", icon: LightbulbIcon },
   { to: "/work", label: "Work", icon: BriefcaseBusinessIcon, count: "work" },
   { to: "/invoices", label: "Invoices", icon: FileTextIcon },
 ];
@@ -91,10 +98,7 @@ function NavItem({
 }) {
   const icon = useAnimatedIcon<HTMLAnchorElement>();
   const navigate = useNavigate();
-  return (
-    <WithContextMenu
-      menu={<LinkMenuItems to={to} label={`Go to ${label}`} onOpen={() => void navigate(to)} />}
-    >
+  const link = (
     <NavLink
       to={to}
       aria-label={count !== null ? `${label} (${count})` : label}
@@ -107,7 +111,10 @@ function NavItem({
       )}
     >
       <Icon ref={icon.ref} size={16} className="flex shrink-0" />
-      <span className="hidden lg:inline">{label}</span>
+      {/* Every label from lg; below that only the page you're on, so you can still tell where you are. */}
+      <span className={cn("hidden lg:inline", active && "sm:inline")}>
+        {label}
+      </span>
       {count !== null && (
         <Badge
           variant={active ? "default" : "secondary"}
@@ -117,7 +124,20 @@ function NavItem({
         </Badge>
       )}
     </NavLink>
-    </WithContextMenu>
+  );
+  // The link is the trigger for both its right-click menu and, while it shows only an icon, a tooltip.
+  return (
+    <Tooltip>
+      <ContextMenu>
+        <ContextMenuTrigger render={<TooltipTrigger render={link} />} />
+        <ContextMenuContent className="w-52">
+          <LinkMenuItems to={to} label={`Go to ${label}`} onOpen={() => void navigate(to)} />
+        </ContextMenuContent>
+      </ContextMenu>
+      <TooltipContent side="bottom" className={cn("lg:hidden", active && "sm:hidden")}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -334,6 +354,15 @@ export function AppShell() {
             ))}
           </ScrollNav>
           <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Search (Ctrl+K)"
+              title="Search (Ctrl+K / ⌘K)"
+              onClick={openCommandPalette}
+            >
+              <Search />
+            </Button>
             <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -418,6 +447,7 @@ export function AppShell() {
           </div>
         </div>
       </header>
+      <CommandPalette />
       <main className="mx-auto max-w-[90rem] px-4 py-8">
         {/* Keyed by route so each page fades in when you navigate to it. */}
         <div

@@ -40,7 +40,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { api, type Invoice, type PaymentMethod } from '@/lib/api'
 import { demoMode } from '@/lib/demo'
-import { daysFromToday, formatShortDate } from '@/lib/format'
+import { daysFromToday, formatShortDate, isoDate } from '@/lib/format'
+import { useNow } from '@/lib/use-now'
 import { invoiceMoney, methodKind, methodLines } from '@/lib/invoice'
 import { useInvoices } from '@/lib/queries'
 
@@ -83,7 +84,8 @@ export function InvoicesPage() {
 
   const open = withState.filter((x) => FILTERS[1]!.match(x.state)).map((x) => x.inv)
   const overdue = withState.filter((x) => x.state === 'overdue').map((x) => x.inv)
-  const month = new Date().toISOString().slice(0, 7)
+  const now = useNow()
+  const month = isoDate(now).slice(0, 7)
   const paidThisMonth = invoices.filter((i) => i.payments.some((p) => p.date.startsWith(month)))
 
   // Keep the dialogs on the latest copy after a write refreshes the list.

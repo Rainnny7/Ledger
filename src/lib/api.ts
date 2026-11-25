@@ -1,3 +1,4 @@
+import { authClient } from './auth-client'
 import { demoMode } from './demo'
 
 export type AccountType = 'chequing' | 'savings' | 'credit' | 'loan' | 'investment' | 'wallet' | 'other'
@@ -52,21 +53,8 @@ export interface AccountDetails {
   limits: AccountLimit[]
 }
 
-export type Category =
-  | 'income'
-  | 'transfers'
-  | 'food'
-  | 'groceries'
-  | 'transport'
-  | 'shopping'
-  | 'subscriptions'
-  | 'bills'
-  | 'entertainment'
-  | 'health'
-  | 'fees'
-  | 'debt'
-  | 'cash'
-  | 'other'
+import type { Category, Cycle } from '../../shared/categories.ts'
+export type { Category, Cycle, CycleUnit, PresetCycle } from '../../shared/categories.ts'
 
 export interface Transaction {
   id: string
@@ -85,10 +73,14 @@ export interface Transaction {
   categorySource: 'auto' | 'rule' | 'manual'
 }
 
-export type PresetCycle = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'yearly' | 'biennial' | 'triennial'
-export type CycleUnit = 'weeks' | 'months' | 'years'
-/** A preset billing period, or a custom one like `every-5-years`. */
-export type Cycle = PresetCycle | `every-${number}-${CycleUnit}`
+/** A monthly spending limit for one category, in the user's home currency. */
+export interface Budget {
+  category: Category
+  amount: number
+  currency: string
+  updatedAt: string
+}
+
 
 export type ShareKind = 'goal' | 'subscription' | 'job'
 export type SharePermission = 'view' | 'edit'
@@ -523,11 +515,17 @@ export class ApiError extends Error {
 
 /** Fired after anything is created, changed or deleted; the query cache refetches what's on screen. */
 export const DATA_CHANGED = 'ledger:data-changed'
-export function notifyDataChanged() {
-  window.dispatchEvent(new Event(DATA_CHANGED))
+/** Fired with the saved transaction after a single-row edit, so cached lists can show it right away. */
+export const TRANSACTION_UPDATED = 'ledger:transaction-updated'
+/** `path` is the API path that changed (e.g. `/goals/abc`); without one, everything is refetched. */
+export function notifyDataChanged(path?: string) {
+  window.dispatchEvent(new CustomEvent<string | undefined>(DATA_CHANGED, { detail: path }))
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+/** `notify: false` leaves telling the cache what changed to the caller. */
+async function request<T>(path: string, init: RequestInit & { notify?: boolean } = {}): Promise<T> {
   const res = await fetch(`/api/banks${path}`, {
     ...init,
     credentials: 'include',
@@ -535,12 +533,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers: {
       ...(init.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...(demoMode ? { 'X-Ledger-Demo': '1' } : {}),
+      // Due dates and deadlines are worked out for "today" where you are.
+      'X-Timezone': TIME_ZONE,
       ...init.headers,
     },
   })
   const data = await res.json().catch(() => ({}))
+  // Signed out elsewhere or the session ran out: re-check it, and the app falls back to the sign-in page.
+  if (res.status === 401) authClient.$store.notify('$sessionSignal')
   if (!res.ok) throw new ApiError(res.status, (data as { error?: string }).error ?? res.statusText)
-  if (init.method && init.method !== 'GET') notifyDataChanged()
+  if (init.method && init.method !== 'GET' && init.notify !== false) notifyDataChanged(path)
   return data as T
 }
 
@@ -573,10 +575,36 @@ export const api = {
   },
 
   transactions: (from?: string) => request<{ transactions: Transaction[] }>(`/transactions${from ? `?from=${from}` : ''}`),
-  updateTransaction: (
+  updateTransaction: async (
     id: string,
     body: { category?: Category | null; applyToMerchant?: boolean; note?: string | null },
-  ) => request<{ transaction: Transaction }>(`/transactions/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  ) => {
+    const result = await request<{ transaction: Transaction }>(`/transactions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+      notify: false,
+    })
+    // One row changed: the cached lists are patched in place. A merchant-wide rule changes many rows.
+    const merchantWide = body.category !== undefined && body.applyToMerchant === true
+    window.dispatchEvent(new CustomEvent(TRANSACTION_UPDATED, { detail: result.transaction }))
+    notifyDataChanged(merchantWide ? '/transactions/merchant' : `/transactions/${id}`)
+    return result
+  },
+  /** Files several transactions under one category in a single request. */
+  updateTransactions: (ids: string[], category: Category | null) =>
+    request<{ updated: number }>('/transactions/bulk', {
+      method: 'PATCH',
+      body: JSON.stringify({ ids, category }),
+      notify: false,
+    }).then((r) => {
+      notifyDataChanged('/transactions/merchant')
+      return r
+    }),
+
+  budgets: () => request<{ budgets: Budget[] }>('/budgets'),
+  setBudget: (category: Category, amount: number, currency: string) =>
+    request<{ ok: true }>(`/budgets/${category}`, { method: 'PUT', body: JSON.stringify({ amount, currency }) }),
+  deleteBudget: (category: Category) => request<{ ok: true }>(`/budgets/${category}`, { method: 'DELETE' }),
 
   subscriptions: () => request<{ subscriptions: Subscription[]; suggestions: RecurringSuggestion[] }>('/subscriptions'),
   createSubscription: (body: SubscriptionInput) =>
@@ -651,6 +679,14 @@ export const api = {
     request<{ ok: true; url: string }>(`/connections/${connectionId}/instant-updates`, { method: 'POST' }),
   disableInstantUpdates: (connectionId: string) =>
     request<{ ok: true }>(`/connections/${connectionId}/instant-updates`, { method: 'DELETE' }),
+
+  adviceDismissed: () => request<{ dismissed: { id: string; until: string | null }[] }>('/advice/dismissed'),
+  /** Hide an Advisor tip: for `days`, or for good without it. */
+  dismissAdvice: (id: string, days?: number) =>
+    request<{ ok: true }>('/advice/dismiss', { method: 'POST', body: JSON.stringify({ id, days }) }),
+  /** Bring back one hidden tip, or all of them without an id. */
+  restoreAdvice: (id?: string) =>
+    request<{ ok: true }>(`/advice/dismissed${id ? `?id=${encodeURIComponent(id)}` : ''}`, { method: 'DELETE' }),
 }
 
 /** The share link: no sign-in, so it skips the signed-in /api/banks helper. */
