@@ -1,4 +1,5 @@
 import type { WorkInvoice, WorkPayment } from '@/lib/api'
+import { formatMoney, formatShortDate } from '@/lib/format'
 
 /**
  * Hours typed the way people write them: "63", "43.6", "3:30", "120h 30m", "2h", "45m", "1 hr 15 min".
@@ -35,23 +36,53 @@ export function formatDuration(h: number) {
   return `${hrs} ${min} min`
 }
 
-/** "$1,000.5" — the way the amounts read in chat. */
-export const chatMoney = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+const hrs = (h: number) => `${formatHours(h)} hr${round2(h) === 1 ? '' : 's'}`
 
-const mmdd = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(8, 10)}`
+/** The update for one payment: "Received $250.00 on Nov 9 · $750.00 left on this bill". */
+export function paymentLine(p: Pick<WorkPayment, 'amount' | 'date' | 'remainingAfter'>, currency: string) {
+  const left = p.remainingAfter > 0.005 ? `${formatMoney(p.remainingAfter, currency)} left on this bill` : 'paid in full, thank you!'
+  return `Received ${formatMoney(p.amount, currency)} on ${formatShortDate(p.date)} · ${left}`
+}
 
-/** The update line for one payment: "paid $250 11/09, $750 remaining". */
-export const paymentLine = (p: Pick<WorkPayment, 'amount' | 'date' | 'remainingAfter'>) =>
-  `paid ${chatMoney(p.amount)} ${mmdd(p.date)}, ${chatMoney(p.remainingAfter)} remaining`
+/**
+ * The whole bill as a message to paste into a chat or email:
+ *
+ *   Hours for Nov 24
+ *   43.5 hrs × $28.50/hr = $1,239.75
+ *   Hour tracker now at 320.5 hrs
+ *   Proof: https://…
+ *
+ *   Payments so far
+ *   • Nov 9 — $250.00
+ *   • Nov 16 — $250.00
+ *
+ *   Paid $500.00 of $1,239.75 · $739.75 left
+ */
+export function invoiceText(inv: WorkInvoice, currency: string) {
+  const money = (n: number) => formatMoney(n, currency)
+  const agreed = Math.abs(inv.total - round2(inv.hours * inv.rate)) > 0.005
+  const head = [
+    `Hours for ${formatShortDate(inv.date)}`,
+    agreed
+      ? `${hrs(inv.hours)} at ${money(inv.rate)}/hr · agreed total ${money(inv.total)}`
+      : `${hrs(inv.hours)} × ${money(inv.rate)}/hr = ${money(inv.total)}`,
+  ]
+  if (inv.counterHours !== null) head.push(`Hour tracker now at ${hrs(inv.counterHours)}`)
+  if (inv.proofUrl) head.push(`Proof: ${inv.proofUrl}`)
+  const blocks = [head.join('\n')]
 
-/** The whole bill as a message, in the same shape as the hand-written ones. */
-export function invoiceText(inv: WorkInvoice) {
-  const head = [`done ${formatHours(inv.hours)} hours since last pay${inv.proofUrl ? ` ${inv.proofUrl}` : ''}`]
-  if (inv.counterHours !== null) head.push(`new hour count: ${formatHours(inv.counterHours)}`)
-  head.push(`total is ${chatMoney(inv.total)}`)
-  const lines = [head.join('\n')]
-  for (const p of inv.payments) lines.push(`-----\n\n${paymentLine(p)}`)
-  return lines.join('\n\n')
+  if (inv.payments.length > 0) {
+    blocks.push(['Payments so far', ...inv.payments.map((p) => `• ${formatShortDate(p.date)} — ${money(p.amount)}`)].join('\n'))
+  }
+
+  if (inv.remaining <= 0.005) {
+    blocks.push(`Paid in full${inv.paidAt ? ` on ${formatShortDate(inv.paidAt)}` : ''}, thank you!`)
+  } else if (inv.paid > 0) {
+    blocks.push(`Paid ${money(inv.paid)} of ${money(inv.total)} · ${money(inv.remaining)} left`)
+  } else {
+    blocks.push(`Total due: ${money(inv.total)}`)
+  }
+  return blocks.join('\n\n')
 }
 
 export const EVERY_PRESETS = [

@@ -558,7 +558,7 @@ export function WorkPaymentDialog({ draft, onClose }: { draft: WorkPaymentDraft 
       })
       const inv = updated.invoices.find((i) => i.id === invoice.id)
       const added = inv?.payments.find((p) => !before.has(p.id))
-      const line = added ? paymentLine(added) : null
+      const line = added ? paymentLine(added, job.currency) : null
       const cleared = inv?.status === 'paid'
       toast.success(cleared ? `🎉 Bill cleared — ${formatMoney(inv.total, job.currency)} paid in full` : `${formatMoney(value, job.currency)} received`, {
         description: cleared ? undefined : `${formatMoney(inv?.remaining ?? 0, job.currency)} left on this bill`,

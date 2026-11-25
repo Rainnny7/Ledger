@@ -493,7 +493,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
     <WithContextMenu
       menu={
         <>
-          <DropdownMenuItem onClick={() => void copy(invoiceText(inv), 'Bill')}>
+          <DropdownMenuItem onClick={() => void copy(invoiceText(inv, j.currency), 'Bill')}>
             <Copy /> Copy as a message
           </DropdownMenuItem>
           {!readonly && (
@@ -519,7 +519,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
           </p>
         </div>
         <Hint label="Copy as a message">
-          <Button variant="ghost" size="icon-xs" aria-label="Copy for chat" onClick={() => void copy(invoiceText(inv), 'Bill')}>
+          <Button variant="ghost" size="icon-xs" aria-label="Copy for chat" onClick={() => void copy(invoiceText(inv, j.currency), 'Bill')}>
             <Copy />
           </Button>
         </Hint>
@@ -577,12 +577,12 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
                   {p.transactionId && <Link2 className="size-3 shrink-0" aria-label="Linked to a transaction" />}
                   {p.remainingAfter > 0 ? `${money(p.remainingAfter)} left` : 'cleared'}
                 </span>
-                <Hint label={`Copy: ${paymentLine(p)}`}>
+                <Hint label={`Copy: ${paymentLine(p, j.currency)}`}>
                 <button
                   type="button"
                   aria-label="Copy update"
                   className="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
-                  onClick={() => void copy(paymentLine(p), 'Update')}
+                  onClick={() => void copy(paymentLine(p, j.currency), 'Update')}
                 >
                   <Copy className="size-3.5" />
                 </button>
