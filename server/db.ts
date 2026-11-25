@@ -169,6 +169,74 @@ export function migrateAppTables() {
     );
     CREATE INDEX IF NOT EXISTS idx_work_payment_invoice ON work_payment(invoice_id, date);
 
+    -- Invoices you send to clients. Line items, parties and the chosen payment methods are JSON.
+    CREATE TABLE IF NOT EXISTS invoice (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+      number TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE,          -- the secret in the share link (/i/<token>)
+      status TEXT NOT NULL DEFAULT 'draft', -- draft | sent | void (paid is worked out from payments)
+      template TEXT NOT NULL DEFAULT 'modern',
+      theme TEXT NOT NULL DEFAULT 'professional',
+      currency TEXT NOT NULL DEFAULT 'CAD',
+      issue_date TEXT NOT NULL,
+      due_date TEXT,
+      from_json TEXT NOT NULL,             -- {name,email,phone,address,taxId}
+      client_json TEXT NOT NULL,
+      items_json TEXT NOT NULL,            -- [{description,quantity,unitPrice}]
+      tax_rate REAL NOT NULL DEFAULT 0,    -- percent
+      tax_label TEXT NOT NULL DEFAULT 'Tax',
+      discount REAL NOT NULL DEFAULT 0,    -- flat amount off the subtotal
+      notes TEXT,
+      terms TEXT,
+      methods_json TEXT NOT NULL DEFAULT '[]', -- ids of payment_method rows offered on the invoice
+      work_invoice_id TEXT REFERENCES work_invoice(id) ON DELETE SET NULL, -- billed from a Work bill: its payments count
+      sent_at TEXT,
+      viewed_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_invoice_user ON invoice(user_id, issue_date);
+
+    CREATE TABLE IF NOT EXISTS invoice_payment (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT NOT NULL REFERENCES invoice(id) ON DELETE CASCADE,
+      amount REAL NOT NULL,
+      date TEXT NOT NULL,
+      method TEXT,
+      note TEXT,
+      transaction_id TEXT REFERENCES bank_transaction(id) ON DELETE SET NULL,
+      external_id TEXT UNIQUE,             -- PayPal capture id, so a webhook and a redirect don't count it twice
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_invoice_payment_invoice ON invoice_payment(invoice_id, date);
+
+    -- Ways clients can pay you (e-Transfer email, PayPal.me, a crypto address…), reused across invoices.
+    CREATE TABLE IF NOT EXISTS payment_method (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      label TEXT NOT NULL,
+      fields_json TEXT NOT NULL DEFAULT '{}',
+      is_default INTEGER NOT NULL DEFAULT 0, -- ticked on new invoices
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_payment_method_user ON payment_method(user_id);
+
+    -- Your own details and defaults for new invoices.
+    CREATE TABLE IF NOT EXISTS invoice_profile (
+      user_id TEXT PRIMARY KEY REFERENCES user(id) ON DELETE CASCADE,
+      json TEXT NOT NULL
+    );
+
+    -- PayPal webhook deliveries already handled (PayPal retries, so the same one can arrive twice).
+    CREATE TABLE IF NOT EXISTS paypal_webhook_event (
+      id TEXT PRIMARY KEY,
+      connection_id TEXT NOT NULL REFERENCES bank_connection(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      received_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- Instance-wide switches an admin can flip (e.g. registration_open).
     CREATE TABLE IF NOT EXISTS app_setting (
       key TEXT PRIMARY KEY,
@@ -183,6 +251,12 @@ export function migrateAppTables() {
   // Direct deposit numbers + limits (encrypted JSON: they include the full account number).
   addColumn('bank_account', 'details_enc', 'TEXT')
   addColumn('bank_account', 'details_updated_at', 'TEXT')
+  // PayPal: the webhook registered on the user's REST app for instant updates.
+  addColumn('bank_connection', 'webhook_id', 'TEXT')
+  addColumn('bank_connection', 'webhook_at', 'TEXT')
+  // A PayPal capture id on bill payments too, so checkout payments are only counted once.
+  addColumn('work_payment', 'external_id', 'TEXT')
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_work_payment_external ON work_payment(external_id) WHERE external_id IS NOT NULL`)
 }
 
 export function getSetting(key: string): string | null {

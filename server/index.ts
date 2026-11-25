@@ -15,6 +15,8 @@ import { DEMO_USER_ID, ensureDemoData } from './demo.ts'
 import { DATA_DIR, env } from './env.ts'
 import { banks } from './routes/banks.ts'
 import { finance } from './routes/finance.ts'
+import { invoices, publicInvoices } from './routes/invoices.ts'
+import { handlePaypalWebhook } from './banks/paypal/webhooks.ts'
 import { work } from './routes/work.ts'
 import { hasTask, listTasks, runTask, startScheduler } from './tasks.ts'
 
@@ -30,10 +32,13 @@ app.use(
   secureHeaders({
     contentSecurityPolicy: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
+      // The invoice PDF renderer is WebAssembly.
+      scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
       // Tailwind/Base UI set inline style attributes; charts use inline SVG styles.
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:'],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      // The PDF preview is a blob: document in a frame.
+      frameSrc: ["'self'", 'blob:'],
       fontSrc: ["'self'", 'data:'],
       connectSrc: ["'self'"],
       frameAncestors: ["'none'"],
@@ -93,6 +98,17 @@ app.use('/api/banks/*', async (c, next) => {
 app.route('/api/banks', banks)
 app.route('/api/banks', finance)
 app.route('/api/banks', work)
+app.route('/api/banks', invoices)
+
+// Share links: anyone with the link can see that one invoice (and pay it), no sign-in.
+app.route('/api/public', publicInvoices)
+
+// PayPal's instant updates. Each delivery is checked with PayPal before anything is done with it.
+app.post('/api/webhooks/paypal/:connectionId', async (c) => {
+  const result = await handlePaypalWebhook(c.req.param('connectionId'), c.req.raw.headers, await c.req.text())
+  if (result.status !== 200) console.warn(`PayPal webhook rejected: ${result.message}`)
+  return c.json({ message: result.message }, result.status)
+})
 
 // Instance settings for admins. User management itself goes through Better Auth's /api/auth/admin/*.
 app.use('/api/admin/*', async (c, next) => {
