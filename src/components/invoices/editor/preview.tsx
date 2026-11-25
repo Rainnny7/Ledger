@@ -1,13 +1,14 @@
 import { Download, ExternalLink, Eye, Loader2 } from "lucide-react"
 import { useEffect, useEffectEvent, useState } from "react"
 import { Button } from "@/components/ui/button"
-import type { InvoicePdfSource } from "@/lib/invoice-pdf"
+import type { InvoicePdfSource } from "@/lib/invoice-pdf-data"
 import { renderPdf, saveBlob } from "@/components/invoices/pdf-files"
 
 function useBlobUrl(blob: Blob | null) {
   const [url, setUrl] = useState<string | null>(null)
   useEffect(() => {
     if (!blob) {
+      // oxlint-disable-next-line react/set-state-in-effect -- revoke prior object URL when blob clears
       setUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev)
         return null
@@ -99,8 +100,7 @@ export function InvoicePreview({
       )}
       <div className="hidden overflow-hidden rounded-xl border bg-muted/40 lg:block">
         {url ? (
-          // No `sandbox`: it's our own PDF from a blob URL, and browsers refuse to run their PDF
-          // viewer inside a sandboxed frame, so any sandbox value would blank the preview.
+          // oxlint-disable-next-line react/iframe-missing-sandbox -- blob PDF preview; sandbox blanks the browser PDF viewer
           <iframe
             title="Invoice PDF preview"
             src={`${url}#toolbar=0&navpanes=0&view=FitH`}

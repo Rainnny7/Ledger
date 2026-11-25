@@ -1,6 +1,5 @@
 /** Invoice helpers shared by the editor, the PDF and the public share page. */
 import type {
-  InvoiceItem,
   InvoiceParty,
   PaymentMethodKind,
   PublicPaymentMethod,
@@ -347,25 +346,6 @@ function shortLabel(f: MethodField) {
     "Wallet address": "Address",
   }
   return map[f.label] ?? f.label
-}
-
-// ---------------------------------------------------------------- totals (same rules as the server)
-
-export const round2 = (n: number) => Math.round(n * 100) / 100
-
-export function lineAmount(i: InvoiceItem) {
-  return round2(i.quantity * i.unitPrice)
-}
-
-export function invoiceTotals(d: {
-  items: InvoiceItem[]
-  taxRate: number
-  discount: number
-}) {
-  const subtotal = round2(d.items.reduce((s, i) => s + lineAmount(i), 0))
-  const discount = round2(Math.min(Math.max(0, d.discount), subtotal))
-  const tax = round2(((subtotal - discount) * Math.max(0, d.taxRate)) / 100)
-  return { subtotal, discount, tax, total: round2(subtotal - discount + tax) }
 }
 
 export const formatRate = (rate: number) => `${Number(rate.toFixed(3))}%`

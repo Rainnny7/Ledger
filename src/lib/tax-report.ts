@@ -60,7 +60,7 @@ const round = (v: number) => Math.round(v * 100) / 100
 export function reportYears(transactions: Transaction[], today = new Date()) {
   const years = new Set([today.getFullYear()])
   for (const t of transactions) years.add(Number(t.date.slice(0, 4)))
-  return [...years].filter(Number.isFinite).sort((a, b) => b - a)
+  return [...years].filter(Number.isFinite).toSorted((a, b) => b - a)
 }
 
 /** Most people file in spring for the year before; later in the year, the current one is more useful. */
@@ -166,7 +166,7 @@ export function buildTaxReport(transactions: Transaction[]): TaxReport {
         businessIn: round(l.businessIn),
         businessOut: round(l.businessOut),
       }))
-      .sort(
+      .toSorted(
         (a, b) =>
           b.moneyOut + b.moneyIn - (a.moneyOut + a.moneyIn) ||
           order.get(a.category)! - order.get(b.category)!
@@ -179,7 +179,7 @@ export function buildTaxReport(transactions: Transaction[]): TaxReport {
         businessIn: round(m.businessIn),
         businessOut: round(m.businessOut),
       }))
-      .sort((a, b) => a.month.localeCompare(b.month)),
+      .toSorted((a, b) => a.month.localeCompare(b.month)),
     review,
   }
 }
@@ -209,14 +209,18 @@ export function quarters(byMonth: MonthLine[]) {
 
 type Cell = string | number | null | undefined
 
-export function toCsv(rows: Cell[][]) {
-  const esc = (v: Cell) => {
-    const s = v === null || v === undefined ? "" : String(v)
-    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
-  }
-  // A byte-order mark so Excel opens accented names correctly.
-  return `﻿${rows.map((r) => r.map(esc).join(",")).join("\r\n")}\r\n`
+const escCsvCell = (v: Cell) => {
+  const s = v === null || v === undefined ? "" : String(v)
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
+
+export function toCsv(rows: Cell[][]) {
+  // A byte-order mark so Excel opens accented names correctly.
+  return `﻿${rows.map((r) => r.map(escCsvCell).join(",")).join("\r\n")}\r\n`
+}
+
+const isBusinessTx = (t: Transaction) =>
+  t.taxTag === "business" && t.category !== "transfers"
 
 const TAG_LABEL = { business: "Business", personal: "Personal" } as const
 const money = (v: number) => v.toFixed(2)
@@ -259,7 +263,7 @@ export function transactionsCsv(
     ...original
       .filter(filter)
       .slice()
-      .sort((a, b) => a.date.localeCompare(b.date))
+      .toSorted((a, b) => a.date.localeCompare(b.date))
       .map((t) => {
         const account = byId.get(t.accountId)
         const homeAmount = converted.get(t.id)?.amount
@@ -388,8 +392,6 @@ export function accountantPackage(
   input: ExportInput,
   fmt: (v: number) => string
 ) {
-  const isBusiness = (t: Transaction) =>
-    t.taxTag === "business" && t.category !== "transfers"
   const folder = `ledger-tax-${input.label}`
   const files: Record<string, Uint8Array> = {
     [`${folder}/README.txt`]: strToU8(readme(input, fmt)),
@@ -397,10 +399,10 @@ export function accountantPackage(
     [`${folder}/monthly.csv`]: strToU8(monthlyCsv(input)),
     [`${folder}/transactions.csv`]: strToU8(transactionsCsv(input)),
     [`${folder}/business-income.csv`]: strToU8(
-      transactionsCsv(input, (t) => isBusiness(t) && t.amount > 0)
+      transactionsCsv(input, (t) => isBusinessTx(t) && t.amount > 0)
     ),
     [`${folder}/business-expenses.csv`]: strToU8(
-      transactionsCsv(input, (t) => isBusiness(t) && t.amount < 0)
+      transactionsCsv(input, (t) => isBusinessTx(t) && t.amount < 0)
     ),
   }
   return new Blob([zipSync(files) as Uint8Array<ArrayBuffer>], {

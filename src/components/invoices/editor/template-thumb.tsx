@@ -1,5 +1,9 @@
 import { cn } from "cn"
 
+function templateThumbBar(w: string, h = "h-1", c = "bg-muted-foreground/25") {
+  return <span className={cn("block rounded-full", w, h, c)} />
+}
+
 /** A tiny sketch of each template's layout, in the chosen colour. */
 export function TemplateThumb({
   template,
@@ -8,9 +12,7 @@ export function TemplateThumb({
   template: string
   color: string
 }) {
-  const bar = (w: string, h = "h-1", c = "bg-muted-foreground/25") => (
-    <span className={cn("block rounded-full", w, h, c)} />
-  )
+  const bar = templateThumbBar
   return (
     <span
       aria-hidden

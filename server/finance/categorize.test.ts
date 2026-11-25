@@ -10,6 +10,38 @@ import {
   type TxLike,
 } from "./recurring.ts"
 
+const classifySample = (d: string, a = -10) => classify(d, a)
+
+const txFromDesc = (date: string, desc: string, amount: number): TxLike => ({
+  date,
+  amount,
+  ...classify(desc, amount),
+})
+
+const txApplePaypal = (date: string, amount: number): TxLike => ({
+  date,
+  amount,
+  ...classify("PAYPAL *APPLE.C _V", amount),
+})
+
+const txMonthlyApp = (date: string): TxLike => ({
+  date,
+  amount: -9.99,
+  ...classify("SOME APP", -9.99),
+})
+
+const txOverdraft = (date: string, amount: number): TxLike => ({
+  date,
+  amount,
+  ...classify("OVERDRAFT INTEREST", amount),
+})
+
+const foodTx = (
+  date: string,
+  amount: number,
+  desc = "DOORDASH DASHPASS"
+): TxLike => ({ date, amount, ...classify(desc, amount) })
+
 test("stripNoise removes TD suffixes, processor prefixes and store numbers", () => {
   assert.equal(stripNoise("UBER CANADA/UBE _V"), "UBER CANADA")
   assert.equal(stripNoise("TIM HORTONS #2311 TORONTO"), "TIM HORTONS")
@@ -18,30 +50,38 @@ test("stripNoise removes TD suffixes, processor prefixes and store numbers", () 
 })
 
 test("classify recognises common merchants and categories", () => {
-  const c = (d: string, a = -10) => classify(d, a)
   assert.deepEqual(
-    [c("UBER CANADA/UBE _V").merchant, c("UBER CANADA/UBE _V").category],
+    [
+      classifySample("UBER CANADA/UBE _V").merchant,
+      classifySample("UBER CANADA/UBE _V").category,
+    ],
     ["Uber", "transport"]
   )
-  assert.equal(c("UBER* EATS PENDING").category, "food")
-  assert.equal(c("USAT_WT210420 _M").category, "food")
-  assert.equal(c("TELUS MOBILITY").category, "bills")
-  assert.equal(c("NETFLIX.COM").category, "subscriptions")
-  assert.equal(c("AMAZON.CA PRIME MEMBER").merchant, "Amazon Prime")
-  assert.equal(c("AMAZON.CA").category, "shopping")
-  assert.equal(c("SEND E-TFR ***Jx4").category, "transfers")
-  assert.equal(c("SEND E-TFR ***Jx4").merchant, "e-Transfer sent")
-  assert.equal(c("E-TRANSFER ***abc", 50).merchant, "e-Transfer received")
-  assert.equal(c("MONTHLY ACCOUNT FEE").category, "fees")
-  assert.equal(c("OVERDRAFT INTEREST").category, "fees")
-  assert.equal(c("ACME CORP PAYROLL", 1500).category, "income")
-  assert.equal(c("ATM W/D 0123").category, "cash")
-  assert.equal(c("LOBLAWS 1234").category, "groceries")
-  assert.equal(c("SOME RANDOM PLACE").category, "other")
-  assert.equal(c("SOME RANDOM PLACE", 20).category, "income")
+  assert.equal(classifySample("UBER* EATS PENDING").category, "food")
+  assert.equal(classifySample("USAT_WT210420 _M").category, "food")
+  assert.equal(classifySample("TELUS MOBILITY").category, "bills")
+  assert.equal(classifySample("NETFLIX.COM").category, "subscriptions")
   assert.equal(
-    c("TIM HORTONS #99").merchantKey,
-    c("TIM HORTONS #12").merchantKey
+    classifySample("AMAZON.CA PRIME MEMBER").merchant,
+    "Amazon Prime"
+  )
+  assert.equal(classifySample("AMAZON.CA").category, "shopping")
+  assert.equal(classifySample("SEND E-TFR ***Jx4").category, "transfers")
+  assert.equal(classifySample("SEND E-TFR ***Jx4").merchant, "e-Transfer sent")
+  assert.equal(
+    classifySample("E-TRANSFER ***abc", 50).merchant,
+    "e-Transfer received"
+  )
+  assert.equal(classifySample("MONTHLY ACCOUNT FEE").category, "fees")
+  assert.equal(classifySample("OVERDRAFT INTEREST").category, "fees")
+  assert.equal(classifySample("ACME CORP PAYROLL", 1500).category, "income")
+  assert.equal(classifySample("ATM W/D 0123").category, "cash")
+  assert.equal(classifySample("LOBLAWS 1234").category, "groceries")
+  assert.equal(classifySample("SOME RANDOM PLACE").category, "other")
+  assert.equal(classifySample("SOME RANDOM PLACE", 20).category, "income")
+  assert.equal(
+    classifySample("TIM HORTONS #99").merchantKey,
+    classifySample("TIM HORTONS #12").merchantKey
   )
 })
 
@@ -85,25 +125,20 @@ test("monthlyEquivalent normalises cycles", () => {
 })
 
 test("detectRecurring finds monthly subscriptions and ignores noise", () => {
-  const tx = (date: string, desc: string, amount: number): TxLike => ({
-    date,
-    amount,
-    ...classify(desc, amount),
-  })
   const txs = [
-    tx("2026-08-03", "NETFLIX.COM", -16.49),
-    tx("2026-09-03", "NETFLIX.COM", -16.49),
-    tx("2026-10-03", "NETFLIX.COM", -18.99),
-    tx("2026-11-03", "NETFLIX.COM", -18.99),
-    tx("2026-10-21", "TELUS MOBILITY", -55),
-    tx("2026-11-21", "TELUS MOBILITY", -55),
-    tx("2026-11-01", "TIM HORTONS #1", -3),
-    tx("2026-11-08", "TIM HORTONS #1", -3),
-    tx("2026-11-15", "TIM HORTONS #1", -3),
-    tx("2026-03-01", "OLD GYM", -40),
-    tx("2026-04-01", "OLD GYM", -40),
-    tx("2026-10-01", "BIG STORE", -12),
-    tx("2026-11-20", "BIG STORE", -300),
+    txFromDesc("2026-08-03", "NETFLIX.COM", -16.49),
+    txFromDesc("2026-09-03", "NETFLIX.COM", -16.49),
+    txFromDesc("2026-10-03", "NETFLIX.COM", -18.99),
+    txFromDesc("2026-11-03", "NETFLIX.COM", -18.99),
+    txFromDesc("2026-10-21", "TELUS MOBILITY", -55),
+    txFromDesc("2026-11-21", "TELUS MOBILITY", -55),
+    txFromDesc("2026-11-01", "TIM HORTONS #1", -3),
+    txFromDesc("2026-11-08", "TIM HORTONS #1", -3),
+    txFromDesc("2026-11-15", "TIM HORTONS #1", -3),
+    txFromDesc("2026-03-01", "OLD GYM", -40),
+    txFromDesc("2026-04-01", "OLD GYM", -40),
+    txFromDesc("2026-10-01", "BIG STORE", -12),
+    txFromDesc("2026-11-20", "BIG STORE", -300),
   ]
   const found = detectRecurring(txs, "2026-11-24")
   assert.deepEqual(
@@ -156,22 +191,17 @@ test("classify looks past payment processors", () => {
 })
 
 test("detectRecurring separates plans from the same merchant", () => {
-  const tx = (date: string, amount: number): TxLike => ({
-    date,
-    amount,
-    ...classify("PAYPAL *APPLE.C _V", amount),
-  })
   const found = detectRecurring(
     [
-      tx("2026-08-06", -4.51),
-      tx("2026-09-06", -4.51),
-      tx("2026-10-06", -4.51),
-      tx("2026-11-06", -4.51),
-      tx("2026-08-29", -13.55),
-      tx("2026-09-29", -13.55),
-      tx("2026-10-29", -13.55),
-      tx("2026-09-15", -1.12), // one-off purchases in between
-      tx("2026-10-20", -7.9),
+      txApplePaypal("2026-08-06", -4.51),
+      txApplePaypal("2026-09-06", -4.51),
+      txApplePaypal("2026-10-06", -4.51),
+      txApplePaypal("2026-11-06", -4.51),
+      txApplePaypal("2026-08-29", -13.55),
+      txApplePaypal("2026-09-29", -13.55),
+      txApplePaypal("2026-10-29", -13.55),
+      txApplePaypal("2026-09-15", -1.12), // one-off purchases in between
+      txApplePaypal("2026-10-20", -7.9),
     ],
     "2026-11-24"
   )
@@ -185,11 +215,6 @@ test("detectRecurring separates plans from the same merchant", () => {
 })
 
 test("detectRecurring judges the recent rhythm and tolerates a skipped month", () => {
-  const tx = (date: string): TxLike => ({
-    date,
-    amount: -9.99,
-    ...classify("SOME APP", -9.99),
-  })
   const dates = [
     "2025-06-20",
     "2025-07-08",
@@ -202,7 +227,7 @@ test("detectRecurring judges the recent rhythm and tolerates a skipped month", (
     "2026-10-11",
     "2026-11-11",
   ]
-  const found = detectRecurring(dates.map(tx), "2026-11-24")
+  const found = detectRecurring(dates.map(txMonthlyApp), "2026-11-24")
   assert.deepEqual(
     found.map((f) => [f.name, f.cycle]),
     [["Some App", "monthly"]]
@@ -210,17 +235,12 @@ test("detectRecurring judges the recent rhythm and tolerates a skipped month", (
 })
 
 test("detectRecurring handles variable-amount charges on a schedule", () => {
-  const tx = (date: string, amount: number): TxLike => ({
-    date,
-    amount,
-    ...classify("OVERDRAFT INTEREST", amount),
-  })
   const found = detectRecurring(
     [
-      tx("2026-07-31", -2.1),
-      tx("2026-08-31", -4.74),
-      tx("2026-09-29", -6.2),
-      tx("2026-10-30", -3.71),
+      txOverdraft("2026-07-31", -2.1),
+      txOverdraft("2026-08-31", -4.74),
+      txOverdraft("2026-09-29", -6.2),
+      txOverdraft("2026-10-30", -3.71),
     ],
     "2026-11-24"
   )
@@ -231,24 +251,19 @@ test("detectRecurring handles variable-amount charges on a schedule", () => {
 })
 
 test("detectRecurring only flags everyday spending with an identical repeating amount", () => {
-  const food = (
-    date: string,
-    amount: number,
-    desc = "DOORDASH DASHPASS"
-  ): TxLike => ({ date, amount, ...classify(desc, amount) })
   const found = detectRecurring(
     [
-      food("2026-08-10", -9.99),
-      food("2026-09-10", -9.99),
-      food("2026-10-10", -9.99),
-      food("2026-11-10", -9.99),
+      foodTx("2026-08-10", -9.99),
+      foodTx("2026-09-10", -9.99),
+      foodTx("2026-10-10", -9.99),
+      foodTx("2026-11-10", -9.99),
       // Regular-ish lunches at varying prices are not a subscription.
-      food("2026-09-01", -12.4, "PIZZA PLACE"),
-      food("2026-10-01", -13.1, "PIZZA PLACE"),
-      food("2026-11-01", -12.9, "PIZZA PLACE"),
+      foodTx("2026-09-01", -12.4, "PIZZA PLACE"),
+      foodTx("2026-10-01", -13.1, "PIZZA PLACE"),
+      foodTx("2026-11-01", -12.9, "PIZZA PLACE"),
       // Two identical charges aren't enough for food.
-      food("2026-10-05", -5, "CAFE ROYAL"),
-      food("2026-11-05", -5, "CAFE ROYAL"),
+      foodTx("2026-10-05", -5, "CAFE ROYAL"),
+      foodTx("2026-11-05", -5, "CAFE ROYAL"),
     ],
     "2026-11-24"
   )

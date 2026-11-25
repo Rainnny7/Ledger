@@ -1,9 +1,11 @@
-import { type Draft, iso, rng, round } from "./util.ts"
+import { roundMoney } from "../../shared/money.ts"
+import { type Draft, iso, rng } from "./util.ts"
 
 /** The billionaire: quarterly distributions and stock sales in, jets, rockets and lawyers out. */
 export function generateMogul(today: Date) {
   const rand = rng(20240611)
-  const between = (lo: number, hi: number) => round(lo + rand() * (hi - lo))
+  const between = (lo: number, hi: number) =>
+    roundMoney(lo + rand() * (hi - lo))
   const pick = <T>(xs: T[]) => xs[Math.floor(rand() * xs.length)]
   const start = new Date(
     Date.UTC(today.getUTCFullYear() - 1, today.getUTCMonth() - 1, 1)
@@ -55,7 +57,7 @@ export function generateMogul(today: Date) {
     if (rand() < 0.015)
       add(chequing, "CRYPTO EXCHANGE DEBIT", -between(25_000, 420_000))
     if (dom === 28)
-      add(savings, "INTEREST", round(11_000_000 + daysSince * 3_000))
+      add(savings, "INTEREST", roundMoney(11_000_000 + daysSince * 3_000))
     if (dom === 18 && daysSince > 20) {
       // Pay last month's card spending.
       const prev = visa
@@ -67,8 +69,8 @@ export function generateMogul(today: Date) {
         )
         .reduce((s, t) => s - t.amount, 0)
       if (prev > 0) {
-        add(chequing, "BLACK CARD PAYMENT", -round(prev))
-        add(visa, "PAYMENT - THANK YOU", round(prev))
+        add(chequing, "BLACK CARD PAYMENT", -roundMoney(prev))
+        add(visa, "PAYMENT - THANK YOU", roundMoney(prev))
       }
     }
 

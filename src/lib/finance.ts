@@ -1,9 +1,8 @@
+import { roundMoney } from "../../shared/money.ts"
 import { signedBalance } from "./balances"
 import type { Account, Category, Transaction } from "./api"
 import { NON_SPEND } from "./categories"
 import { addDays, isoDate } from "./format"
-
-export const round2 = (n: number) => Math.round(n * 100) / 100
 
 /** Spending categories count toward "spent"; a refund in one of them reduces it. */
 export const isSpend = (t: Transaction) => !NON_SPEND.has(t.category)
@@ -31,10 +30,10 @@ export function balanceSeries(
   let bal = accounts.reduce((s, a) => s + signedBalance(a, includeOverdraft), 0)
   const out: { date: string; balance: number }[] = []
   for (let d = today; d >= start; d = addDays(d, -1)) {
-    out.push({ date: d, balance: round2(bal) })
+    out.push({ date: d, balance: roundMoney(bal) })
     bal -= byDate.get(d) ?? 0
   }
-  return out.reverse()
+  return out.toReversed()
 }
 
 export function monthKey(iso: string) {
@@ -68,10 +67,10 @@ export function monthlyCashflow(txs: Transaction[], months: string[]) {
     else if (isSpend(t)) row.spent -= t.amount
   }
   return [...map.values()].map((r) => {
-    const inn = round2(Math.max(0, r.in))
-    const debt = round2(Math.max(0, r.debt))
-    const out = round2(Math.max(0, r.spent) + debt)
-    return { month: r.month, in: inn, out, debt, net: round2(inn - out) }
+    const inn = roundMoney(Math.max(0, r.in))
+    const debt = roundMoney(Math.max(0, r.debt))
+    const out = roundMoney(Math.max(0, r.spent) + debt)
+    return { month: r.month, in: inn, out, debt, net: roundMoney(inn - out) }
   })
 }
 
@@ -91,11 +90,11 @@ export function spendByCategory(txs: Transaction[]) {
   return [...map.entries()]
     .map(([category, r]) => ({
       category,
-      total: round2(r.total),
+      total: roundMoney(r.total),
       count: r.count,
     }))
     .filter((r) => r.total > 0)
-    .sort((a, b) => b.total - a.total)
+    .toSorted((a, b) => b.total - a.total)
 }
 
 export function topMerchants(txs: Transaction[], limit = 8) {
@@ -123,13 +122,13 @@ export function topMerchants(txs: Transaction[], limit = 8) {
     map.set(t.merchantKey, row)
   }
   return [...map.values()]
-    .map((r) => ({ ...r, total: round2(r.total) }))
-    .sort((a, b) => b.total - a.total)
+    .map((r) => ({ ...r, total: roundMoney(r.total) }))
+    .toSorted((a, b) => b.total - a.total)
     .slice(0, limit)
 }
 
 export function totalSpent(txs: Transaction[]) {
-  return round2(
+  return roundMoney(
     Math.max(
       0,
       txs.reduce((s, t) => (isSpend(t) ? s - t.amount : s), 0)
@@ -139,7 +138,7 @@ export function totalSpent(txs: Transaction[]) {
 
 /** Net income: pay and other money in, less any reversal of it. */
 export function totalIncome(txs: Transaction[]) {
-  return round2(
+  return roundMoney(
     Math.max(
       0,
       txs.reduce((s, t) => (t.category === "income" ? s + t.amount : s), 0)
@@ -149,7 +148,7 @@ export function totalIncome(txs: Transaction[]) {
 
 /** Net loan & debt repayments (money out to lenders, less any money in from them). */
 export function totalDebtPaid(txs: Transaction[]) {
-  return round2(
+  return roundMoney(
     Math.max(
       0,
       txs.reduce((s, t) => (t.category === "debt" ? s - t.amount : s), 0)
@@ -159,7 +158,7 @@ export function totalDebtPaid(txs: Transaction[]) {
 
 /** Spending still pending (card holds that haven't posted yet). */
 export function pendingSpent(txs: Transaction[]) {
-  return round2(
+  return roundMoney(
     Math.max(
       0,
       txs.reduce((s, t) => (t.pending && isSpend(t) ? s - t.amount : s), 0)
@@ -178,16 +177,17 @@ export function startOfMonth(d = new Date()) {
 }
 
 /** CSV with a UTF-8 BOM so Excel opens accents correctly. */
+function csvEsc(v: string | number | null | undefined) {
+  const s = v === null || v === undefined ? "" : String(v)
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
 export function downloadCsv(
   filename: string,
   rows: (string | number | null | undefined)[][]
 ) {
-  const esc = (v: string | number | null | undefined) => {
-    const s = v === null || v === undefined ? "" : String(v)
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
-  }
   const blob = new Blob(
-    [`﻿${rows.map((r) => r.map(esc).join(",")).join("\n")}`],
+    [`﻿${rows.map((r) => r.map(csvEsc).join(",")).join("\n")}`],
     { type: "text/csv;charset=utf-8" }
   )
   const url = URL.createObjectURL(blob)

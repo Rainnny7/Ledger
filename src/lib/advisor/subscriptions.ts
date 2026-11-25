@@ -36,6 +36,9 @@ const VIDEO =
 const MUSIC =
   /spotify|apple\s*music|youtube\s*music|tidal|deezer|amazon\s*music|pandora|qobuz/i
 
+const subscriptionOpenLink = (s: Subscription) =>
+  subsLink(`Open ${s.name}`, [s.id])
+
 export function subscriptionTips(
   ctx: Ctx,
   subs: OwnSub[],
@@ -43,7 +46,6 @@ export function subscriptionTips(
 ): Tip[] {
   const tips: Tip[] = []
   const go = { label: "Review subscriptions", to: "/subscriptions" }
-  const open = (s: Subscription) => subsLink(`Open ${s.name}`, [s.id])
 
   if (subs.length > 0 && yearlyTotal > 0) {
     const share = ctx.hasIncome ? yearlyTotal / 12 / ctx.avgIncome! : null
@@ -73,7 +75,7 @@ export function subscriptionTips(
     tips.push({
       id: `overlap:${kind}:${group
         .map((x) => x.s.id)
-        .sort()
+        .toSorted()
         .join(",")}`,
       kind: "save",
       area: "subscriptions",
@@ -120,7 +122,7 @@ export function subscriptionTips(
       title: `${s.name} went up in price`,
       body: `Your last charge on ${formatShortDate(charges[0].date)} was ${money(latest)}, up from ${money(prev)} (${pct(latest / prev - 1)} more, about ${about(yearly)} a year). Worth checking whether a cheaper plan or an annual option fits.`,
       yearly: 0,
-      action: open(s),
+      action: subscriptionOpenLink(s),
       priority: 280,
     })
   }
@@ -137,7 +139,7 @@ export function subscriptionTips(
       area: "subscriptions",
       title: `No charge from ${s.name} since ${formatShortDate(s.lastCharge.date)}`,
       body: `The next one was due around ${formatShortDate(expected)}. If you cancelled it, pause it so your totals stay right; if the price changed, update the amount, or open the latest charge and count it toward this subscription, so Ledger can match the charges again.`,
-      action: open(s),
+      action: subscriptionOpenLink(s),
       priority: 150,
     })
   }
@@ -148,7 +150,7 @@ export function subscriptionTips(
       (x) =>
         x.s.cycle === "monthly" && x.s.payments.length >= 6 && x.monthly >= 5
     )
-    .sort((a, b) => b.monthly - a.monthly)
+    .toSorted((a, b) => b.monthly - a.monthly)
   if (longMonthly.length > 0) {
     const top = longMonthly.slice(0, 3)
     const yearly = top.reduce((s, x) => s + x.yearly, 0) * 0.15
@@ -156,7 +158,7 @@ export function subscriptionTips(
     tips.push({
       id: `annual:${top
         .map((x) => x.s.id)
-        .sort()
+        .toSorted()
         .join(",")}`,
       kind: "save",
       area: "subscriptions",
@@ -172,7 +174,7 @@ export function subscriptionTips(
   }
 
   // The single most expensive plan deserves a yearly "still worth it?".
-  const priciest = [...subs].sort((a, b) => b.monthly - a.monthly)[0]
+  const priciest = [...subs].toSorted((a, b) => b.monthly - a.monthly)[0]
   if (priciest && priciest.monthly >= 30 && priciest.s.category !== "bills") {
     tips.push({
       id: `priciest:${priciest.s.id}:${ctx.today.slice(0, 4)}`,
@@ -180,7 +182,7 @@ export function subscriptionTips(
       area: "subscriptions",
       title: `Is ${priciest.s.name} still worth it?`,
       body: `It’s your priciest subscription at ${money(priciest.monthly)} a month, ${about(priciest.yearly)} a year. If you’re not using it every week, pausing or downgrading it is the biggest single subscription saving you have.`,
-      action: open(priciest.s),
+      action: subscriptionOpenLink(priciest.s),
       priority: 100,
     })
   }
@@ -195,7 +197,7 @@ export function subscriptionTips(
     tips.push({
       id: `untracked:${untracked
         .map((g) => g.id)
-        .sort()
+        .toSorted()
         .join(",")}`,
       kind: "info",
       area: "subscriptions",

@@ -1,12 +1,14 @@
+import { roundMoney } from "../../shared/money.ts"
 import { generateMogul } from "./mogul.ts"
 import type { Persona } from "./personas.ts"
-import { type Draft, iso, rng, round } from "./util.ts"
+import { type Draft, iso, rng } from "./util.ts"
 
 /** A year and a bit of everyday banking for a persona: pay, rent, bills, card spending and PayPal. */
 export function generate(today: Date, p: Persona) {
   if (p.id === "musk") return generateMogul(today)
   const rand = rng(20240611)
-  const between = (lo: number, hi: number) => round(lo + rand() * (hi - lo))
+  const between = (lo: number, hi: number) =>
+    roundMoney(lo + rand() * (hi - lo))
   const pick = <T>(xs: T[]) => xs[Math.floor(rand() * xs.length)]
   const start = new Date(
     Date.UTC(today.getUTCFullYear() - 1, today.getUTCMonth() - 1, 1)
@@ -48,7 +50,7 @@ export function generate(today: Date, p: Persona) {
     if (dom === 15 && p.gas)
       add(chequing, "ENBRIDGE GAS PAD", -between(p.gas.lo, p.gas.hi))
     if (dom === 20) add(chequing, "MONTHLY PLAN FEE", -4.95)
-    if (dom === 28) add(savings, "INTEREST", round(6 + daysSince / 60))
+    if (dom === 28) add(savings, "INTEREST", roundMoney(6 + daysSince / 60))
     if (dom === 18 && daysSince > 20) {
       // Pay last month's card spending.
       const prev = visa
@@ -60,8 +62,8 @@ export function generate(today: Date, p: Persona) {
         )
         .reduce((s, t) => s - t.amount, 0)
       if (prev > 0) {
-        add(chequing, "TD VISA PAYMENT", -round(prev))
-        add(visa, "PAYMENT - THANK YOU", round(prev))
+        add(chequing, "TD VISA PAYMENT", -roundMoney(prev))
+        add(visa, "PAYMENT - THANK YOU", roundMoney(prev))
       }
     }
 
@@ -76,7 +78,8 @@ export function generate(today: Date, p: Persona) {
       add(visa, "AMAZON PRIME MEMBERSHIP", -99)
 
     // Everyday spending.
-    const spend = (lo: number, hi: number) => round(between(lo, hi) * p.scale)
+    const spend = (lo: number, hi: number) =>
+      roundMoney(between(lo, hi) * p.scale)
     if (dow === 6 || (dow === 3 && rand() < 0.6))
       add(
         visa,
@@ -104,7 +107,7 @@ export function generate(today: Date, p: Persona) {
         -spend(18, 62)
       )
     if (dow === 1 && rand() < 0.8)
-      add(visa, "PRESTO AUTOLOAD", -round(40 * Math.max(p.scale, 0.8)))
+      add(visa, "PRESTO AUTOLOAD", -roundMoney(40 * Math.max(p.scale, 0.8)))
     if (rand() < 0.07)
       add(
         visa,

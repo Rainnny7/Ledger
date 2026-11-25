@@ -1,12 +1,11 @@
 import type { InvoicePdfData } from "@/components/pdf/blocks/invoice-shared/invoice-data"
 import type { InvoiceInput, PublicPaymentMethod } from "./api"
 import { formatDate } from "./format"
+import { invoiceTotals, lineAmount } from "../../shared/invoice.ts"
 import {
   formatQty,
   formatRate,
   invoiceMoney,
-  invoiceTotals,
-  lineAmount,
   methodKind,
   methodLines,
   partyLines,

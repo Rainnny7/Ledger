@@ -1,15 +1,15 @@
 /** Reading and writing invoices, their payments and the user's saved payment methods. */
 import { randomUUID } from "node:crypto"
+import { invoiceTotals } from "../../shared/invoice.ts"
+import { fromCents, toCents } from "../../shared/money.ts"
 import { db } from "../db.ts"
 import {
   type InvoiceItem,
   type InvoiceStatus,
-  invoiceTotals,
   type Party,
   type PaymentMethodKind,
   type PayState,
   payState,
-  round2,
 } from "./invoices.ts"
 
 export interface InvoicePayment {
@@ -120,6 +120,25 @@ interface InvoiceRow {
   updatedAt: string
 }
 
+/** Line items are stored with `unitPriceCents`; the API and `invoiceTotals` use decimal `unitPrice`. */
+interface StoredItem extends Omit<InvoiceItem, "unitPrice"> {
+  unitPriceCents: number
+}
+
+export const itemsToJson = (items: InvoiceItem[]) =>
+  JSON.stringify(
+    items.map(({ unitPrice, ...item }): StoredItem => ({
+      ...item,
+      unitPriceCents: toCents(unitPrice),
+    }))
+  )
+
+const itemsFromJson = (s: string): InvoiceItem[] =>
+  parse<StoredItem[]>(s, []).map(({ unitPriceCents, ...item }) => ({
+    ...item,
+    unitPrice: fromCents(unitPriceCents),
+  }))
+
 const SELECT = `SELECT id, number, token, status, template, theme, currency, issue_date AS issueDate, due_date AS dueDate,
   from_json AS fromJson, client_json AS clientJson, items_json AS itemsJson, tax_rate AS taxRate, tax_label AS taxLabel,
   discount, notes, terms, methods_json AS methodsJson, work_invoice_id AS workInvoiceId, sent_at AS sentAt,
@@ -138,8 +157,11 @@ function paymentsFor(rows: InvoiceRow[]) {
     invoiceId: string
   })[]
   for (const p of own) {
-    const { invoiceId, ...rest } = p
-    out.set(invoiceId, [...(out.get(invoiceId) ?? []), rest])
+    const { invoiceId, amount, ...rest } = p
+    out.set(invoiceId, [
+      ...(out.get(invoiceId) ?? []),
+      { ...rest, amount: fromCents(amount) },
+    ])
   }
   const linked = rows.filter((r) => r.workInvoiceId)
   if (linked.length) {
@@ -162,7 +184,7 @@ function paymentsFor(rows: InvoiceRow[]) {
         .filter((w) => w.billId === r.workInvoiceId)
         .map((w): InvoicePayment => ({
           id: w.id,
-          amount: w.amount,
+          amount: fromCents(w.amount),
           date: w.date,
           method: w.externalId ? "PayPal" : null,
           note: w.note,
@@ -176,13 +198,14 @@ function paymentsFor(rows: InvoiceRow[]) {
 }
 
 function toView(r: InvoiceRow, payments: InvoicePayment[]): InvoiceView {
-  const items = parse<InvoiceItem[]>(r.itemsJson, [])
+  const items = itemsFromJson(r.itemsJson)
   const totals = invoiceTotals({
     items,
     taxRate: r.taxRate,
-    discount: r.discount,
+    discount: fromCents(r.discount),
   })
-  const paid = round2(payments.reduce((s, p) => s + p.amount, 0))
+  const paidCents = payments.reduce((s, p) => s + toCents(p.amount), 0)
+  const paid = fromCents(paidCents)
   const { fromJson, clientJson, itemsJson: _i, methodsJson, ...rest } = r
   return {
     ...rest,
@@ -195,7 +218,7 @@ function toView(r: InvoiceRow, payments: InvoicePayment[]): InvoiceView {
     tax: totals.tax,
     total: totals.total,
     paid,
-    balance: Math.max(0, round2(totals.total - paid)),
+    balance: fromCents(Math.max(0, toCents(totals.total) - paidCents)),
     payState: payState(totals.total, paid),
     payments,
   }
@@ -304,7 +327,7 @@ export function recordInvoicePayment(
     externalId?: string | null
   }
 ) {
-  const amount = round2(p.amount)
+  const amount = toCents(p.amount)
   if (invoice.workInvoiceId) {
     const r = db
       .prepare(

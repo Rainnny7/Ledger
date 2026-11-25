@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query"
-import type { InvoicePdfSource } from "@/lib/invoice-pdf"
+import type { InvoicePdfSource } from "@/lib/invoice-pdf-data"
 import { fail } from "@/components/invoices/notify"
 import { renderPdf, saveBlob } from "@/components/invoices/pdf-files"
 

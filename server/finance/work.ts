@@ -2,6 +2,7 @@
  * Hourly side work that gets paid in instalments: log hours, bill them ("done 40 hours since last
  * pay, total is $1,000"), then record each partial payment until the bill is cleared.
  */
+import { fromCents, mulMoney, roundTo, toCents } from "../../shared/money.ts"
 
 export interface WorkJobRow {
   id: string
@@ -57,7 +58,11 @@ export interface WorkPaymentRow {
 
 export type InvoiceStatus = "unpaid" | "partial" | "paid"
 
-const round2 = (n: number) => Math.round(n * 100) / 100
+/** Hours are tracked to the hundredth. */
+export const roundHours = (n: number) => roundTo(n, 2)
+
+const sumCents = <T>(list: T[], pick: (t: T) => number) =>
+  list.reduce((s, t) => s + toCents(pick(t)), 0)
 
 export function addDays(iso: string, days: number) {
   const [y, m, d] = iso.split("-").map(Number)
@@ -71,24 +76,27 @@ export function summarizeInvoice(
   invoice: WorkInvoiceRow,
   payments: WorkPaymentRow[]
 ) {
-  const sorted = payments.filter((p) => p.invoiceId === invoice.id).sort(byDate)
-  let left = invoice.total
+  const sorted = payments
+    .filter((p) => p.invoiceId === invoice.id)
+    .toSorted(byDate)
+  const total = toCents(invoice.total)
+  let left = total
   const withRunning = sorted.map((p) => {
-    left = round2(left - p.amount)
-    return { ...p, remainingAfter: Math.max(0, left) }
+    left -= toCents(p.amount)
+    return { ...p, remainingAfter: fromCents(Math.max(0, left)) }
   })
-  const paid = round2(sorted.reduce((s, p) => s + p.amount, 0))
-  const remaining = Math.max(0, round2(invoice.total - paid))
+  const paid = sumCents(sorted, (p) => p.amount)
+  const remaining = Math.max(0, total - paid)
   const status: InvoiceStatus =
-    remaining <= 0.005 ? "paid" : paid > 0 ? "partial" : "unpaid"
+    remaining <= 0 ? "paid" : paid > 0 ? "partial" : "unpaid"
   return {
     ...invoice,
-    paid,
-    remaining,
+    paid: fromCents(paid),
+    remaining: fromCents(remaining),
     /** Overpaid by this much (a tip, or a mistake worth catching). */
-    overpaid: Math.max(0, round2(paid - invoice.total)),
+    overpaid: fromCents(Math.max(0, paid - total)),
     status,
-    progress: invoice.total > 0 ? Math.min(1, paid / invoice.total) : 1,
+    progress: total > 0 ? Math.min(1, paid / total) : 1,
     paidAt: status === "paid" ? (sorted.at(-1)?.date ?? invoice.date) : null,
     /** Oldest first, each with what was still owed after it. */
     payments: withRunning,
@@ -104,18 +112,18 @@ export function summarizeJob(
   payments: WorkPaymentRow[],
   today: string
 ) {
-  const mine = invoices.filter((i) => i.jobId === job.id).sort(byDate)
+  const mine = invoices.filter((i) => i.jobId === job.id).toSorted(byDate)
   const summarized = mine.map((i) => summarizeInvoice(i, payments))
   const unbilled = entries
     .filter((e) => e.jobId === job.id && !e.invoiceId)
-    .sort(byDate)
-    .reverse()
-  const unbilledHours = round2(unbilled.reduce((s, e) => s + e.hours, 0))
-  const allPayments = summarized.flatMap((i) => i.payments).sort(byDate)
-  const owed = round2(summarized.reduce((s, i) => s + i.remaining, 0))
+    .toSorted(byDate)
+    .toReversed()
+  const unbilledHours = roundHours(unbilled.reduce((s, e) => s + e.hours, 0))
+  const allPayments = summarized.flatMap((i) => i.payments).toSorted(byDate)
+  const owed = sumCents(summarized, (i) => i.remaining)
   const month = today.slice(0, 7)
   const lastCounter =
-    [...mine].reverse().find((i) => i.counterHours !== null)?.counterHours ??
+    [...mine].toReversed().find((i) => i.counterHours !== null)?.counterHours ??
     null
   const lastPaymentDate = allPayments.at(-1)?.date ?? null
 
@@ -134,27 +142,28 @@ export function summarizeJob(
     const base =
       [lastPaymentDate, oldestOpen?.date]
         .filter((d): d is string => !!d)
-        .sort()
+        .toSorted()
         .at(-1) ?? today
     nextPaymentDate = addDays(base, job.payEveryDays)
     if (nextPaymentDate < today) nextPaymentDate = today
-    paymentsLeft = Math.ceil(owed / job.payAmount - 1e-9)
+    paymentsLeft = Math.ceil(owed / toCents(job.payAmount))
     payoffDate = addDays(nextPaymentDate, (paymentsLeft - 1) * job.payEveryDays)
   }
 
   return {
     ...job,
-    owed,
-    billedHours: round2(mine.reduce((s, i) => s + i.hours, 0)),
-    billedTotal: round2(mine.reduce((s, i) => s + i.total, 0)),
-    paidTotal: round2(allPayments.reduce((s, p) => s + p.amount, 0)),
-    paidThisMonth: round2(
-      allPayments
-        .filter((p) => p.date.startsWith(month))
-        .reduce((s, p) => s + p.amount, 0)
+    owed: fromCents(owed),
+    billedHours: roundHours(mine.reduce((s, i) => s + i.hours, 0)),
+    billedTotal: fromCents(sumCents(mine, (i) => i.total)),
+    paidTotal: fromCents(sumCents(allPayments, (p) => p.amount)),
+    paidThisMonth: fromCents(
+      sumCents(
+        allPayments.filter((p) => p.date.startsWith(month)),
+        (p) => p.amount
+      )
     ),
     unbilledHours,
-    unbilledValue: round2(unbilledHours * job.rate),
+    unbilledValue: mulMoney(job.rate, unbilledHours),
     /** The tracker's total at the last bill, so the next bill can work out "hours since". */
     lastCounter,
     lastPaymentDate,
@@ -162,7 +171,7 @@ export function summarizeJob(
     paymentsLeft,
     payoffDate,
     /** Newest first. */
-    invoices: summarized.reverse(),
+    invoices: summarized.toReversed(),
     unbilled,
   }
 }

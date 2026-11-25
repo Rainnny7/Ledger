@@ -19,6 +19,12 @@ import {
   DISCRETIONARY,
 } from "./helpers"
 
+const meanSpend = (maps: Map<Category, number>[], c: Category) =>
+  maps.reduce((s, m) => s + Math.max(0, m.get(c) ?? 0), 0) / maps.length
+
+const discretionarySum = (m: Map<Category, number>) =>
+  [...m].reduce((s, [c, v]) => (DISCRETIONARY.has(c) ? s + v : s), 0)
+
 /**
  * This month so far vs what you'd usually have spent by this day of the month, per category.
  * Comparing like-for-like days keeps rent-on-the-1st style bills from looking like a spike.
@@ -38,11 +44,8 @@ export function paceTips(ctx: Ctx): Tip[] {
   const full = ctx.months.map((m) =>
     spendBy(ctx.transactions.filter((t) => monthOf(t.date) === m))
   )
-  const mean = (maps: Map<Category, number>[], c: Category) =>
-    maps.reduce((s, m) => s + Math.max(0, m.get(c) ?? 0), 0) / maps.length
-
   const tips: Tip[] = []
-  const hot: {
+  let hot: {
     c: Category
     spent: number
     usual: number
@@ -50,12 +53,12 @@ export function paceTips(ctx: Ctx): Tip[] {
     over: number
   }[] = []
   for (const [c, spent] of now) {
-    const usual = mean(byDay, c)
+    const usual = meanSpend(byDay, c)
     const over = spent - usual
     if (spent < 60 || over < 40 || spent < usual * 1.3) continue
-    hot.push({ c, spent, usual, month: mean(full, c), over })
+    hot.push({ c, spent, usual, month: meanSpend(full, c), over })
   }
-  hot.sort((a, b) => b.over - a.over)
+  hot = hot.toSorted((a, b) => b.over - a.over)
   for (const h of hot.slice(0, 2)) {
     const landing = h.spent + Math.max(0, h.month - h.usual)
     tips.push({
@@ -80,10 +83,9 @@ export function paceTips(ctx: Ctx): Tip[] {
   }
 
   // Overall discretionary spending well under the usual pace is worth saying out loud.
-  const sumOf = (m: Map<Category, number>) =>
-    [...m].reduce((s, [c, v]) => (DISCRETIONARY.has(c) ? s + v : s), 0)
-  const spentNow = sumOf(now)
-  const usualNow = byDay.reduce((s, m) => s + sumOf(m), 0) / byDay.length
+  const spentNow = discretionarySum(now)
+  const usualNow =
+    byDay.reduce((s, m) => s + discretionarySum(m), 0) / byDay.length
   if (
     day >= 10 &&
     usualNow > 100 &&
@@ -183,7 +185,7 @@ export function habitTips(ctx: Ctx): Tip[] {
   }
   const frequent = [...byMerchant.entries()]
     .filter(([, m]) => m.count >= 8 && m.total >= 40)
-    .sort((a, b) => b[1].total - a[1].total)
+    .toSorted((a, b) => b[1].total - a[1].total)
   for (const [key, m] of frequent.slice(0, 1)) {
     tips.push({
       id: `habit:${key}:${ctx.thisMonth}`,

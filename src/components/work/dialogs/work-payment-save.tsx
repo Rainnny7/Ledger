@@ -1,4 +1,5 @@
-import { fail, round2 } from "@/components/work/dialogs/form"
+import { fail } from "@/components/work/dialogs/form"
+import { roundMoney } from "../../../../shared/money.ts"
 import { api, type WorkJob } from "@/lib/api"
 import { formatMoney } from "@/lib/format"
 import { copyText, paymentLine } from "@/lib/work"
@@ -19,7 +20,7 @@ export async function saveWorkPayment(opts: {
 }) {
   const before = new Set(opts.invoicePayments.map((p) => p.id))
   const { job: updated } = await api.addWorkPayment(opts.invoiceId, {
-    amount: round2(opts.value),
+    amount: roundMoney(opts.value),
     date: opts.date,
     note: opts.note.trim() || null,
     transactionId: opts.transactionId ?? null,
@@ -27,7 +28,7 @@ export async function saveWorkPayment(opts: {
     opts.receivedN > 0 &&
     opts.receivedCurrency !== opts.job.currency
       ? {
-          receivedAmount: round2(opts.receivedN),
+          receivedAmount: roundMoney(opts.receivedN),
           receivedCurrency: opts.receivedCurrency,
         }
       : {}),

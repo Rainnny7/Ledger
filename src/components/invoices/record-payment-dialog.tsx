@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api, type Invoice, type PaymentMethod } from "@/lib/api"
 import { isoDate } from "@/lib/format"
-import { invoiceMoney, round2 } from "@/lib/invoice"
+import { invoiceMoney } from "@/lib/invoice"
+import { roundMoney } from "../../../shared/money.ts"
 import { cn } from "cn"
 import { fail } from "@/components/invoices/notify"
 
@@ -72,7 +73,7 @@ function RecordPaymentForm({
     setSaving(true)
     try {
       const { invoice: updated } = await api.addInvoicePayment(invoice.id, {
-        amount: round2(n),
+        amount: roundMoney(n),
         date,
         method: method.trim() || null,
         note: note.trim() || null,

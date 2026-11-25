@@ -79,7 +79,7 @@ export function BudgetsCard({
         const used = spent.get(b.category) ?? 0
         return { budget: b, limit, used, ratio: limit > 0 ? used / limit : 0 }
       })
-      .sort((a, b) => b.ratio - a.ratio)
+      .toSorted((a, b) => b.ratio - a.ratio)
   }, [budgets, transactions, converter])
 
   const now = useNow()

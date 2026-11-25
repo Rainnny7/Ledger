@@ -40,7 +40,7 @@ export function creditTips(c: Credit | null): Tip[] {
       body: `${money(c.used)} owed on ${money(c.limit)} of limits. Keeping it under 30% (${about(c.limit * 0.3)}) helps your credit score; paying the card down before the statement date, not just by the due date, lowers the reported balance.`,
       // Opens the card with the most owing: the one to start paying down.
       action: (() => {
-        const top = [...c.cards].sort(
+        const top = [...c.cards].toSorted(
           (a, b) => (b.balance ?? 0) - (a.balance ?? 0)
         )[0]
         return top

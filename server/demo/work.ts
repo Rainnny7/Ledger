@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { db } from "../db.ts"
-import { type Draft, iso, round } from "./util.ts"
+import { mulCents, toCents, toCentsOrNull } from "../../shared/money.ts"
+import { type Draft, iso } from "./util.ts"
 
 /** A side job paid in weekly instalments: one bill cleared, one being paid off, one just sent, plus a few unbilled shifts. */
 export function seedWork(today: Date, userId: string) {
@@ -9,10 +10,10 @@ export function seedWork(today: Date, userId: string) {
   const jobId = randomUUID()
   db.prepare(
     `INSERT INTO work_job (id, user_id, name, rate, currency, pay_amount, pay_every_days, color, notes, created_at)
-     VALUES (?, ?, 'Freelance design', 25, 'CAD', 250, 7, 'violet', 'Send the hours and total when billing.', ?)`
+     VALUES (?, ?, 'Freelance design', 2500, 'CAD', 25000, 7, 'violet', 'Send the hours and total when billing.', ?)`
   ).run(jobId, userId, `${ago(90)} 12:00:00`)
   const insertInvoice = db.prepare(
-    `INSERT INTO work_invoice (id, job_id, date, hours, rate, total, counter_hours, note, created_at) VALUES (?, ?, ?, ?, 25, ?, ?, ?, ?)`
+    `INSERT INTO work_invoice (id, job_id, date, hours, rate, total, counter_hours, note, created_at) VALUES (?, ?, ?, ?, 2500, ?, ?, ?, ?)`
   )
   const insertPayment = db.prepare(
     `INSERT INTO work_payment (id, invoice_id, amount, date, note, created_at) VALUES (?, ?, ?, ?, 'e-Transfer', ?)`
@@ -59,7 +60,7 @@ export function seedWork(today: Date, userId: string) {
       jobId,
       ago(daysAgo),
       hours,
-      total,
+      toCents(total),
       counter,
       note,
       `${ago(daysAgo)} 12:00:00`
@@ -68,7 +69,7 @@ export function seedWork(today: Date, userId: string) {
       insertPayment.run(
         randomUUID(),
         id,
-        amount,
+        toCents(amount),
         ago(pAgo),
         `${ago(pAgo)} 12:00:00`
       )
@@ -130,7 +131,7 @@ export function usdWallet(today: Date): Draft[] {
         })
     }
   }
-  return drafts.sort((a, b) => a.date.localeCompare(b.date))
+  return drafts.toSorted((a, b) => a.date.localeCompare(b.date))
 }
 
 export function seedUsdJob(today: Date, userId: string) {
@@ -140,7 +141,7 @@ export function seedUsdJob(today: Date, userId: string) {
   db.prepare(
     `INSERT INTO work_job (id, user_id, name, rate, currency, pay_amount, pay_every_days, color, notes, created_at)
      VALUES (?, ?, 'Brightline Media (US)', ?, 'USD', NULL, NULL, 'ocean', 'Billed in USD, paid through PayPal.', ?)`
-  ).run(jobId, userId, USD_RATE, `${ago(75)} 12:00:00`)
+  ).run(jobId, userId, toCents(USD_RATE), `${ago(75)} 12:00:00`)
   const insertInvoice = db.prepare(
     `INSERT INTO work_invoice (id, job_id, date, hours, rate, total, counter_hours, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)`
   )
@@ -156,8 +157,8 @@ export function seedUsdJob(today: Date, userId: string) {
       jobId,
       ago(daysAgo),
       hours,
-      USD_RATE,
-      round(hours * USD_RATE),
+      toCents(USD_RATE),
+      mulCents(toCents(USD_RATE), hours),
       counter,
       `${ago(daysAgo)} 12:00:00`
     )
@@ -165,9 +166,9 @@ export function seedUsdJob(today: Date, userId: string) {
       insertPayment.run(
         randomUUID(),
         id,
-        amount,
+        toCents(amount),
         ago(pAgo),
-        receivedCad,
+        toCentsOrNull(receivedCad),
         receivedCad == null ? null : "CAD",
         `${ago(pAgo)} 12:00:00`
       )

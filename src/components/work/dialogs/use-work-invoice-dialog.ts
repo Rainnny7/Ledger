@@ -5,7 +5,8 @@ import {
   workInvoiceLastCounter,
 } from "@/components/work/dialogs/work-invoice-compute"
 import { workInvoiceValid } from "@/components/work/dialogs/work-invoice-valid"
-import { money, round2 } from "@/components/work/dialogs/form"
+import { money } from "@/components/work/dialogs/form"
+import { mulMoney } from "../../../../shared/money.ts"
 import { runDialogSave } from "@/components/work/dialogs/run-dialog-save"
 import { runWorkInvoiceSave } from "@/components/work/dialogs/work-invoice-save"
 import { formatMoney, isoDate } from "@/lib/format"
@@ -54,7 +55,7 @@ export function useWorkInvoiceDialog(
   const hoursN = workInvoiceHoursN(mode, counterN, lastCounter, hours)
   const rateN = Number(rate)
   const autoTotal =
-    hoursN !== null && Number.isFinite(rateN) ? round2(hoursN * rateN) : null
+    hoursN !== null && Number.isFinite(rateN) ? mulMoney(rateN, hoursN) : null
   const totalN = totalTouched ? Number(total) : autoTotal
   const shifts = !editing && job ? job.unbilled : []
   const proofOk = !proof.trim() || /^https?:\/\/\S+$/i.test(proof.trim())

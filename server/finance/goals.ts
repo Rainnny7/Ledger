@@ -1,7 +1,9 @@
 /**
  * Savings / pay-off goals: progress, pace and "what it takes" from the partial payments logged
- * toward each goal. Pure functions, so they're easy to test.
+ * toward each goal. Pure functions, so they're easy to test. Amounts come in and go out as decimals;
+ * every sum and pace is worked out in whole cents.
  */
+import { fromCents, mulCents, toCents } from "../../shared/money.ts"
 
 export const GOAL_KINDS = ["save", "payoff"] as const
 export type GoalKind = (typeof GOAL_KINDS)[number]
@@ -41,7 +43,6 @@ export type GoalStatus =
 
 const DAY = 86_400_000
 const MONTH_DAYS = 30.44
-const round = (n: number) => Math.round(n * 100) / 100
 const toTime = (iso: string) =>
   Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10))
 const daysBetween = (from: string, to: string) =>
@@ -57,23 +58,25 @@ export function summarizeGoal(
   payments: GoalPaymentRow[],
   today: string
 ) {
-  const sorted = [...payments].sort(
+  const sorted = payments.toSorted(
     (a, b) =>
       a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt)
   )
-  const saved = round(sorted.reduce((s, p) => s + p.amount, 0))
-  const remaining = Math.max(0, round(goal.target - saved))
-  const progress =
-    goal.target > 0 ? Math.min(1, Math.max(0, saved / goal.target)) : 0
+  const targetC = toCents(goal.target)
+  const savedC = sorted.reduce((s, p) => s + toCents(p.amount), 0)
+  const saved = fromCents(savedC)
+  const remainingC = Math.max(0, targetC - savedC)
+  const remaining = fromCents(remainingC)
+  const progress = targetC > 0 ? Math.min(1, Math.max(0, savedC / targetC)) : 0
 
   // The day the running total first reached the target (and stayed there).
   let completedAt: string | null = null
-  if (saved >= goal.target) {
+  if (savedC >= targetC) {
     let running = 0
     for (const p of sorted) {
-      running = round(running + p.amount)
-      if (running >= goal.target && !completedAt) completedAt = p.date
-      if (running < goal.target) completedAt = null
+      running += toCents(p.amount)
+      if (running >= targetC && !completedAt) completedAt = p.date
+      if (running < targetC) completedAt = null
     }
   }
 
@@ -90,23 +93,26 @@ export function summarizeGoal(
   )
   // Ignore the opening "already saved" lump when it's the only thing in the window.
   const recentSum =
-    recent.reduce((s, p) => s + p.amount, 0) -
-    (recent.length === 1 && recent[0].date <= created ? recent[0].amount : 0)
+    recent.reduce((s, p) => s + toCents(p.amount), 0) -
+    (recent.length === 1 && recent[0].date <= created
+      ? toCents(recent[0].amount)
+      : 0)
   const spanDays = Math.max(30, daysBetween(windowStart, today))
-  const pacePerMonth = Math.max(0, round((recentSum / spanDays) * MONTH_DAYS))
+  const paceC = Math.max(0, mulCents(recentSum, MONTH_DAYS / spanDays))
+  const pacePerMonth = fromCents(paceC)
   const projectedDate =
-    remaining > 0 && pacePerMonth > 0
-      ? addDaysIso(today, Math.ceil((remaining / pacePerMonth) * MONTH_DAYS))
+    remainingC > 0 && paceC > 0
+      ? addDaysIso(today, Math.ceil((remainingC / paceC) * MONTH_DAYS))
       : null
 
   const daysLeft = goal.targetDate ? daysBetween(today, goal.targetDate) : null
   const neededPerMonth =
-    daysLeft !== null && daysLeft > 0 && remaining > 0
-      ? round(remaining / Math.max(daysLeft / MONTH_DAYS, 1))
+    daysLeft !== null && daysLeft > 0 && remainingC > 0
+      ? fromCents(mulCents(remainingC, 1 / Math.max(daysLeft / MONTH_DAYS, 1)))
       : null
   const neededPerWeek =
-    daysLeft !== null && daysLeft > 0 && remaining > 0
-      ? round(remaining / Math.max(daysLeft / 7, 1))
+    daysLeft !== null && daysLeft > 0 && remainingC > 0
+      ? fromCents(mulCents(remainingC, 1 / Math.max(daysLeft / 7, 1)))
       : null
 
   let status: GoalStatus
@@ -139,7 +145,7 @@ export function summarizeGoal(
     neededPerWeek,
     pacePerMonth,
     projectedDate,
-    payments: [...sorted].reverse(),
+    payments: sorted.toReversed(),
   }
 }
 

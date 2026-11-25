@@ -1,5 +1,6 @@
 import type { WorkInvoice, WorkPayment } from "@/lib/api"
 import { formatMoney, formatShortDate } from "@/lib/format"
+import { mulMoney, roundTo } from "../../shared/money.ts"
 
 /**
  * Hours typed the way people write them: "63", "43.6", "3:30", "120h 30m", "2h", "45m", "1 hr 15 min".
@@ -24,14 +25,12 @@ export function parseHours(input: string): number | null {
   return null
 }
 
-const round2 = (n: number) => Math.round(n * 100) / 100
-
 /** 63 → "63", 43.6 → "43.6", 3.333… → "3.33", 1234.5 → "1,234.5". */
 export const formatHours = (h: number) =>
-  round2(h).toLocaleString("en-US", { maximumFractionDigits: 2 })
+  roundTo(h, 2).toLocaleString("en-US", { maximumFractionDigits: 2 })
 
 /** The same, without separators, for putting back into an input. */
-export const hoursInput = (h: number) => String(round2(h))
+export const hoursInput = (h: number) => String(roundTo(h, 2))
 
 /** "63 hrs" / "1 hr" / "3 hrs 20 min" for display. */
 export function formatDuration(h: number) {
@@ -43,7 +42,8 @@ export function formatDuration(h: number) {
   return `${hrs} ${min} min`
 }
 
-const hrs = (h: number) => `${formatHours(h)} hr${round2(h) === 1 ? "" : "s"}`
+const hrs = (h: number) =>
+  `${formatHours(h)} hr${roundTo(h, 2) === 1 ? "" : "s"}`
 
 /** The update for one payment: "Received $250.00 on Nov 9 · $750.00 left on this bill". */
 export function paymentLine(
@@ -73,7 +73,7 @@ export function paymentLine(
  */
 export function invoiceText(inv: WorkInvoice, currency: string) {
   const money = (n: number) => formatMoney(n, currency)
-  const agreed = Math.abs(inv.total - round2(inv.hours * inv.rate)) > 0.005
+  const agreed = Math.abs(inv.total - mulMoney(inv.rate, inv.hours)) > 0.005
   const head = [
     `Hours for ${formatShortDate(inv.date)}`,
     agreed

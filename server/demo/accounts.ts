@@ -1,5 +1,6 @@
+import { roundMoney } from "../../shared/money.ts"
 import type { ScrapedAccount, ScrapedTransaction } from "../banks/types.ts"
-import { type Draft, round } from "./util.ts"
+import { type Draft } from "./util.ts"
 
 /** Running balances forward from an opening balance; newest first like a bank's own list. */
 function finish(
@@ -8,10 +9,10 @@ function finish(
 ): { transactions: ScrapedTransaction[]; balance: number } {
   let running = opening
   const transactions = list.map((t) => {
-    running = round(running + t.amount)
+    running = roundMoney(running + t.amount)
     return { ...t, runningBalance: running, pending: false }
   })
-  return { transactions: transactions.reverse(), balance: running }
+  return { transactions: transactions.toReversed(), balance: running }
 }
 
 export function account(

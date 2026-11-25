@@ -55,7 +55,7 @@ export function goalTips(ctx: Ctx): Tip[] {
     tips.push({
       id: `goal:ahead:${ahead
         .map((g) => g.id)
-        .sort()
+        .toSorted()
         .join(",")}:${ctx.thisMonth}`,
       kind: "win",
       area: "goals",

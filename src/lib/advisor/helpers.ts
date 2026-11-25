@@ -34,8 +34,8 @@ export const merchantsOf = (txs: Transaction[]) =>
   [...new Set(txs.map((t) => t.merchantKey))].join(",")
 
 /** The Subscriptions page with these plans (or spotted charges) highlighted. */
-export const subsLink = (label: string, ids: string[]) => ({
-  label,
+export const subsLink = (linkLabel: string, ids: string[]) => ({
+  label: linkLabel,
   to: link("/subscriptions", { focus: ids.join(",") }),
 })
 export const monthOf = (iso: string) => iso.slice(0, 7)

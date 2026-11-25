@@ -9,11 +9,12 @@ export const GOAL_STATUS_RANK = {
   done: 5,
 } as const
 
+const goalStatusRank = (g: Goal) => GOAL_STATUS_RANK[g.status]
+
 /** Open goals first: most urgent (soonest deadline, then furthest behind) up top. */
 export function byUrgency(a: Goal, b: Goal) {
-  const rank = (g: Goal) => GOAL_STATUS_RANK[g.status]
   return (
-    rank(a) - rank(b) ||
+    goalStatusRank(a) - goalStatusRank(b) ||
     (a.targetDate ?? "9999").localeCompare(b.targetDate ?? "9999") ||
     a.progress - b.progress
   )

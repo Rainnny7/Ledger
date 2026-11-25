@@ -1,7 +1,9 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
+import { toCents, toCentsOrNull } from "../../shared/money.ts"
 import { orderWithinDays } from "./order.ts"
 
+/** Written in dollars for readability; rows carry cents like the database. */
 const tx = (
   id: string,
   amount: number,
@@ -12,8 +14,8 @@ const tx = (
   id,
   accountId,
   date,
-  amount,
-  runningBalance,
+  amount: toCents(amount),
+  runningBalance: toCentsOrNull(runningBalance),
 })
 
 test("reorders a day by running balance, newest first", () => {

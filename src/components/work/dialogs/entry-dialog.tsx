@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label"
 import { api, type WorkJob } from "@/lib/api"
 import { formatMoney, isoDate } from "@/lib/format"
 import { formatDuration, parseHours } from "@/lib/work"
-import { fail, round2, validDate } from "@/components/work/dialogs/form"
+import { fail, validDate } from "@/components/work/dialogs/form"
+import { roundTo } from "../../../../shared/money.ts"
 
 export function WorkEntryDialog({
   job,
@@ -53,7 +54,7 @@ export function WorkEntryDialog({
     try {
       const { job: updated } = await api.addWorkEntry(job.id, {
         date,
-        hours: round2(parsed),
+        hours: roundTo(parsed, 2),
         note: note.trim() || null,
       })
       toast.success(`Logged ${formatDuration(parsed)}`, {

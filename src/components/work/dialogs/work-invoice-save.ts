@@ -1,4 +1,5 @@
-import { fail, round2 } from "@/components/work/dialogs/form"
+import { fail } from "@/components/work/dialogs/form"
+import { roundMoney, roundTo } from "../../../../shared/money.ts"
 import { api, type WorkInvoice, type WorkJob } from "@/lib/api"
 import { formatMoney } from "@/lib/format"
 import { formatDuration } from "@/lib/work"
@@ -21,15 +22,15 @@ export async function saveWorkInvoice(opts: {
 }) {
   const counterHours =
     opts.mode === "tracker"
-      ? round2(opts.counterN!)
+      ? roundTo(opts.counterN!, 2)
       : opts.lastCounter !== null
-        ? round2(opts.lastCounter + opts.hoursN)
+        ? roundTo(opts.lastCounter + opts.hoursN, 2)
         : null
   const body = {
     date: opts.date,
-    hours: round2(opts.hoursN),
-    rate: round2(opts.rateN),
-    total: round2(opts.totalN),
+    hours: roundTo(opts.hoursN, 2),
+    rate: roundMoney(opts.rateN),
+    total: roundMoney(opts.totalN),
     counterHours,
     proofUrl: opts.proof.trim() || null,
     note: opts.note.trim() || null,

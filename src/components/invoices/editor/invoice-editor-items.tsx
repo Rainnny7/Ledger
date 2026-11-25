@@ -1,4 +1,5 @@
 import { ForeignMoney } from "@/components/common/money"
+import { mulMoney } from "../../../../shared/money.ts"
 import { decimal, newItem, num } from "@/components/invoices/editor/draft"
 import { TotalsRow } from "@/components/invoices/editor/field"
 import type { InvoiceEditorModel } from "@/components/invoices/editor/use-invoice-editor"
@@ -16,7 +17,7 @@ function Shown({ model, n }: { model: InvoiceEditorModel; n: number }) {
 }
 
 export function InvoiceEditorItems({ model }: { model: InvoiceEditorModel }) {
-  const { d, set, setItem, totals, paid, round2, initial } = model
+  const { d, set, setItem, totals, paid, initial } = model
   return (
     <Card>
       <CardHeader>
@@ -79,7 +80,7 @@ export function InvoiceEditorItems({ model }: { model: InvoiceEditorModel }) {
               <span className="min-w-16 text-right text-sm tabular-nums">
                 <Shown
                   model={model}
-                  n={round2(num(it.quantity) * num(it.unitPrice))}
+                  n={mulMoney(num(it.unitPrice), num(it.quantity))}
                 />
               </span>
             </div>

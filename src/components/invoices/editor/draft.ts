@@ -1,7 +1,8 @@
 import type { Invoice, InvoiceInput, InvoiceParty, WorkJob } from "@/lib/api"
 import type { InvoicesData } from "@/lib/api"
 import { addDays, daysFromToday, formatShortDate, isoDate } from "@/lib/format"
-import { EMPTY_PARTY, round2 } from "@/lib/invoice"
+import { EMPTY_PARTY } from "@/lib/invoice"
+import { mulMoney, roundMoney, roundTo } from "../../../../shared/money.ts"
 import { formatHours } from "@/lib/work"
 
 /** Line items as typed: numbers stay strings until saved, so "1." or "" don't jump around. */
@@ -42,8 +43,8 @@ export const toItems = (items: ItemDraft[]) =>
     .filter((i) => i.description.trim() || num(i.unitPrice))
     .map((i) => ({
       description: i.description.trim(),
-      quantity: round2(num(i.quantity) * 1000) / 1000,
-      unitPrice: round2(num(i.unitPrice)),
+      quantity: roundTo(num(i.quantity), 3),
+      unitPrice: roundMoney(num(i.unitPrice)),
     }))
 
 export const DUE_PRESETS = [
@@ -102,7 +103,8 @@ export function startDraft(
     opts.bill && opts.bill.job.invoices.find((b) => b.id === opts.bill!.billId)
   if (opts.bill && bill) {
     const { job } = opts.bill
-    const agreed = Math.abs(bill.total - round2(bill.hours * bill.rate)) > 0.005
+    const agreed =
+      Math.abs(bill.total - mulMoney(bill.rate, bill.hours)) > 0.005
     const what = `${job.name}: ${formatHours(bill.hours)} hrs${bill.note ? ` (${bill.note})` : ""}, up to ${formatShortDate(bill.date)}`
     return {
       ...base,

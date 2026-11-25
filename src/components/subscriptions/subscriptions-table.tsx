@@ -42,6 +42,34 @@ import { cycleLabel } from "@/lib/cycles"
 import { formatLongDate, formatMoney, formatRelativeDate } from "@/lib/format"
 import { cn } from "cn"
 
+async function toggleSubscription(s: Subscription) {
+  try {
+    await api.updateSubscription(s.id, { active: !s.active })
+    toast.success(s.active ? `${s.name} paused` : `${s.name} resumed`)
+  } catch (e) {
+    toast.error((e as Error).message)
+  }
+}
+
+async function removeSubscription(s: Subscription) {
+  if (
+    !(await confirmDialog({
+      title: `Stop tracking ${s.name}?`,
+      description:
+        "It’s removed from your subscriptions. Your transactions aren’t affected.",
+      action: "Stop tracking",
+      destructive: true,
+    }))
+  )
+    return
+  try {
+    await api.deleteSubscription(s.id)
+    toast.success(`${s.name} removed`)
+  } catch (e) {
+    toast.error((e as Error).message)
+  }
+}
+
 export function SubscriptionsTable({
   sorted,
   accounts,
@@ -57,34 +85,6 @@ export function SubscriptionsTable({
   onEdit: (s: Subscription) => void
   onShare: (s: Subscription) => void
 }) {
-  async function toggle(s: Subscription) {
-    try {
-      await api.updateSubscription(s.id, { active: !s.active })
-      toast.success(s.active ? `${s.name} paused` : `${s.name} resumed`)
-    } catch (e) {
-      toast.error((e as Error).message)
-    }
-  }
-
-  async function remove(s: Subscription) {
-    if (
-      !(await confirmDialog({
-        title: `Stop tracking ${s.name}?`,
-        description:
-          "It’s removed from your subscriptions. Your transactions aren’t affected.",
-        action: "Stop tracking",
-        destructive: true,
-      }))
-    )
-      return
-    try {
-      await api.deleteSubscription(s.id)
-      toast.success(`${s.name} removed`)
-    } catch (e) {
-      toast.error((e as Error).message)
-    }
-  }
-
   if (loading) return null
 
   if (sorted.length === 0) return null
@@ -116,7 +116,7 @@ export function SubscriptionsTable({
                   <DropdownMenuItem onClick={() => onEdit(s)}>
                     <Pencil /> Edit
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void toggle(s)}>
+                  <DropdownMenuItem onClick={() => void toggleSubscription(s)}>
                     {s.active ? <Pause /> : <Play />}{" "}
                     {s.active ? "Pause" : "Resume"}
                   </DropdownMenuItem>
@@ -130,7 +130,7 @@ export function SubscriptionsTable({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     variant="destructive"
-                    onClick={() => void remove(s)}
+                    onClick={() => void removeSubscription(s)}
                   >
                     <Trash2 /> Delete
                   </DropdownMenuItem>

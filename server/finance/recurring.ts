@@ -5,6 +5,7 @@ import {
   type CycleUnit,
   type PresetCycle,
 } from "../../shared/categories.ts"
+import { mulMoney, toCents } from "../../shared/money.ts"
 
 const CUSTOM_CYCLE = /^every-(\d{1,3})-(weeks|months|years)$/
 /** Upper bound per unit for custom periods (2 years of weeks, 10 years of months, 10 years). */
@@ -91,9 +92,7 @@ export function nextDue(anchor: string, cycle: Cycle, today: string): string {
 }
 
 export function monthlyEquivalent(amount: number, cycle: Cycle) {
-  return (
-    Math.round(((amount * cycleDays("monthly")) / cycleDays(cycle)) * 100) / 100
-  )
+  return mulMoney(amount, cycleDays("monthly") / cycleDays(cycle))
 }
 
 export interface TxLike {
@@ -133,7 +132,7 @@ export const amountTolerance = (amount: number) => Math.max(0.5, amount * 0.2)
 
 /** Split one merchant's charges into amount bands (a plan's price can change a little; other plans differ). */
 function clusterByAmount(list: TxLike[], strict: boolean): TxLike[][] {
-  const sorted = [...list].sort(
+  const sorted = [...list].toSorted(
     (a, b) => Math.abs(b.amount) - Math.abs(a.amount)
   )
   const clusters: TxLike[][] = []
@@ -144,12 +143,14 @@ function clusterByAmount(list: TxLike[], strict: boolean): TxLike[][] {
     const top = cur && Math.abs(cur[0].amount)
     if (
       cur &&
-      (strict ? Math.abs(top - amt) < 0.005 : top - amt <= amountTolerance(amt))
+      (strict
+        ? toCents(top) === toCents(amt)
+        : top - amt <= amountTolerance(amt))
     )
       cur.push(t)
     else clusters.push([t])
   }
-  return clusters.map((c) => c.sort((a, b) => a.date.localeCompare(b.date)))
+  return clusters.map((c) => c.toSorted((a, b) => a.date.localeCompare(b.date)))
 }
 
 /** Find charges that repeat at a regular cadence with a stable amount. */
@@ -168,10 +169,10 @@ export function detectRecurring(
   const out: RecurringGuess[] = []
   for (const [key, list] of groups) {
     if (list.length < 2) continue
-    list.sort((a, b) => a.date.localeCompare(b.date))
-    const strict = STRICT.has(list[list.length - 1].category)
+    const ordered = list.toSorted((a, b) => a.date.localeCompare(b.date))
+    const strict = STRICT.has(ordered[ordered.length - 1].category)
     let found = false
-    for (const band of clusterByAmount(list, strict)) {
+    for (const band of clusterByAmount(ordered, strict)) {
       const guess = cadenceOf(band, strict, today)
       if (!guess) continue
       found = true
@@ -183,7 +184,7 @@ export function detectRecurring(
     }
     // No fixed-price plan, but the merchant as a whole bills on schedule (interest, metered bills).
     if (!found && !strict) {
-      const guess = cadenceOf(list, false, today)
+      const guess = cadenceOf(ordered, false, today)
       if (guess) out.push({ ...guess, merchantKey: key, id: key })
     }
   }
@@ -191,7 +192,9 @@ export function detectRecurring(
   const byId = new Map<string, RecurringGuess>()
   for (const g of out)
     if ((byId.get(g.id)?.occurrences ?? 0) < g.occurrences) byId.set(g.id, g)
-  return [...byId.values()].sort((a, b) => a.nextDue.localeCompare(b.nextDue))
+  return [...byId.values()].toSorted((a, b) =>
+    a.nextDue.localeCompare(b.nextDue)
+  )
 }
 
 function cadenceOf(
@@ -207,7 +210,7 @@ function cadenceOf(
     .slice(1)
     .map((d, i) => (toTime(d) - toTime(dates[i])) / DAY)
     .slice(-RECENT_GAPS)
-  const sorted = [...gaps].sort((a, b) => a - b)
+  const sorted = [...gaps].toSorted((a, b) => a - b)
   const median = sorted[Math.floor(sorted.length / 2)]
   const cycle = cycleFor(median)
   if (!cycle) return null

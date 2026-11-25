@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { db } from "../db.ts"
+import { toCents } from "../../shared/money.ts"
 import type { Persona } from "./personas.ts"
 import { iso } from "./util.ts"
 
@@ -108,26 +109,27 @@ function alexGoals(
   ]
 }
 
+const monthlyPayments = (
+  from: number,
+  dom: number,
+  amount: number,
+  note: string | null
+) =>
+  Array.from(
+    { length: from + 1 },
+    (_, i): [number, number, number, string | null] => [
+      from - i,
+      dom,
+      amount,
+      note,
+    ]
+  )
+
 function otherGoals(
   id: string,
   day: (monthsAgo: number, dom: number) => string,
   ahead: (months: number) => string
 ): GoalSpec[] {
-  const monthly = (
-    from: number,
-    dom: number,
-    amount: number,
-    note: string | null
-  ) =>
-    Array.from(
-      { length: from + 1 },
-      (_, i): [number, number, number, string | null] => [
-        from - i,
-        dom,
-        amount,
-        note,
-      ]
-    )
   if (id === "student")
     return [
       {
@@ -139,7 +141,7 @@ function otherGoals(
         color: "violet",
         notes: null,
         createdMonthsAgo: 4,
-        payments: monthly(3, 5, 90, null),
+        payments: monthlyPayments(3, 5, 90, null),
       },
       {
         name: "Reading week trip",
@@ -150,7 +152,7 @@ function otherGoals(
         color: "ocean",
         notes: "Road trip with friends",
         createdMonthsAgo: 5,
-        payments: monthly(4, 20, 60, null),
+        payments: monthlyPayments(4, 20, 60, null),
       },
     ]
   if (id === "executive")
@@ -166,7 +168,7 @@ function otherGoals(
         createdMonthsAgo: 11,
         payments: [
           [11, 3, 62000, "Already saved"],
-          ...monthly(10, 4, 3000, "Monthly top-up"),
+          ...monthlyPayments(10, 4, 3000, "Monthly top-up"),
         ],
       },
       {
@@ -178,7 +180,7 @@ function otherGoals(
         color: "rose",
         notes: null,
         createdMonthsAgo: 3,
-        payments: monthly(2, 19, 2000, null),
+        payments: monthlyPayments(2, 19, 2000, null),
       },
     ]
   return [
@@ -191,7 +193,12 @@ function otherGoals(
       color: "rose",
       notes: "Starship fleet, one Mars city",
       createdMonthsAgo: 11,
-      payments: monthly(10, 6, 150_000_000, "Quarterly bonus to the cause"),
+      payments: monthlyPayments(
+        10,
+        6,
+        150_000_000,
+        "Quarterly bonus to the cause"
+      ),
     },
   ]
 }
@@ -230,7 +237,7 @@ export function seedGoals(today: Date, p: Persona, userId: string) {
       userId,
       g.name,
       g.kind,
-      g.target,
+      toCents(g.target),
       g.targetDate,
       g.icon,
       g.color,
@@ -243,7 +250,7 @@ export function seedGoals(today: Date, p: Persona, userId: string) {
       insertPayment.run(
         randomUUID(),
         id,
-        amount,
+        toCents(amount),
         date,
         note,
         `${date} 12:00:00`

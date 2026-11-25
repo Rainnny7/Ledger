@@ -1,7 +1,9 @@
 /**
  * Invoices you send: line items × quantity, an optional discount and tax, then payments until
- * the balance is cleared. Pure helpers here; storage lives in routes/invoices.ts.
+ * the balance is cleared. Pure helpers here; storage lives in finance/invoice-store.ts.
  */
+
+import { toCents } from "../../shared/money.ts"
 
 export interface Party {
   name: string
@@ -41,23 +43,9 @@ export const PAYMENT_METHOD_KINDS = [
 ] as const
 export type PaymentMethodKind = (typeof PAYMENT_METHOD_KINDS)[number]
 
-export const round2 = (n: number) => Math.round(n * 100) / 100
-
-export function invoiceTotals(inv: {
-  items: InvoiceItem[]
-  taxRate: number
-  discount: number
-}) {
-  const subtotal = round2(
-    inv.items.reduce((s, i) => s + round2(i.quantity * i.unitPrice), 0)
-  )
-  const discount = round2(Math.min(Math.max(0, inv.discount), subtotal))
-  const tax = round2(((subtotal - discount) * Math.max(0, inv.taxRate)) / 100)
-  return { subtotal, discount, tax, total: round2(subtotal - discount + tax) }
-}
-
 export function payState(total: number, paid: number): PayState {
-  if (total - paid <= 0.005 && (paid > 0 || total === 0)) return "paid"
+  if (toCents(total) - toCents(paid) <= 0 && (paid > 0 || total === 0))
+    return "paid"
   return paid > 0 ? "partial" : "unpaid"
 }
 

@@ -17,7 +17,7 @@ import { professionalTheme } from "@/lib/pdf-themes/professional"
 import { vividTheme } from "@/lib/pdf-themes/vivid"
 import { type InvoicePdfSource, toPdfData } from "./invoice-pdf-data"
 
-export type { InvoicePdfSource }
+export type { InvoicePdfSource } from "./invoice-pdf-data"
 
 const THEMES = {
   professional: professionalTheme,

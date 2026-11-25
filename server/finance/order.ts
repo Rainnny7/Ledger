@@ -1,4 +1,4 @@
-/** The fields needed to put a day's transactions in the order they happened. */
+/** The fields needed to put a day's transactions in the order they happened (`amount`, `runningBalance` in cents). */
 export interface OrderableTx {
   accountId: string
   date: string
@@ -6,7 +6,7 @@ export interface OrderableTx {
   runningBalance: number | null
 }
 
-const same = (a: number, b: number) => Math.abs(a - b) < 0.005
+const same = (a: number, b: number) => a === b
 
 /**
  * Newest-first order for one account's transactions on one day, rebuilt from running balances: the

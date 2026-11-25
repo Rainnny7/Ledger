@@ -3,7 +3,8 @@ import { toast } from "sonner"
 import { api, type WorkJob, type WorkJobInput } from "@/lib/api"
 import { getDisplayCurrency } from "@/lib/format"
 import { EVERY_PRESETS } from "@/lib/work"
-import { fail, round2 } from "@/components/work/dialogs/form"
+import { fail } from "@/components/work/dialogs/form"
+import { roundMoney } from "../../../../shared/money.ts"
 
 export interface JobForm {
   name: string
@@ -59,9 +60,9 @@ function jobBody(f: JobForm): WorkJobInput | null {
   if (!valid) return null
   return {
     name: f.name.trim(),
-    rate: round2(rateN),
+    rate: roundMoney(rateN),
     currency: f.currency,
-    payAmount: payN > 0 && days ? round2(payN) : null,
+    payAmount: payN > 0 && days ? roundMoney(payN) : null,
     payEveryDays: payN > 0 ? days : null,
     color: f.color,
     notes: f.notes.trim() || null,

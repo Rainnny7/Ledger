@@ -1,6 +1,6 @@
 import type { Invoice, PaymentMethod } from "@/lib/api"
 import { safeFileName, shareUrl } from "@/lib/invoice"
-import type { InvoicePdfSource } from "@/lib/invoice-pdf"
+import type { InvoicePdfSource } from "@/lib/invoice-pdf-data"
 
 /** The PDF renderer (WebAssembly + font) only downloads the first time a PDF is needed. */
 export const renderPdf = (source: InvoicePdfSource) =>

@@ -7,7 +7,8 @@ import {
 } from "@/components/work/dialogs/work-payment-options"
 import { runDialogSave } from "@/components/work/dialogs/run-dialog-save"
 import { runWorkPaymentSave } from "@/components/work/dialogs/work-payment-save"
-import { money, round2, validDate } from "@/components/work/dialogs/form"
+import { money, validDate } from "@/components/work/dialogs/form"
+import { roundMoney } from "../../../../shared/money.ts"
 import { convertAmount, useFx } from "@/lib/currency"
 import { getDisplayCurrency, isoDate } from "@/lib/format"
 import { useDialogDraftFill } from "@/components/work/dialogs/use-dialog-draft-fill"
@@ -57,7 +58,7 @@ export function useWorkPaymentDialog(
     value > 0 &&
     validDate(date) &&
     receivedValid
-  const after = invoice ? round2(invoice.remaining - (value || 0)) : 0
+  const after = invoice ? roundMoney(invoice.remaining - (value || 0)) : 0
   const items = job ? workPaymentSelectItems(job, open) : []
   const quick = workPaymentQuickAmounts(job, invoice)
 

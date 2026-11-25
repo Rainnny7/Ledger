@@ -1,4 +1,4 @@
-import { round2 } from "@/components/work/dialogs/form"
+import { mulMoney, roundTo } from "../../../../shared/money.ts"
 import { hoursInput, parseHours } from "@/lib/work"
 import type { WorkInvoice, WorkJob } from "@/lib/api"
 
@@ -40,7 +40,7 @@ export function fillWorkInvoiceFromDraft(draft: {
     total: invoice ? String(invoice.total) : "",
     totalTouched:
       !!invoice &&
-      Math.abs(invoice.total - round2(invoice.hours * invoice.rate)) > 0.005,
+      Math.abs(invoice.total - mulMoney(invoice.rate, invoice.hours)) > 0.005,
     date: invoice?.date ?? "",
     proof: invoice?.proofUrl ?? "",
     note: invoice?.note ?? "",
@@ -55,7 +55,7 @@ export function workInvoiceHoursN(
 ) {
   if (mode === "tracker") {
     if (counterN !== null && lastCounter !== null)
-      return round2(counterN - lastCounter)
+      return roundTo(counterN - lastCounter, 2)
     if (counterN !== null && lastCounter === null) return parseHours(hours)
     return null
   }

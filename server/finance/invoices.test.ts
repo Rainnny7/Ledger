@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { invoiceTotals, nextInvoiceNumber, payState } from "./invoices.ts"
+import { invoiceTotals } from "../../shared/invoice.ts"
+import { nextInvoiceNumber, payState } from "./invoices.ts"
 
 test("totals: adds items, takes the discount off, then taxes the rest", () => {
   const t = invoiceTotals({
@@ -34,6 +35,19 @@ test("totals: rounds each line to cents", () => {
     }).subtotal,
     39.99
   )
+})
+
+test("totals: client preview matches server cents rounding", () => {
+  const { subtotal } = invoiceTotals({
+    items: [
+      { description: "a", quantity: 3.5, unitPrice: 19.99 },
+      { description: "b", quantity: 1, unitPrice: 0.1 },
+      { description: "c", quantity: 0.333, unitPrice: 33.33 },
+    ],
+    discount: 0,
+    taxRate: 0,
+  })
+  assert.equal(subtotal, 81.17)
 })
 
 test("payState: unpaid, partial, paid", () => {

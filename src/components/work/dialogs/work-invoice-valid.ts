@@ -9,7 +9,8 @@ export function workInvoiceValid(opts: {
   mode: "hours" | "tracker"
   counterN: number | null
 }) {
-  const proofOk = !opts.proof.trim() || /^https?:\/\/\S+$/i.test(opts.proof.trim())
+  const proofOk =
+    !opts.proof.trim() || /^https?:\/\/\S+$/i.test(opts.proof.trim())
   return (
     opts.hoursN !== null &&
     opts.hoursN > 0 &&

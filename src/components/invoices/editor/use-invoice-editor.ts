@@ -16,8 +16,9 @@ import {
 } from "@/lib/api"
 import { DEMO_READ_ONLY, demoMode } from "@/lib/demo"
 import { addDays } from "@/lib/format"
-import { invoiceMoney, invoiceTotals, round2, shareUrl } from "@/lib/invoice"
-import type { InvoicePdfSource } from "@/lib/invoice-pdf"
+import { invoiceMoney, shareUrl } from "@/lib/invoice"
+import { invoiceTotals } from "../../../../shared/invoice.ts"
+import type { InvoicePdfSource } from "@/lib/invoice-pdf-data"
 import { confirmDialog } from "@/lib/confirm"
 import { URL_OPTIONS } from "@/lib/url-state"
 import { useQueryState } from "nuqs"
@@ -196,7 +197,6 @@ export function useInvoiceEditor({
     totals,
     paid,
     money,
-    round2,
     methodById,
     selectedMethodIds,
     chosen,

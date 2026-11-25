@@ -10,6 +10,14 @@ import { useConverter } from "@/lib/currency"
 import { useOverview, useSubscriptions } from "@/lib/queries"
 import { URL_OPTIONS, useIntent } from "@/lib/url-state"
 
+async function dismissSuggestion(g: RecurringSuggestion) {
+  try {
+    await api.dismissSuggestion(g.id)
+  } catch (e) {
+    toast.error((e as Error).message)
+  }
+}
+
 export function useSubscriptionsPage() {
   const { data, loading, error } = useSubscriptions()
   const overview = useOverview()
@@ -34,15 +42,15 @@ export function useSubscriptionsPage() {
     [data]
   )
   const suggestions = data?.suggestions ?? []
-  const active = subs.filter((s) => s.active)
+  const active = useMemo(() => subs.filter((s) => s.active), [subs])
   const sorted = useMemo(
     () => [
-      ...[...subs].sort(
+      ...[...subs].toSorted(
         (a, b) =>
           Number(b.active) - Number(a.active) ||
           a.nextDue.localeCompare(b.nextDue)
       ),
-      ...[...shared].sort(
+      ...[...shared].toSorted(
         (a, b) =>
           Number(b.active) - Number(a.active) ||
           a.nextDue.localeCompare(b.nextDue)
@@ -55,7 +63,7 @@ export function useSubscriptionsPage() {
   const monthly = fx.sum(active.map((x) => [x.monthly, x.currency]))
   const suggestionCurrency = (g: RecurringSuggestion) =>
     accounts.find((a) => a.id === g.accountId)?.currency ?? fx.home
-  const next = [...active].sort((a, b) => a.nextDue.localeCompare(b.nextDue))[0]
+  const next = active.toSorted((a, b) => a.nextDue.localeCompare(b.nextDue))[0]
   const due30 = useMemo(() => {
     const today = isoDate()
     const end = addDays(today, 30)
@@ -63,9 +71,8 @@ export function useSubscriptionsPage() {
       .flatMap((s) =>
         subscriptionOccurrences(s, today, end).map((date) => ({ s, date }))
       )
-      .sort((a, b) => a.date.localeCompare(b.date))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subs])
+      .toSorted((a, b) => a.date.localeCompare(b.date))
+  }, [active])
 
   const focus = useMemo(
     () => new Set(focusParam.split(",").filter(Boolean)),
@@ -81,11 +88,12 @@ export function useSubscriptionsPage() {
   }, [focusParam, data])
 
   useEffect(() => {
-    const { track, name, amount, date, account } = prefill
-    if (!track) return
+    const { track: trackPref, name, amount, date, account } = prefill
+    if (!trackPref) return
+    // oxlint-disable-next-line react/set-state-in-effect -- open new-sub form when URL prefill params arrive
     setEditing(null)
     setDraft({
-      merchantKey: track,
+      merchantKey: trackPref,
       name: name ?? "",
       amount: Number(amount) || undefined,
       anchorDate: date ?? isoDate(),
@@ -137,14 +145,6 @@ export function useSubscriptionsPage() {
     }
   }
 
-  async function dismiss(g: RecurringSuggestion) {
-    try {
-      await api.dismissSuggestion(g.id)
-    } catch (e) {
-      toast.error((e as Error).message)
-    }
-  }
-
   return {
     data,
     loading,
@@ -168,7 +168,7 @@ export function useSubscriptionsPage() {
     openNew,
     edit,
     track,
-    dismiss,
+    dismiss: dismissSuggestion,
     closeDialog: () => {
       setDraft(null)
       setEditing(null)

@@ -14,7 +14,8 @@ import {
   personaOf,
   userIdOf,
 } from "./personas.ts"
-import { iso, round } from "./util.ts"
+import { roundMoney, toCents } from "../../shared/money.ts"
+import { iso } from "./util.ts"
 import { seedUsdJob, seedWork, usdWallet } from "./work.ts"
 
 const SEED_VERSION = "7"
@@ -50,7 +51,7 @@ function seed(today: Date, p: Persona) {
     `INSERT INTO budget (user_id, category, amount, currency) VALUES (?, ?, ?, ?)`
   )
   for (const [category, amount] of p.budgets)
-    budget.run(userId, category, amount, p.currency)
+    budget.run(userId, category, toCents(amount), p.currency)
   db.prepare(`DELETE FROM goal WHERE user_id = ?`).run(userId) // payments cascade
   db.prepare(`DELETE FROM work_job WHERE user_id = ?`).run(userId) // bills, shifts, payments cascade
 
@@ -77,7 +78,7 @@ function seed(today: Date, p: Persona) {
         (b) => ({
           overdraftLimit: p.overdraft,
           overdraftUsed: 0,
-          available: round(b + p.overdraft),
+          available: roundMoney(b + p.overdraft),
         })
       ),
       account(
@@ -97,7 +98,7 @@ function seed(today: Date, p: Persona) {
         visa,
         (b) => ({
           creditLimit: p.creditLimit,
-          available: round(p.creditLimit + b),
+          available: roundMoney(p.creditLimit + b),
         })
       ),
       // Even a billionaire's money mostly sits in holdings rather than in a bank account.
@@ -292,7 +293,7 @@ function seed(today: Date, p: Persona) {
       randomUUID(),
       userId,
       name,
-      amount,
+      toCents(amount),
       currency,
       cycle,
       anchorDate,
