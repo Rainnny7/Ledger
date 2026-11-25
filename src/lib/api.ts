@@ -15,6 +15,8 @@ export interface Connection {
   /** PayPal webhooks registered: payments made through the app arrive right away. */
   instantUpdates?: boolean
   lastEventAt?: string | null
+  /** When the background refresh will next sync it on its own; null when it won't. */
+  nextSyncAt?: string | null
 }
 
 export interface Account {

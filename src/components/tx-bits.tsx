@@ -1,7 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { Category } from '@/lib/api'
 import { CATEGORY_META } from '@/lib/categories'
-import { formatLongDate, formatRelativeDate, formatTimestamp } from '@/lib/format'
+import { formatLongDate, formatRelative, formatRelativeDate, formatTimestamp } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 /** "3 days ago", with the full date on hover. TD only gives a posting date, so the first-sync time is shown when it's close. */
@@ -25,6 +25,43 @@ export function RelativeDate({ date, seenAt, className }: { date: string; seenAt
       <TooltipContent className="flex-col items-start gap-0.5">
         <span>{formatLongDate(date)}</span>
         {showSeen && <span className="opacity-70">First synced {formatTimestamp(seenAt)}</span>}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+/**
+ * "synced 3h ago" for a bank connection; hovering shows the exact time, and when the background
+ * refresh will next sync it (or why it won't on its own).
+ */
+export function SyncTime({
+  at,
+  next,
+  savedCredentials,
+  error,
+}: {
+  at: string | null
+  next?: string | null
+  savedCredentials: boolean
+  error?: string | null
+}) {
+  const nextLine = next
+    ? `Next auto-sync ${formatTimestamp(next)} (${formatRelative(next)})`
+    : error
+      ? 'Auto-sync is paused until this connection is fixed'
+      : !savedCredentials
+        ? 'No auto-sync: sign-in details aren’t saved, so it only refreshes when you do'
+        : 'Auto-sync is waiting for you to sign in with a two-factor code'
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<span className="cursor-default underline decoration-muted-foreground/30 decoration-dotted underline-offset-4" />}
+      >
+        synced {formatRelative(at)}
+      </TooltipTrigger>
+      <TooltipContent className="flex-col items-start gap-0.5">
+        <span>{at ? `Last synced ${formatTimestamp(at)}` : 'Never synced'}</span>
+        <span className="opacity-70">{nextLine}</span>
       </TooltipContent>
     </Tooltip>
   )

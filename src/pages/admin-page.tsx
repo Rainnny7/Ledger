@@ -1,3 +1,4 @@
+import { Hint } from '@/components/hint'
 import { useQuery } from '@tanstack/react-query'
 import {
   Ban,
@@ -17,7 +18,7 @@ import {
   UserCheck,
   UserPlus,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -748,6 +749,11 @@ function TasksCard() {
     refetchInterval: (q) => (q.state.data?.tasks.some((t) => t.running) ? 3000 : 60_000),
   })
   const [starting, setStarting] = useState<string | null>(null)
+  // When the exchange-rate task finishes, pick up the new rates everywhere in the app.
+  const fxFinished = tasks.data?.tasks.find((t) => t.id === 'fx-rates')?.lastRun?.finishedAt
+  useEffect(() => {
+    if (fxFinished) void queryClient.invalidateQueries({ queryKey: ['fx'] })
+  }, [fxFinished])
 
   async function run(t: TaskInfo) {
     setStarting(t.id)
@@ -795,9 +801,9 @@ function TasksCard() {
                   {last ? (
                     <>
                       Last run{' '}
-                      <span className="text-foreground" title={formatTimestamp(last.startedAt)}>
-                        {formatRelative(last.startedAt)}
-                      </span>
+                      <Hint label={formatTimestamp(last.startedAt)}>
+                        <span className="cursor-default text-foreground">{formatRelative(last.startedAt)}</span>
+                      </Hint>
                       {last.trigger === 'manual' && ' (run by hand)'}
                       {last.durationMs !== null && ` · took ${took(last.durationMs)}`}
                       {last.summary && ` · ${last.summary}`}
@@ -858,10 +864,12 @@ function ActivityCard() {
                   <span className={cn('font-medium', failed && 'text-destructive')}>{e.action}</span>
                   {e.targetEmail && <span className="min-w-0 truncate">{e.targetEmail}</span>}
                   {e.detail && <span className="text-muted-foreground">{e.detail}</span>}
-                  <span className="ml-auto text-xs text-muted-foreground" title={formatTimestamp(e.at)}>
-                    {e.actorEmail ?? 'unknown'}
-                    {e.ip && ` · ${e.ip}`} · {formatRelative(e.at)}
-                  </span>
+                  <Hint label={formatTimestamp(e.at)} side="left">
+                    <span className="ml-auto cursor-default text-xs text-muted-foreground">
+                      {e.actorEmail ?? 'unknown'}
+                      {e.ip && ` · ${e.ip}`} · {formatRelative(e.at)}
+                    </span>
+                  </Hint>
                 </li>
               )
             })}

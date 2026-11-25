@@ -10,6 +10,8 @@ import { cancel, chooseMfa, getSession, isProvider, poll, startLogin, submitCode
 import { deleteWebhook, PaypalApiError, registerWebhook } from '../banks/paypal/api.ts'
 import { importStatements } from '../banks/statements.ts'
 import { env } from '../env.ts'
+import { DEMO_USER_ID } from '../demo.ts'
+import { nextAutoSyncAt } from '../tasks.ts'
 
 type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
 
@@ -109,8 +111,14 @@ banks.get('/connections', (c) => {
     .all(c.var.user.id)
   return c.json({
     connections: connections.map((x) => {
-      const r = x as { savedCredentials: number; instantUpdates: number }
-      return { ...x, savedCredentials: Boolean(r.savedCredentials), instantUpdates: Boolean(r.instantUpdates) }
+      const r = x as { id: string; savedCredentials: number; instantUpdates: number; lastSyncedAt: string | null; lastError: string | null }
+      const savedCredentials = Boolean(r.savedCredentials)
+      return {
+        ...x,
+        savedCredentials,
+        instantUpdates: Boolean(r.instantUpdates),
+        nextSyncAt: c.var.user.id === DEMO_USER_ID ? null : nextAutoSyncAt({ ...r, savedCredentials }),
+      }
     }),
     accounts,
   })

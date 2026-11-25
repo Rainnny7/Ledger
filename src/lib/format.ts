@@ -40,14 +40,14 @@ export function formatRelative(sqliteUtc: string | null) {
   const mins = Math.round((Date.now() - t) / 60000)
   if (mins < 0) {
     const ahead = -mins
-    if (ahead < 60) return `in ${ahead} min`
-    if (ahead < 24 * 60) return `in ${Math.round(ahead / 60)} h`
+    if (ahead < 60) return `in ${ahead}m`
+    if (ahead < 24 * 60) return `in ${Math.round(ahead / 60)}h`
     return new Date(t).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
   }
   if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins} min ago`
+  if (mins < 60) return `${mins}m ago`
   const hrs = Math.round(mins / 60)
-  if (hrs < 24) return `${hrs} h ago`
+  if (hrs < 24) return `${hrs}h ago`
   return new Date(t).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
 }
 

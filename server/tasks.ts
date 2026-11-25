@@ -7,6 +7,7 @@
 import { db, getSetting, setSetting } from './db.ts'
 import { DEMO_USER_ID } from './demo.ts'
 import { syncInBackground } from './banks/sessions.ts'
+import { refreshRates } from './fx.ts'
 
 export interface TaskRun {
   startedAt: string
@@ -94,6 +95,14 @@ const TASKS: Task[] = [
     run: refreshBanks,
   },
   {
+    id: 'fx-rates',
+    label: 'Update exchange rates',
+    description:
+      'Fetches the European Central Bank’s daily reference rates (through Frankfurter) used to show amounts in each person’s own currency. The ECB publishes once each working day around 16:00 CET; if a fetch fails, the last good rates stay in use.',
+    intervalMs: 6 * HOUR,
+    run: refreshRates,
+  },
+  {
     id: 'tidy-up',
     label: 'Tidy up',
     description: 'Removes expired sign-in sessions and one-time codes.',
@@ -129,6 +138,23 @@ export function listTasks() {
       nextRunAt: base ? new Date(Date.parse(base) + t.intervalMs).toISOString() : null,
     }
   })
+}
+
+/**
+ * When the background refresh will next pick up a connection, or null when it won't on its own (no
+ * saved sign-in, an error to fix, or the bank waiting on a two-factor code).
+ */
+export function nextAutoSyncAt(c: { id: string; lastSyncedAt: string | null; savedCredentials: boolean; lastError: string | null }) {
+  if (!c.savedCredentials || c.lastError) return null
+  if (getSetting(needsSignInKey(c.id)) === (c.lastSyncedAt ?? '')) return null
+  const task = TASKS.find((t) => t.id === 'bank-refresh')!
+  const last = lastRun(task.id)
+  const base = last ? Date.parse(last.finishedAt ?? last.startedAt) : Date.now()
+  let next = Math.max(Date.now(), base + task.intervalMs)
+  // A run skips anything synced in the last few hours, so it's the first run after that window.
+  const synced = c.lastSyncedAt ? Date.parse(`${c.lastSyncedAt.replace(' ', 'T')}Z`) : 0
+  while (next - synced < FRESH_FOR_MS) next += task.intervalMs
+  return new Date(next).toISOString()
 }
 
 export const hasTask = (id: string) => TASKS.some((t) => t.id === id)
