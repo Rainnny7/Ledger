@@ -14,9 +14,12 @@ const same = (a: number, b: number) => Math.abs(a - b) < 0.005
  * `balance - amount` of the one after it. Null when the balances don't form one clean chain.
  */
 function chain<T extends OrderableTx>(items: T[]): T[] | null {
-  if (items.length < 2 || items.some((t) => t.runningBalance === null)) return null
+  if (items.length < 2 || items.some((t) => t.runningBalance === null))
+    return null
   const before = (t: T) => t.runningBalance! - t.amount
-  const heads = items.filter((x) => !items.some((y) => y !== x && same(before(y), x.runningBalance!)))
+  const heads = items.filter(
+    (x) => !items.some((y) => y !== x && same(before(y), x.runningBalance!))
+  )
   if (heads.length !== 1) return null
   const out = [heads[0]]
   const left = new Set(items.filter((t) => t !== heads[0]))

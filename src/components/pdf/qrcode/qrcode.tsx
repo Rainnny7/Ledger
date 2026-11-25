@@ -1,21 +1,14 @@
-import { encode } from "uqr";
+import { encode } from "uqr"
 
-import {
-  usePdfcnTheme,
-  useSafeMemo,
-} from "@/components/pdf/theme-provider";
-import {
-  View,
-  Text as PDFText,
-  StyleSheet,
-} from "@/lib/pdf-primitives";
-import type { Style } from "@/lib/pdf-primitives";
-import { Rect, Svg } from "@/lib/pdf-svg";
-import { resolveColor } from "@/lib/resolve-color";
-import type { PDFComponentProps } from "@/types/pdf-components";
-import type { PdfcnTheme } from "@/types/pdf-themes";
+import { usePdfcnTheme, useSafeMemo } from "@/components/pdf/theme-provider"
+import { View, Text as PDFText, StyleSheet } from "@/lib/pdf-primitives"
+import type { Style } from "@/lib/pdf-primitives"
+import { Rect, Svg } from "@/lib/pdf-svg"
+import { resolveColor } from "@/lib/resolve-color"
+import type { PDFComponentProps } from "@/types/pdf-components"
+import type { PdfcnTheme } from "@/types/pdf-themes"
 
-export type QRCodeErrorLevel = "L" | "M" | "Q" | "H";
+export type QRCodeErrorLevel = "L" | "M" | "Q" | "H"
 
 /**
  * QR code rendered as an SVG grid for use in PDF documents.
@@ -23,18 +16,18 @@ export type QRCodeErrorLevel = "L" | "M" | "Q" | "H";
  * @see {@link PdfQRCodeProps}
  */
 export interface PdfQRCodeProps extends Omit<PDFComponentProps, "children"> {
-  value: string;
-  size?: number;
-  color?: string;
-  backgroundColor?: string;
-  errorLevel?: QRCodeErrorLevel;
-  margin?: number;
-  caption?: string;
-  children?: never;
+  value: string
+  size?: number
+  color?: string
+  backgroundColor?: string
+  errorLevel?: QRCodeErrorLevel
+  margin?: number
+  caption?: string
+  children?: never
 }
 
 const createQRCodeStyles = (t: PdfcnTheme) => {
-  const { spacing } = t.primitives;
+  const { spacing } = t.primitives
   return StyleSheet.create({
     caption: {
       color: t.colors.mutedForeground,
@@ -44,15 +37,15 @@ const createQRCodeStyles = (t: PdfcnTheme) => {
       textAlign: "center",
     },
     container: { alignItems: "center" },
-  });
-};
+  })
+}
 
 // uqr is already the app's QR encoder (2FA setup), so the PDF uses it too instead of `qrcode`.
 const generateQRMatrix = (
   value: string,
   errorLevel: QRCodeErrorLevel,
   margin: number
-): boolean[][] => encode(value, { ecc: errorLevel, border: margin }).data;
+): boolean[][] => encode(value, { ecc: errorLevel, border: margin }).data
 
 export const PdfQRCode = ({
   value,
@@ -64,21 +57,21 @@ export const PdfQRCode = ({
   caption,
   style,
 }: PdfQRCodeProps) => {
-  const theme = usePdfcnTheme();
-  const styles = useSafeMemo(() => createQRCodeStyles(theme), [theme]);
+  const theme = usePdfcnTheme()
+  const styles = useSafeMemo(() => createQRCodeStyles(theme), [theme])
   const matrix = useSafeMemo(
     () => generateQRMatrix(value, errorLevel, margin),
     [value, errorLevel, margin]
-  );
-  const moduleSize = size / matrix.length;
-  const resolvedColor = resolveColor(color, theme.colors);
+  )
+  const moduleSize = size / matrix.length
+  const resolvedColor = resolveColor(color, theme.colors)
   const resolvedBgColor =
     backgroundColor === "transparent"
       ? undefined
-      : resolveColor(backgroundColor, theme.colors);
-  const containerStyles: Style[] = [styles.container];
+      : resolveColor(backgroundColor, theme.colors)
+  const containerStyles: Style[] = [styles.container]
   if (style) {
-    containerStyles.push(...[style].flat());
+    containerStyles.push(...[style].flat())
   }
 
   return (
@@ -106,5 +99,5 @@ export const PdfQRCode = ({
       </Svg>
       {caption && <PDFText style={styles.caption}>{caption}</PDFText>}
     </View>
-  );
-};
+  )
+}

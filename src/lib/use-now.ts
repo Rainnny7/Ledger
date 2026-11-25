@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from "react"
 
 let now = new Date()
 
@@ -6,7 +6,10 @@ let now = new Date()
 function subscribe(onChange: () => void) {
   const id = window.setInterval(() => {
     const next = new Date()
-    if (next.getHours() !== now.getHours() || next.toDateString() !== now.toDateString()) {
+    if (
+      next.getHours() !== now.getHours() ||
+      next.toDateString() !== now.toDateString()
+    ) {
       now = next
       onChange()
     }
@@ -22,6 +25,6 @@ export function useNow(): Date {
   return useSyncExternalStore(
     subscribe,
     () => now,
-    () => now,
+    () => now
   )
 }

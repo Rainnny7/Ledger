@@ -1,12 +1,16 @@
-import { randomBytes, randomUUID } from 'node:crypto'
-import { Hono } from 'hono'
-import { z } from 'zod'
-import { currencyCode, isoDate } from '../validation.ts'
-import { auth } from '../auth.ts'
-import { createOrder, captureOrder, PaypalApiError } from '../banks/paypal/api.ts'
-import { recordCapture } from '../banks/paypal/webhooks.ts'
-import { db } from '../db.ts'
-import { env } from '../env.ts'
+import { randomBytes, randomUUID } from "node:crypto"
+import { Hono } from "hono"
+import { z } from "zod"
+import { currencyCode, isoDate } from "../validation.ts"
+import { auth } from "../auth.ts"
+import {
+  createOrder,
+  captureOrder,
+  PaypalApiError,
+} from "../banks/paypal/api.ts"
+import { recordCapture } from "../banks/paypal/webhooks.ts"
+import { db } from "../db.ts"
+import { env } from "../env.ts"
 import {
   type InvoiceView,
   loadByToken,
@@ -16,17 +20,24 @@ import {
   type PaymentMethod,
   recordInvoicePayment,
   saveProfile,
-} from '../finance/invoice-store.ts'
-import { nextInvoiceNumber, PAYMENT_METHOD_KINDS } from '../finance/invoices.ts'
+} from "../finance/invoice-store.ts"
+import { nextInvoiceNumber, PAYMENT_METHOD_KINDS } from "../finance/invoices.ts"
 
 type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
 export const invoices = new Hono<Vars>()
 
 const MAX_MONEY = 100_000_000
-const TEMPLATES = ['modern', 'minimal', 'classic'] as const
-const THEMES = ['professional', 'modern', 'elegant', 'corporate', 'forest', 'vivid'] as const
+const TEMPLATES = ["modern", "minimal", "classic"] as const
+const THEMES = [
+  "professional",
+  "modern",
+  "elegant",
+  "corporate",
+  "forest",
+  "vivid",
+] as const
 
-const text = (max: number) => z.string().trim().max(max).default('')
+const text = (max: number) => z.string().trim().max(max).default("")
 const party = z.object({
   name: text(120),
   email: text(200),
@@ -41,17 +52,17 @@ const item = z.object({
 })
 const invoiceBody = z.object({
   number: z.string().trim().min(1).max(40),
-  status: z.enum(['draft', 'sent', 'void']).default('draft'),
-  template: z.enum(TEMPLATES).default('modern'),
-  theme: z.enum(THEMES).default('professional'),
-  currency: currencyCode.default('CAD'),
+  status: z.enum(["draft", "sent", "void"]).default("draft"),
+  template: z.enum(TEMPLATES).default("modern"),
+  theme: z.enum(THEMES).default("professional"),
+  currency: currencyCode.default("CAD"),
   issueDate: isoDate,
   dueDate: isoDate.nullable().default(null),
   from: party,
   client: party,
   items: z.array(item).min(1).max(100),
   taxRate: z.number().min(0).max(100).default(0),
-  taxLabel: z.string().trim().min(1).max(30).default('Tax'),
+  taxLabel: z.string().trim().min(1).max(30).default("Tax"),
   discount: z.number().min(0).max(MAX_MONEY).default(0),
   notes: z.string().trim().max(2000).nullable().default(null),
   terms: z.string().trim().max(2000).nullable().default(null),
@@ -60,16 +71,20 @@ const invoiceBody = z.object({
 })
 type InvoiceBody = z.infer<typeof invoiceBody>
 
-const newToken = () => randomBytes(18).toString('base64url')
+const newToken = () => randomBytes(18).toString("base64url")
 
 const ownsBill = (userId: string, billId: string) =>
-  !!db.prepare(`SELECT 1 FROM work_invoice i JOIN work_job j ON j.id = i.job_id WHERE i.id = ? AND j.user_id = ?`).get(billId, userId)
+  !!db
+    .prepare(
+      `SELECT 1 FROM work_invoice i JOIN work_job j ON j.id = i.job_id WHERE i.id = ? AND j.user_id = ?`
+    )
+    .get(billId, userId)
 
 const ownsTransaction = (userId: string, txId: string) =>
   !!db
     .prepare(
       `SELECT 1 FROM bank_transaction t JOIN bank_account a ON a.id = t.account_id JOIN bank_connection c ON c.id = a.connection_id
-        WHERE t.id = ? AND c.user_id = ?`,
+        WHERE t.id = ? AND c.user_id = ?`
     )
     .get(txId, userId)
 
@@ -77,17 +92,27 @@ function paypalConnections(userId: string) {
   return db
     .prepare(
       `SELECT id, label, username_masked AS usernameMasked, webhook_id IS NOT NULL AS instantUpdates, webhook_at AS lastEventAt
-         FROM bank_connection WHERE user_id = ? AND institution = 'paypal' AND credentials_enc IS NOT NULL ORDER BY created_at`,
+         FROM bank_connection WHERE user_id = ? AND institution = 'paypal' AND credentials_enc IS NOT NULL ORDER BY created_at`
     )
     .all(userId)
     .map((r) => {
-      const row = r as { id: string; label: string; usernameMasked: string; instantUpdates: number; lastEventAt: string | null }
+      const row = r as {
+        id: string
+        label: string
+        usernameMasked: string
+        instantUpdates: number
+        lastEventAt: string | null
+      }
       return { ...row, instantUpdates: Boolean(row.instantUpdates) }
     })
 }
 
 function nextNumber(userId: string) {
-  const numbers = (db.prepare(`SELECT number FROM invoice WHERE user_id = ?`).all(userId) as { number: string }[]).map((r) => r.number)
+  const numbers = (
+    db.prepare(`SELECT number FROM invoice WHERE user_id = ?`).all(userId) as {
+      number: string
+    }[]
+  ).map((r) => r.number)
   return nextInvoiceNumber(numbers, loadProfile(userId).prefix)
 }
 
@@ -97,7 +122,8 @@ function sanitize(userId: string, d: Partial<InvoiceBody>) {
     const mine = new Set(loadPaymentMethods(userId).map((m) => m.id))
     d.methodIds = [...new Set(d.methodIds)].filter((id) => mine.has(id))
   }
-  if (d.workInvoiceId && !ownsBill(userId, d.workInvoiceId)) d.workInvoiceId = null
+  if (d.workInvoiceId && !ownsBill(userId, d.workInvoiceId))
+    d.workInvoiceId = null
   if (d.currency) d.currency = d.currency.toUpperCase()
   return d
 }
@@ -118,7 +144,7 @@ function rememberDefaults(userId: string, d: InvoiceBody) {
   })
 }
 
-invoices.get('/invoices', (c) => {
+invoices.get("/invoices", (c) => {
   const userId = c.var.user.id
   return c.json({
     invoices: loadInvoices(userId),
@@ -129,7 +155,7 @@ invoices.get('/invoices', (c) => {
   })
 })
 
-invoices.post('/invoices', async (c) => {
+invoices.post("/invoices", async (c) => {
   const body = invoiceBody.safeParse(await c.req.json().catch(() => ({})))
   if (!body.success) return c.json({ error: describe(body.error) }, 400)
   const userId = c.var.user.id
@@ -138,7 +164,7 @@ invoices.post('/invoices', async (c) => {
   db.prepare(
     `INSERT INTO invoice (id, user_id, number, token, status, template, theme, currency, issue_date, due_date, from_json, client_json,
        items_json, tax_rate, tax_label, discount, notes, terms, methods_json, work_invoice_id, sent_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${d.status === 'sent' ? "datetime('now')" : 'NULL'})`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${d.status === "sent" ? "datetime('now')" : "NULL"})`
   ).run(
     id,
     userId,
@@ -159,41 +185,48 @@ invoices.post('/invoices', async (c) => {
     d.notes || null,
     d.terms || null,
     JSON.stringify(d.methodIds),
-    d.workInvoiceId,
+    d.workInvoiceId
   )
   rememberDefaults(userId, d)
   return c.json({ invoice: loadInvoices(userId, id)[0] })
 })
 
 const COLUMNS: Record<string, string> = {
-  number: 'number',
-  status: 'status',
-  template: 'template',
-  theme: 'theme',
-  currency: 'currency',
-  issueDate: 'issue_date',
-  dueDate: 'due_date',
-  from: 'from_json',
-  client: 'client_json',
-  items: 'items_json',
-  taxRate: 'tax_rate',
-  taxLabel: 'tax_label',
-  discount: 'discount',
-  notes: 'notes',
-  terms: 'terms',
-  methodIds: 'methods_json',
-  workInvoiceId: 'work_invoice_id',
+  number: "number",
+  status: "status",
+  template: "template",
+  theme: "theme",
+  currency: "currency",
+  issueDate: "issue_date",
+  dueDate: "due_date",
+  from: "from_json",
+  client: "client_json",
+  items: "items_json",
+  taxRate: "tax_rate",
+  taxLabel: "tax_label",
+  discount: "discount",
+  notes: "notes",
+  terms: "terms",
+  methodIds: "methods_json",
+  workInvoiceId: "work_invoice_id",
 }
 
-invoices.patch('/invoices/:id', async (c) => {
+invoices.patch("/invoices/:id", async (c) => {
   // No defaults on an update: only what was sent changes.
-  const partial = z.object(Object.fromEntries(Object.entries(invoiceBody.shape).map(([k, v]) => [k, (v as z.ZodType).optional()])))
+  const partial = z.object(
+    Object.fromEntries(
+      Object.entries(invoiceBody.shape).map(([k, v]) => [
+        k,
+        (v as z.ZodType).optional(),
+      ])
+    )
+  )
   const body = partial.safeParse(await c.req.json().catch(() => ({})))
   if (!body.success) return c.json({ error: describe(body.error) }, 400)
   const userId = c.var.user.id
-  const id = c.req.param('id')
+  const id = c.req.param("id")
   const [before] = loadInvoices(userId, id)
-  if (!before) return c.json({ error: 'Not found' }, 404)
+  if (!before) return c.json({ error: "Not found" }, 404)
   const d = sanitize(userId, body.data as Partial<InvoiceBody>)
   const sets: string[] = []
   const vals: (string | number | null)[] = []
@@ -201,59 +234,98 @@ invoices.patch('/invoices/:id', async (c) => {
     const v = (d as Record<string, unknown>)[k]
     if (v === undefined) continue
     sets.push(`${col} = ?`)
-    vals.push(v !== null && typeof v === 'object' ? JSON.stringify(v) : v === '' && (k === 'notes' || k === 'terms') ? null : (v as string | number | null))
+    vals.push(
+      v !== null && typeof v === "object"
+        ? JSON.stringify(v)
+        : v === "" && (k === "notes" || k === "terms")
+          ? null
+          : (v as string | number | null)
+    )
   }
-  if (d.status === 'sent' && before.status === 'draft') sets.push(`sent_at = COALESCE(sent_at, datetime('now'))`)
+  if (d.status === "sent" && before.status === "draft")
+    sets.push(`sent_at = COALESCE(sent_at, datetime('now'))`)
   if (sets.length) {
     sets.push(`updated_at = datetime('now')`)
-    db.prepare(`UPDATE invoice SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`).run(...vals, id, userId)
+    db.prepare(
+      `UPDATE invoice SET ${sets.join(", ")} WHERE id = ? AND user_id = ?`
+    ).run(...vals, id, userId)
   }
   const [invoice] = loadInvoices(userId, id)
-  if (d.from && d.template) rememberDefaults(userId, { ...invoice, ...d } as unknown as InvoiceBody)
+  if (d.from && d.template)
+    rememberDefaults(userId, { ...invoice, ...d } as unknown as InvoiceBody)
   return c.json({ invoice })
 })
 
-invoices.delete('/invoices/:id', (c) => {
-  const r = db.prepare(`DELETE FROM invoice WHERE id = ? AND user_id = ?`).run(c.req.param('id'), c.var.user.id)
-  return r.changes ? c.json({ ok: true }) : c.json({ error: 'Not found' }, 404)
+invoices.delete("/invoices/:id", (c) => {
+  const r = db
+    .prepare(`DELETE FROM invoice WHERE id = ? AND user_id = ?`)
+    .run(c.req.param("id"), c.var.user.id)
+  return r.changes ? c.json({ ok: true }) : c.json({ error: "Not found" }, 404)
 })
 
 /** A new share link; the old one stops working. */
-invoices.post('/invoices/:id/reset-link', (c) => {
+invoices.post("/invoices/:id/reset-link", (c) => {
   const userId = c.var.user.id
-  const r = db.prepare(`UPDATE invoice SET token = ?, viewed_at = NULL WHERE id = ? AND user_id = ?`).run(newToken(), c.req.param('id'), userId)
-  return r.changes ? c.json({ invoice: loadInvoices(userId, c.req.param('id'))[0] }) : c.json({ error: 'Not found' }, 404)
+  const r = db
+    .prepare(
+      `UPDATE invoice SET token = ?, viewed_at = NULL WHERE id = ? AND user_id = ?`
+    )
+    .run(newToken(), c.req.param("id"), userId)
+  return r.changes
+    ? c.json({ invoice: loadInvoices(userId, c.req.param("id"))[0] })
+    : c.json({ error: "Not found" }, 404)
 })
 
 const paymentBody = z.object({
   /** Negative for a refund. */
-  amount: z.number().min(-MAX_MONEY).max(MAX_MONEY).refine((n) => n !== 0),
+  amount: z
+    .number()
+    .min(-MAX_MONEY)
+    .max(MAX_MONEY)
+    .refine((n) => n !== 0),
   date: isoDate,
   method: z.string().trim().max(60).nullable().optional(),
   note: z.string().trim().max(300).nullable().optional(),
   transactionId: z.string().max(80).nullable().optional(),
 })
 
-invoices.post('/invoices/:id/payments', async (c) => {
+invoices.post("/invoices/:id/payments", async (c) => {
   const body = paymentBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: 'Check the payment details.' }, 400)
+  if (!body.success) return c.json({ error: "Check the payment details." }, 400)
   const userId = c.var.user.id
-  const [invoice] = loadInvoices(userId, c.req.param('id'))
-  if (!invoice) return c.json({ error: 'Not found' }, 404)
+  const [invoice] = loadInvoices(userId, c.req.param("id"))
+  if (!invoice) return c.json({ error: "Not found" }, 404)
   const d = body.data
-  if (d.transactionId && !ownsTransaction(userId, d.transactionId)) return c.json({ error: 'Unknown transaction' }, 400)
-  recordInvoicePayment(invoice, { ...d, method: d.method || null, note: d.note || null })
-  if (invoice.status === 'draft') db.prepare(`UPDATE invoice SET status = 'sent', sent_at = COALESCE(sent_at, datetime('now')) WHERE id = ?`).run(invoice.id)
+  if (d.transactionId && !ownsTransaction(userId, d.transactionId))
+    return c.json({ error: "Unknown transaction" }, 400)
+  recordInvoicePayment(invoice, {
+    ...d,
+    method: d.method || null,
+    note: d.note || null,
+  })
+  if (invoice.status === "draft")
+    db.prepare(
+      `UPDATE invoice SET status = 'sent', sent_at = COALESCE(sent_at, datetime('now')) WHERE id = ?`
+    ).run(invoice.id)
   return c.json({ invoice: loadInvoices(userId, invoice.id)[0] })
 })
 
-invoices.delete('/invoices/:id/payments/:paymentId', (c) => {
+invoices.delete("/invoices/:id/payments/:paymentId", (c) => {
   const userId = c.var.user.id
-  const [invoice] = loadInvoices(userId, c.req.param('id'))
-  const payment = invoice?.payments.find((p) => p.id === c.req.param('paymentId'))
-  if (!invoice || !payment) return c.json({ error: 'Not found' }, 404)
-  if (payment.source === 'manual' || !invoice.workInvoiceId) db.prepare(`DELETE FROM invoice_payment WHERE id = ? AND invoice_id = ?`).run(payment.id, invoice.id)
-  if (invoice.workInvoiceId) db.prepare(`DELETE FROM work_payment WHERE id = ? AND invoice_id = ?`).run(payment.id, invoice.workInvoiceId)
+  const [invoice] = loadInvoices(userId, c.req.param("id"))
+  const payment = invoice?.payments.find(
+    (p) => p.id === c.req.param("paymentId")
+  )
+  if (!invoice || !payment) return c.json({ error: "Not found" }, 404)
+  if (payment.source === "manual" || !invoice.workInvoiceId)
+    db.prepare(
+      `DELETE FROM invoice_payment WHERE id = ? AND invoice_id = ?`
+    ).run(payment.id, invoice.id)
+  if (invoice.workInvoiceId)
+    db.prepare(`DELETE FROM work_payment WHERE id = ? AND invoice_id = ?`).run(
+      payment.id,
+      invoice.workInvoiceId
+    )
   return c.json({ invoice: loadInvoices(userId, invoice.id)[0] })
 })
 
@@ -261,7 +333,7 @@ invoices.delete('/invoices/:id/payments/:paymentId', (c) => {
 
 const profileBody = z.object({
   from: party,
-  prefix: z.string().max(20).default('INV-'),
+  prefix: z.string().max(20).default("INV-"),
   template: z.enum(TEMPLATES),
   theme: z.enum(THEMES),
   currency: currencyCode,
@@ -272,74 +344,106 @@ const profileBody = z.object({
   terms: z.string().max(2000),
 })
 
-invoices.put('/invoice-profile', async (c) => {
+invoices.put("/invoice-profile", async (c) => {
   const body = profileBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: 'Check your details.' }, 400)
-  saveProfile(c.var.user.id, { ...body.data, currency: body.data.currency.toUpperCase() })
-  return c.json({ profile: loadProfile(c.var.user.id), nextNumber: nextNumber(c.var.user.id) })
+  if (!body.success) return c.json({ error: "Check your details." }, 400)
+  saveProfile(c.var.user.id, {
+    ...body.data,
+    currency: body.data.currency.toUpperCase(),
+  })
+  return c.json({
+    profile: loadProfile(c.var.user.id),
+    nextNumber: nextNumber(c.var.user.id),
+  })
 })
 
 const methodBody = z.object({
   kind: z.enum(PAYMENT_METHOD_KINDS),
   label: z.string().trim().min(1).max(60),
-  fields: z.record(z.string().regex(/^[a-zA-Z]{1,24}$/), z.string().trim().max(500)).refine((f) => Object.keys(f).length <= 16),
+  fields: z
+    .record(z.string().regex(/^[a-zA-Z]{1,24}$/), z.string().trim().max(500))
+    .refine((f) => Object.keys(f).length <= 16),
   isDefault: z.boolean().default(false),
 })
 
 function checkMethod(userId: string, m: z.infer<typeof methodBody>) {
-  if (m.kind === 'paypal-checkout') {
-    const ok = paypalConnections(userId).some((p) => p.id === m.fields.connectionId)
-    if (!ok) return 'Pick one of your connected PayPal accounts.'
+  if (m.kind === "paypal-checkout") {
+    const ok = paypalConnections(userId).some(
+      (p) => p.id === m.fields.connectionId
+    )
+    if (!ok) return "Pick one of your connected PayPal accounts."
   }
-  if (m.kind === 'link' && !/^https:\/\//i.test(m.fields.url ?? '')) return 'Payment links have to start with https://'
+  if (m.kind === "link" && !/^https:\/\//i.test(m.fields.url ?? ""))
+    return "Payment links have to start with https://"
   return null
 }
 
-invoices.post('/payment-methods', async (c) => {
+invoices.post("/payment-methods", async (c) => {
   const body = methodBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: 'Check the payment method.' }, 400)
+  if (!body.success) return c.json({ error: "Check the payment method." }, 400)
   const userId = c.var.user.id
   const problem = checkMethod(userId, body.data)
   if (problem) return c.json({ error: problem }, 400)
   const id = randomUUID()
   const d = body.data
-  db.prepare(`INSERT INTO payment_method (id, user_id, kind, label, fields_json, is_default) VALUES (?, ?, ?, ?, ?, ?)`).run(
+  db.prepare(
+    `INSERT INTO payment_method (id, user_id, kind, label, fields_json, is_default) VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(
     id,
     userId,
     d.kind,
     d.label,
     JSON.stringify(d.fields),
-    d.isDefault ? 1 : 0,
+    d.isDefault ? 1 : 0
   )
-  return c.json({ method: loadPaymentMethods(userId).find((m) => m.id === id), methods: loadPaymentMethods(userId) })
+  return c.json({
+    method: loadPaymentMethods(userId).find((m) => m.id === id),
+    methods: loadPaymentMethods(userId),
+  })
 })
 
-invoices.put('/payment-methods/:id', async (c) => {
+invoices.put("/payment-methods/:id", async (c) => {
   const body = methodBody.safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: 'Check the payment method.' }, 400)
+  if (!body.success) return c.json({ error: "Check the payment method." }, 400)
   const userId = c.var.user.id
   const problem = checkMethod(userId, body.data)
   if (problem) return c.json({ error: problem }, 400)
   const d = body.data
   const r = db
-    .prepare(`UPDATE payment_method SET kind = ?, label = ?, fields_json = ?, is_default = ? WHERE id = ? AND user_id = ?`)
-    .run(d.kind, d.label, JSON.stringify(d.fields), d.isDefault ? 1 : 0, c.req.param('id'), userId)
-  if (!r.changes) return c.json({ error: 'Not found' }, 404)
+    .prepare(
+      `UPDATE payment_method SET kind = ?, label = ?, fields_json = ?, is_default = ? WHERE id = ? AND user_id = ?`
+    )
+    .run(
+      d.kind,
+      d.label,
+      JSON.stringify(d.fields),
+      d.isDefault ? 1 : 0,
+      c.req.param("id"),
+      userId
+    )
+  if (!r.changes) return c.json({ error: "Not found" }, 404)
   return c.json({ methods: loadPaymentMethods(userId) })
 })
 
-invoices.delete('/payment-methods/:id', (c) => {
+invoices.delete("/payment-methods/:id", (c) => {
   const userId = c.var.user.id
-  const r = db.prepare(`DELETE FROM payment_method WHERE id = ? AND user_id = ?`).run(c.req.param('id'), userId)
-  return r.changes ? c.json({ methods: loadPaymentMethods(userId) }) : c.json({ error: 'Not found' }, 404)
+  const r = db
+    .prepare(`DELETE FROM payment_method WHERE id = ? AND user_id = ?`)
+    .run(c.req.param("id"), userId)
+  return r.changes
+    ? c.json({ methods: loadPaymentMethods(userId) })
+    : c.json({ error: "Not found" }, 404)
 })
 
 function describe(error: z.ZodError) {
   const issue = error.issues[0]
-  const path = issue?.path.join('.') ?? ''
-  if (path.startsWith('items')) return issue?.code === 'too_small' && path === 'items' ? 'Add at least one line item.' : 'Every line item needs a description.'
-  if (path === 'number') return 'Give the invoice a number.'
-  return 'Check the invoice details.'
+  const path = issue?.path.join(".") ?? ""
+  if (path.startsWith("items"))
+    return issue?.code === "too_small" && path === "items"
+      ? "Add at least one line item."
+      : "Every line item needs a description."
+  if (path === "number") return "Give the invoice a number."
+  return "Check the invoice details."
 }
 
 // ---------------------------------------------------------------- public (share link, no sign-in)
@@ -364,33 +468,60 @@ function publicView(invoice: InvoiceView, methods: PaymentMethod[]) {
     .map((id) => methods.find((m) => m.id === id))
     .filter((m): m is PaymentMethod => !!m)
     // The PayPal checkout needs a live connection; its id stays private.
-    .filter((m) => m.kind !== 'paypal-checkout' || hasPaypal(m.fields.connectionId))
-    .map((m) => ({ id: m.id, kind: m.kind, label: m.label, fields: m.kind === 'paypal-checkout' ? {} : m.fields }))
+    .filter(
+      (m) => m.kind !== "paypal-checkout" || hasPaypal(m.fields.connectionId)
+    )
+    .map((m) => ({
+      id: m.id,
+      kind: m.kind,
+      label: m.label,
+      fields: m.kind === "paypal-checkout" ? {} : m.fields,
+    }))
   return { ...rest, methods: offered }
 }
 
 const hasPaypal = (connectionId: string | undefined) =>
   !!connectionId &&
-  !!db.prepare(`SELECT 1 FROM bank_connection WHERE id = ? AND institution = 'paypal' AND credentials_enc IS NOT NULL`).get(connectionId)
+  !!db
+    .prepare(
+      `SELECT 1 FROM bank_connection WHERE id = ? AND institution = 'paypal' AND credentials_enc IS NOT NULL`
+    )
+    .get(connectionId)
 
 function checkoutConnection(userId: string, invoice: InvoiceView) {
-  const method = loadPaymentMethods(userId).find((m) => m.kind === 'paypal-checkout' && invoice.methodIds.includes(m.id))
+  const method = loadPaymentMethods(userId).find(
+    (m) => m.kind === "paypal-checkout" && invoice.methodIds.includes(m.id)
+  )
   const id = method?.fields.connectionId
-  const owned = id && db.prepare(`SELECT 1 FROM bank_connection WHERE id = ? AND user_id = ? AND institution = 'paypal'`).get(id, userId)
+  const owned =
+    id &&
+    db
+      .prepare(
+        `SELECT 1 FROM bank_connection WHERE id = ? AND user_id = ? AND institution = 'paypal'`
+      )
+      .get(id, userId)
   return owned ? id : null
 }
 
-publicInvoices.get('/invoices/:token', async (c) => {
-  const found = loadByToken(c.req.param('token'))
-  if (!found) return c.json({ error: 'This invoice link is not valid any more.' }, 404)
+publicInvoices.get("/invoices/:token", async (c) => {
+  const found = loadByToken(c.req.param("token"))
+  if (!found)
+    return c.json({ error: "This invoice link is not valid any more." }, 404)
   // Note the first time someone other than you opens it.
   if (!found.invoice.viewedAt) {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers }).catch(() => null)
-    if (session?.user.id !== found.userId) db.prepare(`UPDATE invoice SET viewed_at = datetime('now') WHERE id = ?`).run(found.invoice.id)
+    const session = await auth.api
+      .getSession({ headers: c.req.raw.headers })
+      .catch(() => null)
+    if (session?.user.id !== found.userId)
+      db.prepare(
+        `UPDATE invoice SET viewed_at = datetime('now') WHERE id = ?`
+      ).run(found.invoice.id)
   }
-  c.header('Cache-Control', 'no-store')
-  c.header('X-Robots-Tag', 'noindex')
-  return c.json({ invoice: publicView(found.invoice, loadPaymentMethods(found.userId)) })
+  c.header("Cache-Control", "no-store")
+  c.header("X-Robots-Tag", "noindex")
+  return c.json({
+    invoice: publicView(found.invoice, loadPaymentMethods(found.userId)),
+  })
 })
 
 /** A few checkout attempts per link per minute is plenty for a person. */
@@ -401,26 +532,39 @@ function limited(key: string) {
   recent.push(now)
   attempts.set(key, recent)
   // Drop only idle entries; clearing everything would let a burst of requests reset every link's count.
-  if (attempts.size > 5000) for (const [k, times] of attempts) if (times.every((t) => now - t >= 60_000)) attempts.delete(k)
+  if (attempts.size > 5000)
+    for (const [k, times] of attempts)
+      if (times.every((t) => now - t >= 60_000)) attempts.delete(k)
   return recent.length > 10
 }
 
-publicInvoices.post('/invoices/:token/paypal', async (c) => {
-  const token = c.req.param('token')
+publicInvoices.post("/invoices/:token/paypal", async (c) => {
+  const token = c.req.param("token")
   // Only real links are counted, so made-up tokens can't fill the table.
   const found = loadByToken(token)
-  if (!found) return c.json({ error: 'This invoice link is not valid any more.' }, 404)
-  if (limited(token)) return c.json({ error: 'Too many attempts. Wait a minute and try again.' }, 429)
+  if (!found)
+    return c.json({ error: "This invoice link is not valid any more." }, 404)
+  if (limited(token))
+    return c.json(
+      { error: "Too many attempts. Wait a minute and try again." },
+      429
+    )
   const { invoice, userId } = found
-  if (invoice.status === 'void') return c.json({ error: 'This invoice was cancelled.' }, 400)
-  if (invoice.balance <= 0) return c.json({ error: 'This invoice is already paid.' }, 400)
+  if (invoice.status === "void")
+    return c.json({ error: "This invoice was cancelled." }, 400)
+  if (invoice.balance <= 0)
+    return c.json({ error: "This invoice is already paid." }, 400)
   const connectionId = checkoutConnection(userId, invoice)
-  if (!connectionId) return c.json({ error: 'Paying by PayPal is not available on this invoice.' }, 400)
+  if (!connectionId)
+    return c.json(
+      { error: "Paying by PayPal is not available on this invoice." },
+      400
+    )
   const page = `${env.publicUrl}/i/${encodeURIComponent(token)}`
   try {
     const { approveUrl } = await createOrder(connectionId, {
       invoiceId: invoice.id,
-      description: `Invoice ${invoice.number}${invoice.from.name ? ` from ${invoice.from.name}` : ''}`,
+      description: `Invoice ${invoice.number}${invoice.from.name ? ` from ${invoice.from.name}` : ""}`,
       currency: invoice.currency,
       amount: invoice.balance,
       brand: invoice.from.name,
@@ -429,30 +573,65 @@ publicInvoices.post('/invoices/:token/paypal', async (c) => {
     })
     return c.json({ url: approveUrl })
   } catch (e) {
-    console.error('PayPal order failed', e)
-    return c.json({ error: e instanceof PaypalApiError ? `PayPal: ${e.message}` : 'Could not start the PayPal checkout.' }, 502)
+    console.error("PayPal order failed", e)
+    return c.json(
+      {
+        error:
+          e instanceof PaypalApiError
+            ? `PayPal: ${e.message}`
+            : "Could not start the PayPal checkout.",
+      },
+      502
+    )
   }
 })
 
 /** The payer is back from PayPal (`?token=<order id>`): take the payment. */
-publicInvoices.post('/invoices/:token/paypal/capture', async (c) => {
-  const token = c.req.param('token')
-  const body = z.object({ orderId: z.string().regex(/^[A-Z0-9]{5,40}$/) }).safeParse(await c.req.json().catch(() => ({})))
-  if (!body.success) return c.json({ error: 'Invalid request' }, 400)
+publicInvoices.post("/invoices/:token/paypal/capture", async (c) => {
+  const token = c.req.param("token")
+  const body = z
+    .object({ orderId: z.string().regex(/^[A-Z0-9]{5,40}$/) })
+    .safeParse(await c.req.json().catch(() => ({})))
+  if (!body.success) return c.json({ error: "Invalid request" }, 400)
   const found = loadByToken(token)
-  if (!found) return c.json({ error: 'This invoice link is not valid any more.' }, 404)
-  if (limited(token)) return c.json({ error: 'Too many attempts. Wait a minute and try again.' }, 429)
+  if (!found)
+    return c.json({ error: "This invoice link is not valid any more." }, 404)
+  if (limited(token))
+    return c.json(
+      { error: "Too many attempts. Wait a minute and try again." },
+      429
+    )
   const connectionId = checkoutConnection(found.userId, found.invoice)
-  if (!connectionId) return c.json({ error: 'Paying by PayPal is not available on this invoice.' }, 400)
+  if (!connectionId)
+    return c.json(
+      { error: "Paying by PayPal is not available on this invoice." },
+      400
+    )
   try {
-    const { capture, customId } = await captureOrder(connectionId, body.data.orderId)
+    const { capture, customId } = await captureOrder(
+      connectionId,
+      body.data.orderId
+    )
     // Only an order made for this very invoice counts toward it.
-    if (!capture || customId !== found.invoice.id) return c.json({ error: 'That PayPal payment did not go through.' }, 400)
+    if (!capture || customId !== found.invoice.id)
+      return c.json({ error: "That PayPal payment did not go through." }, 400)
     recordCapture({ id: connectionId, userId: found.userId }, capture, customId)
   } catch (e) {
-    console.error('PayPal capture failed', e)
-    return c.json({ error: e instanceof PaypalApiError ? `PayPal: ${e.message}` : 'Could not finish the PayPal payment.' }, 502)
+    console.error("PayPal capture failed", e)
+    return c.json(
+      {
+        error:
+          e instanceof PaypalApiError
+            ? `PayPal: ${e.message}`
+            : "Could not finish the PayPal payment.",
+      },
+      502
+    )
   }
   const fresh = loadByToken(token)
-  return c.json({ invoice: fresh ? publicView(fresh.invoice, loadPaymentMethods(found.userId)) : null })
+  return c.json({
+    invoice: fresh
+      ? publicView(fresh.invoice, loadPaymentMethods(found.userId))
+      : null,
+  })
 })

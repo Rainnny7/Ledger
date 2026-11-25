@@ -1,7 +1,14 @@
-import { authClient } from './auth-client'
-import { DEMO_READ_ONLY, demoMode } from './demo'
+import { authClient } from "./auth-client"
+import { DEMO_READ_ONLY, demoMode } from "./demo"
 
-export type AccountType = 'chequing' | 'savings' | 'credit' | 'loan' | 'investment' | 'wallet' | 'other'
+export type AccountType =
+  | "chequing"
+  | "savings"
+  | "credit"
+  | "loan"
+  | "investment"
+  | "wallet"
+  | "other"
 
 export interface Connection {
   id: string
@@ -18,6 +25,8 @@ export interface Connection {
   lastEventAt?: string | null
   /** When the background refresh will next sync it on its own; null when it won't. */
   nextSyncAt?: string | null
+  /** Auto-refresh hit a two-factor prompt and is paused until you sign in yourself. */
+  needsSignIn?: boolean
 }
 
 export interface Account {
@@ -53,8 +62,14 @@ export interface AccountDetails {
   limits: AccountLimit[]
 }
 
-import type { Category, Cycle, TaxTag } from '../../shared/categories.ts'
-export type { Category, Cycle, CycleUnit, PresetCycle, TaxTag } from '../../shared/categories.ts'
+import type { Category, Cycle, TaxTag } from "../../shared/categories.ts"
+export type {
+  Category,
+  Cycle,
+  CycleUnit,
+  PresetCycle,
+  TaxTag,
+} from "../../shared/categories.ts"
 
 export interface Transaction {
   id: string
@@ -70,11 +85,11 @@ export interface Transaction {
   merchant: string
   merchantKey: string
   category: Category
-  categorySource: 'auto' | 'rule' | 'manual'
+  categorySource: "auto" | "rule" | "manual"
   /** Business or personal, for the tax report; null while untagged. */
   taxTag: TaxTag | null
   /** manual: this transaction · rule: every one from the merchant · auto: a payment for your bill or invoice. */
-  taxTagSource: 'auto' | 'rule' | 'manual' | null
+  taxTagSource: "auto" | "rule" | "manual" | null
 }
 
 /** A monthly spending limit for one category, in the user's home currency. */
@@ -85,10 +100,9 @@ export interface Budget {
   updatedAt: string
 }
 
-
-export type ShareKind = 'goal' | 'subscription' | 'job'
-export type SharePermission = 'view' | 'edit'
-export type ShareRole = 'owner' | SharePermission
+export type ShareKind = "goal" | "subscription" | "job"
+export type SharePermission = "view" | "edit"
+export type ShareRole = "owner" | SharePermission
 
 export interface Share {
   id: string
@@ -132,7 +146,14 @@ export interface Subscription extends Shared {
   lastCharge: { date: string; amount: number } | null
   /** accountId is null on someone else's subscription. */
   /** Charges counted toward it, newest first; `linked` ones were counted by hand. */
-  payments: { id: string; date: string; amount: number; accountId: string | null; pending: boolean; linked: boolean }[]
+  payments: {
+    id: string
+    date: string
+    amount: number
+    accountId: string | null
+    pending: boolean
+    linked: boolean
+  }[]
 }
 
 export interface RecurringSuggestion {
@@ -162,8 +183,14 @@ export type SubscriptionInput = {
   active?: boolean
 }
 
-export type GoalKind = 'save' | 'payoff'
-export type GoalStatus = 'done' | 'ahead' | 'on-track' | 'behind' | 'overdue' | 'no-date'
+export type GoalKind = "save" | "payoff"
+export type GoalStatus =
+  | "done"
+  | "ahead"
+  | "on-track"
+  | "behind"
+  | "overdue"
+  | "no-date"
 
 export interface GoalPayment {
   id: string
@@ -216,9 +243,14 @@ export type GoalInput = {
   startingAmount?: number
 }
 
-export type GoalPaymentInput = { amount: number; date: string; note?: string | null; transactionId?: string | null }
+export type GoalPaymentInput = {
+  amount: number
+  date: string
+  note?: string | null
+  transactionId?: string | null
+}
 
-export type InvoiceStatus = 'unpaid' | 'partial' | 'paid'
+export type InvoiceStatus = "unpaid" | "partial" | "paid"
 
 export interface WorkPayment {
   id: string
@@ -333,7 +365,7 @@ export interface FxRates {
   rates: Record<string, number>
   fetchedAt: string | null
   /** 'live' for current market rates, 'ecb' for the ECB's once-a-day fixing. */
-  source: 'live' | 'ecb'
+  source: "live" | "ecb"
 }
 
 // ---------------------------------------------------------------- invoices
@@ -352,24 +384,24 @@ export interface InvoiceItem {
   unitPrice: number
 }
 
-export type InvoiceDocStatus = 'draft' | 'sent' | 'void'
-export type InvoicePayState = 'unpaid' | 'partial' | 'paid'
+export type InvoiceDocStatus = "draft" | "sent" | "void"
+export type InvoicePayState = "unpaid" | "partial" | "paid"
 
 export type PaymentMethodKind =
-  | 'etransfer'
-  | 'paypal'
-  | 'paypal-checkout'
-  | 'crypto'
-  | 'bank'
-  | 'wise'
-  | 'venmo'
-  | 'cashapp'
-  | 'zelle'
-  | 'revolut'
-  | 'link'
-  | 'cheque'
-  | 'cash'
-  | 'other'
+  | "etransfer"
+  | "paypal"
+  | "paypal-checkout"
+  | "crypto"
+  | "bank"
+  | "wise"
+  | "venmo"
+  | "cashapp"
+  | "zelle"
+  | "revolut"
+  | "link"
+  | "cheque"
+  | "cash"
+  | "other"
 
 export interface PaymentMethod {
   id: string
@@ -379,10 +411,10 @@ export interface PaymentMethod {
   isDefault: boolean
 }
 
-export type PaymentMethodInput = Omit<PaymentMethod, 'id'>
+export type PaymentMethodInput = Omit<PaymentMethod, "id">
 
 /** A payment method as the person you bill sees it. */
-export type PublicPaymentMethod = Omit<PaymentMethod, 'isDefault'>
+export type PublicPaymentMethod = Omit<PaymentMethod, "isDefault">
 
 export interface InvoicePayment {
   id: string
@@ -390,7 +422,7 @@ export interface InvoicePayment {
   date: string
   method: string | null
   note: string | null
-  source: 'manual' | 'work' | 'paypal'
+  source: "manual" | "work" | "paypal"
   transactionId: string | null
 }
 
@@ -435,7 +467,8 @@ export interface Invoice extends InvoiceInput, InvoiceTotalsView {
 }
 
 /** The share-link view: no internal ids, payment methods resolved. */
-export type PublicInvoice = Omit<InvoiceInput, 'methodIds' | 'workInvoiceId'> & InvoiceTotalsView & { methods: PublicPaymentMethod[] }
+export type PublicInvoice = Omit<InvoiceInput, "methodIds" | "workInvoiceId"> &
+  InvoiceTotalsView & { methods: PublicPaymentMethod[] }
 
 export interface InvoiceProfile {
   from: InvoiceParty
@@ -466,7 +499,13 @@ export interface InvoicesData {
   paypal: PaypalAppConnection[]
 }
 
-export type InvoicePaymentInput = { amount: number; date: string; method?: string | null; note?: string | null; transactionId?: string | null }
+export type InvoicePaymentInput = {
+  amount: number
+  date: string
+  method?: string | null
+  note?: string | null
+  transactionId?: string | null
+}
 
 export interface MfaOption {
   id: string
@@ -474,13 +513,13 @@ export interface MfaOption {
 }
 
 export type ConnectStep =
-  | { type: 'success' }
-  | { type: 'syncing'; message: string }
-  | { type: 'done'; connectionId: string }
-  | { type: 'mfa_select'; prompt: string; options: MfaOption[] }
-  | { type: 'mfa_code'; prompt: string }
-  | { type: 'mfa_push'; prompt: string }
-  | { type: 'error'; message: string }
+  | { type: "success" }
+  | { type: "syncing"; message: string }
+  | { type: "done"; connectionId: string }
+  | { type: "mfa_select"; prompt: string; options: MfaOption[] }
+  | { type: "mfa_code"; prompt: string }
+  | { type: "mfa_push"; prompt: string }
+  | { type: "error"; message: string }
 
 export interface SessionView {
   sessionId: string
@@ -490,7 +529,7 @@ export interface SessionView {
 export interface StatementImport {
   files: {
     name: string
-    status: 'imported' | 'duplicate' | 'error'
+    status: "imported" | "duplicate" | "error"
     message?: string
     accountNumber?: string
     from?: string
@@ -519,70 +558,113 @@ export class ApiError extends Error {
 }
 
 /** Fired after anything is created, changed or deleted; the query cache refetches what's on screen. */
-export const DATA_CHANGED = 'ledger:data-changed'
+export const DATA_CHANGED = "ledger:data-changed"
 /** Fired with the saved transaction after a single-row edit, so cached lists can show it right away. */
-export const TRANSACTION_UPDATED = 'ledger:transaction-updated'
+export const TRANSACTION_UPDATED = "ledger:transaction-updated"
 /** `path` is the API path that changed (e.g. `/goals/abc`); without one, everything is refetched. */
 export function notifyDataChanged(path?: string) {
-  window.dispatchEvent(new CustomEvent<string | undefined>(DATA_CHANGED, { detail: path }))
+  window.dispatchEvent(
+    new CustomEvent<string | undefined>(DATA_CHANGED, { detail: path })
+  )
 }
 
 const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
 
 /** `notify: false` leaves telling the cache what changed to the caller. */
-async function request<T>(path: string, init: RequestInit & { notify?: boolean } = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  init: RequestInit & { notify?: boolean } = {}
+): Promise<T> {
   // Demo mode lets you open every form, but nothing is ever written: refuse here, before the
   // request goes out (the server refuses it too). Callers show the message like any other error.
-  if (demoMode && init.method && init.method !== 'GET') throw new ApiError(403, DEMO_READ_ONLY)
+  if (demoMode && init.method && init.method !== "GET")
+    throw new ApiError(403, DEMO_READ_ONLY)
   const res = await fetch(`/api/banks${path}`, {
     ...init,
-    credentials: 'include',
+    credentials: "include",
     // Multipart bodies need the browser's own Content-Type (it carries the boundary).
     headers: {
-      ...(init.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-      ...(demoMode ? { 'X-Ledger-Demo': '1' } : {}),
+      ...(init.body instanceof FormData
+        ? {}
+        : { "Content-Type": "application/json" }),
+      ...(demoMode ? { "X-Ledger-Demo": "1" } : {}),
       // Due dates and deadlines are worked out for "today" where you are.
-      'X-Timezone': TIME_ZONE,
+      "X-Timezone": TIME_ZONE,
       ...init.headers,
     },
   })
   const data = await res.json().catch(() => ({}))
   // Signed out elsewhere or the session ran out: re-check it, and the app falls back to the sign-in page.
-  if (res.status === 401) authClient.$store.notify('$sessionSignal')
-  if (!res.ok) throw new ApiError(res.status, (data as { error?: string }).error ?? res.statusText)
-  if (init.method && init.method !== 'GET' && init.notify !== false) notifyDataChanged(path)
+  if (res.status === 401) authClient.$store.notify("$sessionSignal")
+  if (!res.ok)
+    throw new ApiError(
+      res.status,
+      (data as { error?: string }).error ?? res.statusText
+    )
+  if (init.method && init.method !== "GET" && init.notify !== false)
+    notifyDataChanged(path)
   return data as T
 }
 
 export const api = {
-  fx: () => request<FxRates>('/fx'),
-  overview: () => request<{ connections: Connection[]; accounts: Account[] }>('/connections'),
-  account: (id: string) => request<{ account: Account; transactions: Transaction[] }>(`/accounts/${id}`),
+  fx: () => request<FxRates>("/fx"),
+  overview: () =>
+    request<{ connections: Connection[]; accounts: Account[] }>("/connections"),
+  account: (id: string) =>
+    request<{ account: Account; transactions: Transaction[] }>(
+      `/accounts/${id}`
+    ),
   accountDetails: (id: string) =>
-    request<{ details: AccountDetails | null; updatedAt: string | null }>(`/accounts/${id}/details`),
-  deleteConnection: (id: string) => request<{ ok: true }>(`/connections/${id}`, { method: 'DELETE' }),
-  forgetCredentials: (id: string) => request<{ ok: true }>(`/connections/${id}/forget-credentials`, { method: 'POST' }),
+    request<{ details: AccountDetails | null; updatedAt: string | null }>(
+      `/accounts/${id}/details`
+    ),
+  deleteConnection: (id: string) =>
+    request<{ ok: true }>(`/connections/${id}`, { method: "DELETE" }),
+  forgetCredentials: (id: string) =>
+    request<{ ok: true }>(`/connections/${id}/forget-credentials`, {
+      method: "POST",
+    }),
 
   connect: (
     provider: string,
-    body: { username?: string; password?: string; remember?: boolean; connectionId?: string; full?: boolean },
-  ) => request<SessionView>(`/connect/${provider}`, { method: 'POST', body: JSON.stringify(body) }),
+    body: {
+      username?: string
+      password?: string
+      remember?: boolean
+      connectionId?: string
+      full?: boolean
+    }
+  ) =>
+    request<SessionView>(`/connect/${provider}`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   pollSession: (id: string) => request<SessionView>(`/connect/sessions/${id}`),
   chooseMfa: (id: string, optionId: string) =>
-    request<SessionView>(`/connect/sessions/${id}/mfa`, { method: 'POST', body: JSON.stringify({ optionId }) }),
+    request<SessionView>(`/connect/sessions/${id}/mfa`, {
+      method: "POST",
+      body: JSON.stringify({ optionId }),
+    }),
   submitCode: (id: string, code: string) =>
-    request<SessionView>(`/connect/sessions/${id}/code`, { method: 'POST', body: JSON.stringify({ code }) }),
-  cancelSession: (id: string) => request<{ ok: true }>(`/connect/sessions/${id}`, { method: 'DELETE' }),
+    request<SessionView>(`/connect/sessions/${id}/code`, {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
+  cancelSession: (id: string) =>
+    request<{ ok: true }>(`/connect/sessions/${id}`, { method: "DELETE" }),
 
   /** TD statement PDFs or .zip archives of them. */
   importStatements: (files: File[], connectionId?: string) => {
     const body = new FormData()
-    for (const f of files) body.append('files', f)
-    if (connectionId) body.append('connectionId', connectionId)
-    return request<StatementImport>('/statements', { method: 'POST', body })
+    for (const f of files) body.append("files", f)
+    if (connectionId) body.append("connectionId", connectionId)
+    return request<StatementImport>("/statements", { method: "POST", body })
   },
 
-  transactions: (from?: string) => request<{ transactions: Transaction[] }>(`/transactions${from ? `?from=${from}` : ''}`),
+  transactions: (from?: string) =>
+    request<{ transactions: Transaction[] }>(
+      `/transactions${from ? `?from=${from}` : ""}`
+    ),
   updateTransaction: async (
     id: string,
     body: {
@@ -591,140 +673,296 @@ export const api = {
       note?: string | null
       taxTag?: TaxTag | null
       applyTaxToMerchant?: boolean
-    },
+    }
   ) => {
-    const result = await request<{ transaction: Transaction }>(`/transactions/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-      notify: false,
-    })
+    const result = await request<{ transaction: Transaction }>(
+      `/transactions/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(body),
+        notify: false,
+      }
+    )
     // One row changed: the cached lists are patched in place. A merchant-wide rule changes many rows.
     const merchantWide =
-      (body.category !== undefined && body.applyToMerchant === true) || (body.taxTag !== undefined && body.applyTaxToMerchant === true)
-    window.dispatchEvent(new CustomEvent(TRANSACTION_UPDATED, { detail: result.transaction }))
-    notifyDataChanged(merchantWide ? '/transactions/merchant' : `/transactions/${id}`)
+      (body.category !== undefined && body.applyToMerchant === true) ||
+      (body.taxTag !== undefined && body.applyTaxToMerchant === true)
+    window.dispatchEvent(
+      new CustomEvent(TRANSACTION_UPDATED, { detail: result.transaction })
+    )
+    notifyDataChanged(
+      merchantWide ? "/transactions/merchant" : `/transactions/${id}`
+    )
     return result
   },
   /** Files several transactions under one category in a single request. */
-  updateTransactions: (ids: string[], change: { category: Category | null } | { taxTag: TaxTag | null }) =>
-    request<{ updated: number }>('/transactions/bulk', {
-      method: 'PATCH',
+  updateTransactions: (
+    ids: string[],
+    change: { category: Category | null } | { taxTag: TaxTag | null }
+  ) =>
+    request<{ updated: number }>("/transactions/bulk", {
+      method: "PATCH",
       body: JSON.stringify({ ids, ...change }),
       notify: false,
     }).then((r) => {
-      notifyDataChanged('/transactions/merchant')
+      notifyDataChanged("/transactions/merchant")
       return r
     }),
 
-  budgets: () => request<{ budgets: Budget[] }>('/budgets'),
+  budgets: () => request<{ budgets: Budget[] }>("/budgets"),
   setBudget: (category: Category, amount: number, currency: string) =>
-    request<{ ok: true }>(`/budgets/${category}`, { method: 'PUT', body: JSON.stringify({ amount, currency }) }),
-  deleteBudget: (category: Category) => request<{ ok: true }>(`/budgets/${category}`, { method: 'DELETE' }),
+    request<{ ok: true }>(`/budgets/${category}`, {
+      method: "PUT",
+      body: JSON.stringify({ amount, currency }),
+    }),
+  deleteBudget: (category: Category) =>
+    request<{ ok: true }>(`/budgets/${category}`, { method: "DELETE" }),
 
-  subscriptions: () => request<{ subscriptions: Subscription[]; suggestions: RecurringSuggestion[] }>('/subscriptions'),
+  subscriptions: () =>
+    request<{
+      subscriptions: Subscription[]
+      suggestions: RecurringSuggestion[]
+    }>("/subscriptions"),
   createSubscription: (body: SubscriptionInput) =>
-    request<{ id: string }>('/subscriptions', { method: 'POST', body: JSON.stringify(body) }),
+    request<{ id: string }>("/subscriptions", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   updateSubscription: (id: string, body: Partial<SubscriptionInput>) =>
-    request<{ ok: true }>(`/subscriptions/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-  deleteSubscription: (id: string) => request<{ ok: true }>(`/subscriptions/${id}`, { method: 'DELETE' }),
+    request<{ ok: true }>(`/subscriptions/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteSubscription: (id: string) =>
+    request<{ ok: true }>(`/subscriptions/${id}`, { method: "DELETE" }),
   /** Count a transaction toward a subscription, or (null) stop counting it by hand. */
-  linkSubscriptionCharge: (transactionId: string, subscriptionId: string | null) =>
-    request<{ ok: true }>(`/subscriptions/charges/${transactionId}`, { method: 'PUT', body: JSON.stringify({ subscriptionId }) }),
+  linkSubscriptionCharge: (
+    transactionId: string,
+    subscriptionId: string | null
+  ) =>
+    request<{ ok: true }>(`/subscriptions/charges/${transactionId}`, {
+      method: "PUT",
+      body: JSON.stringify({ subscriptionId }),
+    }),
   dismissSuggestion: (id: string) =>
-    request<{ ok: true }>('/subscriptions/dismiss', { method: 'POST', body: JSON.stringify({ id }) }),
+    request<{ ok: true }>("/subscriptions/dismiss", {
+      method: "POST",
+      body: JSON.stringify({ id }),
+    }),
 
-  goals: () => request<{ goals: Goal[] }>('/goals'),
-  createGoal: (body: GoalInput) => request<{ goal: Goal }>('/goals', { method: 'POST', body: JSON.stringify(body) }),
-  updateGoal: (id: string, body: Partial<Omit<GoalInput, 'startingAmount'>>) =>
-    request<{ goal: Goal }>(`/goals/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-  deleteGoal: (id: string) => request<{ ok: true }>(`/goals/${id}`, { method: 'DELETE' }),
+  goals: () => request<{ goals: Goal[] }>("/goals"),
+  createGoal: (body: GoalInput) =>
+    request<{ goal: Goal }>("/goals", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateGoal: (id: string, body: Partial<Omit<GoalInput, "startingAmount">>) =>
+    request<{ goal: Goal }>(`/goals/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteGoal: (id: string) =>
+    request<{ ok: true }>(`/goals/${id}`, { method: "DELETE" }),
   addGoalPayment: (id: string, body: GoalPaymentInput) =>
-    request<{ goal: Goal }>(`/goals/${id}/payments`, { method: 'POST', body: JSON.stringify(body) }),
+    request<{ goal: Goal }>(`/goals/${id}/payments`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   deleteGoalPayment: (id: string, paymentId: string) =>
-    request<{ goal: Goal }>(`/goals/${id}/payments/${paymentId}`, { method: 'DELETE' }),
+    request<{ goal: Goal }>(`/goals/${id}/payments/${paymentId}`, {
+      method: "DELETE",
+    }),
 
-  work: () => request<{ jobs: WorkJob[] }>('/work'),
-  createWorkJob: (body: WorkJobInput) => request<{ job: WorkJob }>('/work/jobs', { method: 'POST', body: JSON.stringify(body) }),
+  work: () => request<{ jobs: WorkJob[] }>("/work"),
+  createWorkJob: (body: WorkJobInput) =>
+    request<{ job: WorkJob }>("/work/jobs", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   updateWorkJob: (id: string, body: Partial<WorkJobInput>) =>
-    request<{ job: WorkJob }>(`/work/jobs/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-  deleteWorkJob: (id: string) => request<{ ok: true }>(`/work/jobs/${id}`, { method: 'DELETE' }),
-  addWorkEntry: (jobId: string, body: { date: string; hours: number; note?: string | null }) =>
-    request<{ job: WorkJob }>(`/work/jobs/${jobId}/entries`, { method: 'POST', body: JSON.stringify(body) }),
-  deleteWorkEntry: (id: string) => request<{ job: WorkJob }>(`/work/entries/${id}`, { method: 'DELETE' }),
+    request<{ job: WorkJob }>(`/work/jobs/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteWorkJob: (id: string) =>
+    request<{ ok: true }>(`/work/jobs/${id}`, { method: "DELETE" }),
+  addWorkEntry: (
+    jobId: string,
+    body: { date: string; hours: number; note?: string | null }
+  ) =>
+    request<{ job: WorkJob }>(`/work/jobs/${jobId}/entries`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  deleteWorkEntry: (id: string) =>
+    request<{ job: WorkJob }>(`/work/entries/${id}`, { method: "DELETE" }),
   createWorkInvoice: (jobId: string, body: WorkInvoiceInput) =>
-    request<{ job: WorkJob }>(`/work/jobs/${jobId}/invoices`, { method: 'POST', body: JSON.stringify(body) }),
-  updateWorkInvoice: (id: string, body: Partial<Omit<WorkInvoiceInput, 'entryIds'>>) =>
-    request<{ job: WorkJob }>(`/work/invoices/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-  deleteWorkInvoice: (id: string) => request<{ job: WorkJob }>(`/work/invoices/${id}`, { method: 'DELETE' }),
+    request<{ job: WorkJob }>(`/work/jobs/${jobId}/invoices`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateWorkInvoice: (
+    id: string,
+    body: Partial<Omit<WorkInvoiceInput, "entryIds">>
+  ) =>
+    request<{ job: WorkJob }>(`/work/invoices/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteWorkInvoice: (id: string) =>
+    request<{ job: WorkJob }>(`/work/invoices/${id}`, { method: "DELETE" }),
   addWorkPayment: (invoiceId: string, body: WorkPaymentInput) =>
-    request<{ job: WorkJob }>(`/work/invoices/${invoiceId}/payments`, { method: 'POST', body: JSON.stringify(body) }),
-  deleteWorkPayment: (id: string) => request<{ job: WorkJob }>(`/work/payments/${id}`, { method: 'DELETE' }),
+    request<{ job: WorkJob }>(`/work/invoices/${invoiceId}/payments`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  deleteWorkPayment: (id: string) =>
+    request<{ job: WorkJob }>(`/work/payments/${id}`, { method: "DELETE" }),
 
-  contacts: () => request<{ contacts: Contact[] }>('/contacts'),
+  contacts: () => request<{ contacts: Contact[] }>("/contacts"),
   addContact: (body: { email: string; name?: string | null }) =>
-    request<{ contact: Contact }>('/contacts', { method: 'POST', body: JSON.stringify(body) }),
+    request<{ contact: Contact }>("/contacts", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   updateContact: (id: string, body: { name: string | null }) =>
-    request<{ contact: Contact }>(`/contacts/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-  deleteContact: (id: string) => request<{ ok: true }>(`/contacts/${id}`, { method: 'DELETE' }),
+    request<{ contact: Contact }>(`/contacts/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteContact: (id: string) =>
+    request<{ ok: true }>(`/contacts/${id}`, { method: "DELETE" }),
 
-  shares: (kind: ShareKind, itemId: string) => request<{ shares: Share[] }>(`/shares/${kind}/${itemId}`),
-  share: (kind: ShareKind, itemId: string, body: { email: string; permission: SharePermission }) =>
-    request<{ shares: Share[] }>(`/shares/${kind}/${itemId}`, { method: 'POST', body: JSON.stringify(body) }),
+  shares: (kind: ShareKind, itemId: string) =>
+    request<{ shares: Share[] }>(`/shares/${kind}/${itemId}`),
+  share: (
+    kind: ShareKind,
+    itemId: string,
+    body: { email: string; permission: SharePermission }
+  ) =>
+    request<{ shares: Share[] }>(`/shares/${kind}/${itemId}`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   updateShare: (id: string, permission: SharePermission) =>
-    request<{ ok: true }>(`/shares/${id}`, { method: 'PATCH', body: JSON.stringify({ permission }) }),
-  unshare: (id: string) => request<{ ok: true }>(`/shares/${id}`, { method: 'DELETE' }),
-  leaveShare: (kind: ShareKind, itemId: string) => request<{ ok: true }>(`/shares/${kind}/${itemId}/me`, { method: 'DELETE' }),
+    request<{ ok: true }>(`/shares/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ permission }),
+    }),
+  unshare: (id: string) =>
+    request<{ ok: true }>(`/shares/${id}`, { method: "DELETE" }),
+  leaveShare: (kind: ShareKind, itemId: string) =>
+    request<{ ok: true }>(`/shares/${kind}/${itemId}/me`, { method: "DELETE" }),
 
-  invoices: () => request<InvoicesData>('/invoices'),
-  createInvoice: (body: InvoiceInput) => request<{ invoice: Invoice }>('/invoices', { method: 'POST', body: JSON.stringify(body) }),
+  invoices: () => request<InvoicesData>("/invoices"),
+  createInvoice: (body: InvoiceInput) =>
+    request<{ invoice: Invoice }>("/invoices", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   updateInvoice: (id: string, body: Partial<InvoiceInput>) =>
-    request<{ invoice: Invoice }>(`/invoices/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-  deleteInvoice: (id: string) => request<{ ok: true }>(`/invoices/${id}`, { method: 'DELETE' }),
-  resetInvoiceLink: (id: string) => request<{ invoice: Invoice }>(`/invoices/${id}/reset-link`, { method: 'POST' }),
+    request<{ invoice: Invoice }>(`/invoices/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteInvoice: (id: string) =>
+    request<{ ok: true }>(`/invoices/${id}`, { method: "DELETE" }),
+  resetInvoiceLink: (id: string) =>
+    request<{ invoice: Invoice }>(`/invoices/${id}/reset-link`, {
+      method: "POST",
+    }),
   addInvoicePayment: (id: string, body: InvoicePaymentInput) =>
-    request<{ invoice: Invoice }>(`/invoices/${id}/payments`, { method: 'POST', body: JSON.stringify(body) }),
+    request<{ invoice: Invoice }>(`/invoices/${id}/payments`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   deleteInvoicePayment: (id: string, paymentId: string) =>
-    request<{ invoice: Invoice }>(`/invoices/${id}/payments/${paymentId}`, { method: 'DELETE' }),
+    request<{ invoice: Invoice }>(`/invoices/${id}/payments/${paymentId}`, {
+      method: "DELETE",
+    }),
   saveInvoiceProfile: (body: InvoiceProfile) =>
-    request<{ profile: InvoiceProfile; nextNumber: string }>('/invoice-profile', { method: 'PUT', body: JSON.stringify(body) }),
+    request<{ profile: InvoiceProfile; nextNumber: string }>(
+      "/invoice-profile",
+      { method: "PUT", body: JSON.stringify(body) }
+    ),
   createPaymentMethod: (body: PaymentMethodInput) =>
-    request<{ method: PaymentMethod; methods: PaymentMethod[] }>('/payment-methods', { method: 'POST', body: JSON.stringify(body) }),
+    request<{ method: PaymentMethod; methods: PaymentMethod[] }>(
+      "/payment-methods",
+      { method: "POST", body: JSON.stringify(body) }
+    ),
   updatePaymentMethod: (id: string, body: PaymentMethodInput) =>
-    request<{ methods: PaymentMethod[] }>(`/payment-methods/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  deletePaymentMethod: (id: string) => request<{ methods: PaymentMethod[] }>(`/payment-methods/${id}`, { method: 'DELETE' }),
+    request<{ methods: PaymentMethod[] }>(`/payment-methods/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  deletePaymentMethod: (id: string) =>
+    request<{ methods: PaymentMethod[] }>(`/payment-methods/${id}`, {
+      method: "DELETE",
+    }),
 
   enableInstantUpdates: (connectionId: string) =>
-    request<{ ok: true; url: string }>(`/connections/${connectionId}/instant-updates`, { method: 'POST' }),
+    request<{ ok: true; url: string }>(
+      `/connections/${connectionId}/instant-updates`,
+      { method: "POST" }
+    ),
   disableInstantUpdates: (connectionId: string) =>
-    request<{ ok: true }>(`/connections/${connectionId}/instant-updates`, { method: 'DELETE' }),
+    request<{ ok: true }>(`/connections/${connectionId}/instant-updates`, {
+      method: "DELETE",
+    }),
 
-  adviceDismissed: () => request<{ dismissed: { id: string; until: string | null }[] }>('/advice/dismissed'),
+  adviceDismissed: () =>
+    request<{ dismissed: { id: string; until: string | null }[] }>(
+      "/advice/dismissed"
+    ),
   /** Hide an Advisor tip: for `days`, or for good without it. */
   dismissAdvice: (id: string, days?: number) =>
-    request<{ ok: true }>('/advice/dismiss', { method: 'POST', body: JSON.stringify({ id, days }) }),
+    request<{ ok: true }>("/advice/dismiss", {
+      method: "POST",
+      body: JSON.stringify({ id, days }),
+    }),
   /** Bring back one hidden tip, or all of them without an id. */
   restoreAdvice: (id?: string) =>
-    request<{ ok: true }>(`/advice/dismissed${id ? `?id=${encodeURIComponent(id)}` : ''}`, { method: 'DELETE' }),
+    request<{ ok: true }>(
+      `/advice/dismissed${id ? `?id=${encodeURIComponent(id)}` : ""}`,
+      { method: "DELETE" }
+    ),
 }
 
 /** The share link: no sign-in, so it skips the signed-in /api/banks helper. */
-async function publicRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function publicRequest<T>(
+  path: string,
+  init: RequestInit = {}
+): Promise<T> {
   const res = await fetch(`/api/public${path}`, {
     ...init,
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...init.headers },
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...init.headers },
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new ApiError(res.status, (data as { error?: string }).error ?? res.statusText)
+  if (!res.ok)
+    throw new ApiError(
+      res.status,
+      (data as { error?: string }).error ?? res.statusText
+    )
   return data as T
 }
 
 export const publicApi = {
-  invoice: (token: string) => publicRequest<{ invoice: PublicInvoice }>(`/invoices/${encodeURIComponent(token)}`),
-  startPaypal: (token: string) => publicRequest<{ url: string }>(`/invoices/${encodeURIComponent(token)}/paypal`, { method: 'POST' }),
+  invoice: (token: string) =>
+    publicRequest<{ invoice: PublicInvoice }>(
+      `/invoices/${encodeURIComponent(token)}`
+    ),
+  startPaypal: (token: string) =>
+    publicRequest<{ url: string }>(
+      `/invoices/${encodeURIComponent(token)}/paypal`,
+      { method: "POST" }
+    ),
   capturePaypal: (token: string, orderId: string) =>
-    publicRequest<{ invoice: PublicInvoice | null }>(`/invoices/${encodeURIComponent(token)}/paypal/capture`, {
-      method: 'POST',
-      body: JSON.stringify({ orderId }),
-    }),
+    publicRequest<{ invoice: PublicInvoice | null }>(
+      `/invoices/${encodeURIComponent(token)}/paypal/capture`,
+      {
+        method: "POST",
+        body: JSON.stringify({ orderId }),
+      }
+    ),
 }

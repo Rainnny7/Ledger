@@ -1,36 +1,61 @@
-import { useQuery } from '@tanstack/react-query'
-import { Eye, Loader2, Pencil, UserPlus, Users, X } from 'lucide-react'
-import { type FormEvent, useState } from 'react'
-import { Link } from 'react-router'
-import { toast } from 'sonner'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { api, type Shared, type ShareKind, type SharePermission } from '@/lib/api'
-import { useContacts } from '@/lib/queries'
-import { initials, KIND_LABEL, shortName } from '@/lib/sharing'
-import { cn } from '@/lib/utils'
+import { useQuery } from "@tanstack/react-query"
+import { Eye, Loader2, Pencil, UserPlus, Users, X } from "lucide-react"
+import { type FormEvent, useId, useState } from "react"
+import { Link } from "react-router"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
+  api,
+  type Shared,
+  type ShareKind,
+  type SharePermission,
+} from "@/lib/api"
+import { useContacts } from "@/lib/queries"
+import { initials, KIND_LABEL, shortName } from "@/lib/sharing"
+import { cn } from "@/lib/utils"
 
 const PERMISSION_ITEMS = [
-  { value: 'view', label: 'Can view' },
-  { value: 'edit', label: 'Can edit' },
+  { value: "view", label: "Can view" },
+  { value: "edit", label: "Can edit" },
 ]
 
 function PermissionSelect({
   value,
   onChange,
-  size = 'sm',
+  size = "sm",
 }: {
   value: SharePermission
   onChange: (p: SharePermission) => void
-  size?: 'sm' | 'default'
+  size?: "sm" | "default"
 }) {
   return (
-    <Select items={PERMISSION_ITEMS} value={value} onValueChange={(v) => v && onChange(v as SharePermission)}>
+    <Select
+      items={PERMISSION_ITEMS}
+      value={value}
+      onValueChange={(v) => v && onChange(v as SharePermission)}
+    >
       <SelectTrigger size={size} className="w-28" aria-label="Permission">
         <SelectValue />
       </SelectTrigger>
@@ -59,10 +84,13 @@ export function ContactPicker({
 }) {
   const contacts = useContacts().data?.contacts ?? []
   const [focused, setFocused] = useState(false)
+  const listId = useId()
   const q = value.trim().toLowerCase()
   const matches = contacts
     .filter((c) => !exclude.includes(c.email) && c.email !== q)
-    .filter((c) => !q || c.email.includes(q) || c.name?.toLowerCase().includes(q))
+    .filter(
+      (c) => !q || c.email.includes(q) || c.name?.toLowerCase().includes(q)
+    )
     .slice(0, 6)
   return (
     <div className="relative">
@@ -77,16 +105,18 @@ export function ContactPicker({
         // Leave time for a click on a suggestion to land.
         onBlur={() => setTimeout(() => setFocused(false), 120)}
         role="combobox"
+        aria-controls={listId}
         aria-expanded={focused && matches.length > 0}
         aria-autocomplete="list"
       />
       {focused && matches.length > 0 && (
-        <ul
+        <div
+          id={listId}
           role="listbox"
-          className="absolute inset-x-0 top-full z-50 mt-1 max-h-56 overflow-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
+          className="absolute inset-x-0 top-full z-50 mt-1 max-h-56 animate-in overflow-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md fade-in-0 zoom-in-95"
         >
           {matches.map((c) => (
-            <li key={c.id} role="option" aria-selected={false}>
+            <div key={c.id} role="option" aria-selected={false}>
               <button
                 type="button"
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
@@ -98,23 +128,41 @@ export function ContactPicker({
               >
                 <ContactAvatar contact={c} />
                 <span className="min-w-0 flex-1">
-                  {c.name && <span className="block truncate font-medium">{c.name}</span>}
-                  <span className={cn('block truncate', c.name && 'text-xs text-muted-foreground')}>{c.email}</span>
+                  {c.name && (
+                    <span className="block truncate font-medium">{c.name}</span>
+                  )}
+                  <span
+                    className={cn(
+                      "block truncate",
+                      c.name && "text-xs text-muted-foreground"
+                    )}
+                  >
+                    {c.email}
+                  </span>
                 </span>
               </button>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   )
 }
 
-export function ContactAvatar({ contact, className }: { contact: { name?: string | null; email: string }; className?: string }) {
+export function ContactAvatar({
+  contact,
+  className,
+}: {
+  contact: { name?: string | null; email: string }
+  className?: string
+}) {
   return (
     <span
       aria-hidden
-      className={cn('grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary', className)}
+      className={cn(
+        "grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary",
+        className
+      )}
     >
       {initials(contact)}
     </span>
@@ -132,18 +180,18 @@ export function ShareDialog({
   onClose: () => void
 }) {
   const shares = useQuery({
-    queryKey: ['shares', kind, item?.id],
+    queryKey: ["shares", kind, item?.id],
     queryFn: () => api.shares(kind, item!.id),
     enabled: !!item,
   })
-  const [email, setEmail] = useState('')
-  const [permission, setPermission] = useState<SharePermission>('view')
+  const [email, setEmail] = useState("")
+  const [permission, setPermission] = useState<SharePermission>("view")
   const [saving, setSaving] = useState(false)
   const list = shares.data?.shares ?? []
 
   const close = () => {
-    setEmail('')
-    setPermission('view')
+    setEmail("")
+    setPermission("view")
     onClose()
   }
 
@@ -153,8 +201,10 @@ export function ShareDialog({
     setSaving(true)
     try {
       await api.share(kind, item.id, { email: email.trim(), permission })
-      toast.success(`Shared ${item.name}`, { description: `${email.trim()} will see it in their ${KIND_LABEL[kind]}s.` })
-      setEmail('')
+      toast.success(`Shared ${item.name}`, {
+        description: `${email.trim()} will see it in their ${KIND_LABEL[kind]}s.`,
+      })
+      setEmail("")
     } catch (err) {
       toast.error((err as Error).message)
     } finally {
@@ -185,7 +235,8 @@ export function ShareDialog({
         <DialogHeader>
           <DialogTitle>Share {item?.name}</DialogTitle>
           <DialogDescription>
-            People you share with see this {KIND_LABEL[kind]} in their own Ledger. Only you can delete it or change who it’s shared with.
+            People you share with see this {KIND_LABEL[kind]} in their own
+            Ledger. Only you can delete it or change who it’s shared with.
           </DialogDescription>
         </DialogHeader>
 
@@ -193,22 +244,38 @@ export function ShareDialog({
           <Label htmlFor="share-email">Add someone</Label>
           <div className="flex gap-2">
             <div className="min-w-0 flex-1">
-              <ContactPicker id="share-email" value={email} onChange={setEmail} exclude={list.map((s) => s.email)} />
+              <ContactPicker
+                id="share-email"
+                value={email}
+                onChange={setEmail}
+                exclude={list.map((s) => s.email)}
+              />
             </div>
-            <PermissionSelect value={permission} onChange={setPermission} size="default" />
+            <PermissionSelect
+              value={permission}
+              onChange={setPermission}
+              size="default"
+            />
           </div>
           <div className="flex items-center justify-between gap-2">
-            <Link to="/contacts" className="text-xs text-muted-foreground hover:text-foreground hover:underline" onClick={close}>
+            <Link
+              to="/contacts"
+              className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+              onClick={close}
+            >
               Manage contacts
             </Link>
             <Button type="submit" size="sm" disabled={saving || !email.trim()}>
-              {saving ? <Loader2 className="animate-spin" /> : <UserPlus />} Share
+              {saving ? <Loader2 className="animate-spin" /> : <UserPlus />}{" "}
+              Share
             </Button>
           </div>
         </form>
 
         <div className="grid gap-2">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase">People with access</h3>
+          <h3 className="text-xs font-medium text-muted-foreground uppercase">
+            People with access
+          </h3>
           {shares.isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : list.length === 0 ? (
@@ -216,14 +283,36 @@ export function ShareDialog({
           ) : (
             <ul className="grid gap-1">
               {list.map((s) => (
-                <li key={s.id} className="flex items-center gap-2 rounded-lg px-1 py-1">
+                <li
+                  key={s.id}
+                  className="flex items-center gap-2 rounded-lg px-1 py-1"
+                >
                   <ContactAvatar contact={s} />
                   <span className="min-w-0 flex-1">
-                    {s.name && <span className="block truncate text-sm font-medium">{s.name}</span>}
-                    <span className={cn('block truncate', s.name ? 'text-xs text-muted-foreground' : 'text-sm')}>{s.email}</span>
+                    {s.name && (
+                      <span className="block truncate text-sm font-medium">
+                        {s.name}
+                      </span>
+                    )}
+                    <span
+                      className={cn(
+                        "block truncate",
+                        s.name ? "text-xs text-muted-foreground" : "text-sm"
+                      )}
+                    >
+                      {s.email}
+                    </span>
                   </span>
-                  <PermissionSelect value={s.permission} onChange={(p) => void change(s.id, p)} />
-                  <Button variant="ghost" size="icon-xs" aria-label={`Stop sharing with ${s.email}`} onClick={() => void remove(s.id, s.name || s.email)}>
+                  <PermissionSelect
+                    value={s.permission}
+                    onChange={(p) => void change(s.id, p)}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={`Stop sharing with ${s.email}`}
+                    onClick={() => void remove(s.id, s.name || s.email)}
+                  >
                     <X />
                   </Button>
                 </li>
@@ -240,22 +329,33 @@ export function ShareDialog({
  * A small pill on a card: "Shared · 2" on your own items, or who shared it and what you can do on
  * theirs.
  */
-export function ShareBadge({ item, onClick }: { item: Shared; onClick?: () => void }) {
+export function ShareBadge({
+  item,
+  onClick,
+}: {
+  item: Shared
+  onClick?: () => void
+}) {
   if (item.owner) {
-    const Icon = item.access === 'edit' ? Pencil : Eye
+    const Icon = item.access === "edit" ? Pencil : Eye
     return (
       <Tooltip>
-        <TooltipTrigger render={<Badge variant="secondary" className="shrink-0 gap-1 font-normal" />}>
+        <TooltipTrigger
+          render={
+            <Badge variant="secondary" className="shrink-0 gap-1 font-normal" />
+          }
+        >
           <Icon className="size-3" /> {shortName(item.owner)}
         </TooltipTrigger>
         <TooltipContent>
-          Shared by {item.owner.name || item.owner.email} · {item.access === 'edit' ? 'you can edit' : 'view only'}
+          Shared by {item.owner.name || item.owner.email} ·{" "}
+          {item.access === "edit" ? "you can edit" : "view only"}
         </TooltipContent>
       </Tooltip>
     )
   }
   if (item.sharedWith.length === 0) return null
-  const names = item.sharedWith.map((s) => s.name || s.email).join(', ')
+  const names = item.sharedWith.map((s) => s.name || s.email).join(", ")
   return (
     <Tooltip>
       <TooltipTrigger

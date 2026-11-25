@@ -91,20 +91,20 @@ bun run build && bun run start     # serves the app and API from one port
 
 All optional. See [`.env.example`](.env.example).
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `PORT` | `3001` | API port |
-| `APP_URL` | `http://localhost:5173` | Public URL of the app |
-| `PUBLIC_URL` | `APP_URL` | Address used for invoice share links and PayPal webhooks (must be public `https://` for webhooks) |
-| `APP_SECRET` | generated | Signs sessions and encrypts saved credentials |
-| `DATA_DIR` | `./data` | Where the database lives |
-| `TD_HEADLESS` | `true` | `false` to watch the browser sign in |
-| `TD_BROWSER_CHANNEL` | | e.g. `chrome` to use your installed Chrome |
-| `ALLOW_REGISTRATION` | `false` | Whether sign-ups start open after the first account |
-| `TRUST_PROXY` | `false` | `true` behind a reverse proxy, so rate limits see the real client IP |
-| `FX_LIVE_URL` | `https://api.coinbase.com/v2/exchange-rates?currency=USD` | Where live exchange rates are fetched from (Coinbase-compatible; empty to turn off) |
-| `FX_RATES_URL` | `https://api.frankfurter.dev/v1/latest` | Fallback daily ECB rates (Frankfurter-compatible) |
-| `PAYPAL_ENV` | `live` | `sandbox` to test against PayPal's sandbox |
+| Variable             | Default                                                   | Purpose                                                                                           |
+| -------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `PORT`               | `3001`                                                    | API port                                                                                          |
+| `APP_URL`            | `http://localhost:5173`                                   | Public URL of the app                                                                             |
+| `PUBLIC_URL`         | `APP_URL`                                                 | Address used for invoice share links and PayPal webhooks (must be public `https://` for webhooks) |
+| `APP_SECRET`         | generated                                                 | Signs sessions and encrypts saved credentials                                                     |
+| `DATA_DIR`           | `./data`                                                  | Where the database lives                                                                          |
+| `TD_HEADLESS`        | `true`                                                    | `false` to watch the browser sign in                                                              |
+| `TD_BROWSER_CHANNEL` |                                                           | e.g. `chrome` to use your installed Chrome                                                        |
+| `ALLOW_REGISTRATION` | `false`                                                   | Whether sign-ups start open after the first account                                               |
+| `TRUST_PROXY`        | `false`                                                   | `true` behind a reverse proxy, so rate limits see the real client IP                              |
+| `FX_LIVE_URL`        | `https://api.coinbase.com/v2/exchange-rates?currency=USD` | Where live exchange rates are fetched from (Coinbase-compatible; empty to turn off)               |
+| `FX_RATES_URL`       | `https://api.frankfurter.dev/v1/latest`                   | Fallback daily ECB rates (Frankfurter-compatible)                                                 |
+| `PAYPAL_ENV`         | `live`                                                    | `sandbox` to test against PayPal's sandbox                                                        |
 
 ## Built with
 

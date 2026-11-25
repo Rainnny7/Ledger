@@ -1,18 +1,11 @@
-import type { ReactNode } from "react";
+import type { ReactNode } from "react"
 
-import {
-  usePdfcnTheme,
-  useSafeMemo,
-} from "@/components/pdf/theme-provider";
-import {
-  Text as PDFText,
-  StyleSheet,
-  View,
-} from "@/lib/pdf-primitives";
-import type { Style } from "@/lib/pdf-primitives";
-import { resolveColor } from "@/lib/resolve-color";
-import type { PDFComponentProps } from "@/types/pdf-components";
-import type { PdfcnTheme } from "@/types/pdf-themes";
+import { usePdfcnTheme, useSafeMemo } from "@/components/pdf/theme-provider"
+import { Text as PDFText, StyleSheet, View } from "@/lib/pdf-primitives"
+import type { Style } from "@/lib/pdf-primitives"
+import { resolveColor } from "@/lib/resolve-color"
+import type { PDFComponentProps } from "@/types/pdf-components"
+import type { PdfcnTheme } from "@/types/pdf-themes"
 
 export type PageFooterVariant =
   | "simple"
@@ -20,7 +13,7 @@ export type PageFooterVariant =
   | "branded"
   | "minimal"
   | "three-column"
-  | "detailed";
+  | "detailed"
 
 /**
  * Footer row with layout variants, optional sticky or fixed positioning, and contact info support.
@@ -28,49 +21,49 @@ export type PageFooterVariant =
  * @see {@link PageFooterProps}
  */
 export interface PageFooterProps extends Omit<PDFComponentProps, "children"> {
-  leftText?: ReactNode;
-  rightText?: ReactNode;
-  centerText?: ReactNode;
+  leftText?: ReactNode
+  rightText?: ReactNode
+  centerText?: ReactNode
   /**
    * @default 'simple'
    */
-  variant?: PageFooterVariant;
-  background?: string;
-  textColor?: string;
-  marginTop?: number;
-  address?: string;
-  phone?: string;
-  email?: string;
-  website?: string;
+  variant?: PageFooterVariant
+  background?: string
+  textColor?: string
+  marginTop?: number
+  address?: string
+  phone?: string
+  email?: string
+  website?: string
   /**
    * @default false
    */
-  fixed?: boolean;
+  fixed?: boolean
   /**
    * @default false
    */
-  sticky?: boolean;
+  sticky?: boolean
   /**
    * @default 0
    */
-  pagePadding?: number;
+  pagePadding?: number
   /**
    * @default true
    */
-  noWrap?: boolean;
+  noWrap?: boolean
 }
 
 const createPageFooterStyles = (t: PdfcnTheme) => {
-  const { spacing, fontWeights } = t.primitives;
-  const c = t.colors;
-  const { body } = t.typography;
+  const { spacing, fontWeights } = t.primitives
+  const c = t.colors
+  const { body } = t.typography
 
   const textBase = {
     color: c.mutedForeground,
     fontFamily: body.fontFamily,
     fontSize: t.primitives.typography.xs,
     lineHeight: body.lineHeight,
-  };
+  }
 
   return StyleSheet.create({
     brandedContainer: {
@@ -219,20 +212,20 @@ const createPageFooterStyles = (t: PdfcnTheme) => {
       flex: 1,
       flexDirection: "column",
     },
-  });
-};
+  })
+}
 
-type Styles = ReturnType<typeof createPageFooterStyles>;
+type Styles = ReturnType<typeof createPageFooterStyles>
 
 const applyTextColor = (
   styles: Style[],
   color: string | undefined
 ): Style[] => {
   if (!color) {
-    return styles;
+    return styles
   }
-  return [...styles, { color }];
-};
+  return [...styles, { color }]
+}
 
 const renderBranded = (
   _styles: Styles,
@@ -247,7 +240,7 @@ const renderBranded = (
     {leftText && <PDFText style={leftStyle}>{leftText}</PDFText>}
     {rightText && <PDFText style={rightStyle}>{rightText}</PDFText>}
   </View>
-);
+)
 
 const renderCentered = (
   _styles: Styles,
@@ -261,7 +254,7 @@ const renderCentered = (
     {leftText && <PDFText style={textStyle}>{leftText}</PDFText>}
     {rightText && <PDFText style={textStyle}>{rightText}</PDFText>}
   </View>
-);
+)
 
 const renderThreeColumn = (
   styles: Styles,
@@ -291,7 +284,7 @@ const renderThreeColumn = (
       {rightText && <PDFText style={rightStyle}>{rightText}</PDFText>}
     </View>
   </View>
-);
+)
 
 const renderDetailed = (
   styles: Styles,
@@ -322,7 +315,7 @@ const renderDetailed = (
     </View>
     {rightText && <PDFText style={pageNumStyle}>{rightText}</PDFText>}
   </View>
-);
+)
 
 const renderMinimal = (
   _styles: Styles,
@@ -337,7 +330,7 @@ const renderMinimal = (
     {leftText && <PDFText style={leftStyle}>{leftText}</PDFText>}
     {rightText && <PDFText style={rightStyle}>{rightText}</PDFText>}
   </View>
-);
+)
 
 const renderSimple = (
   _styles: Styles,
@@ -355,7 +348,7 @@ const renderSimple = (
     {centerText && <PDFText style={centerStyle}>{centerText}</PDFText>}
     {rightText && <PDFText style={rightStyle}>{rightText}</PDFText>}
   </View>
-);
+)
 
 export const PageFooter = ({
   leftText,
@@ -375,13 +368,13 @@ export const PageFooter = ({
   noWrap = true,
   style,
 }: PageFooterProps) => {
-  const theme = usePdfcnTheme();
-  const styles = useSafeMemo(() => createPageFooterStyles(theme), [theme]);
-  void fixed; // sticky and fixed both pin the footer; only sticky changes the placement
-  const mt = sticky ? 0 : (marginTop ?? theme.spacing.sectionGap);
+  const theme = usePdfcnTheme()
+  const styles = useSafeMemo(() => createPageFooterStyles(theme), [theme])
+  void fixed // sticky and fixed both pin the footer; only sticky changes the placement
+  const mt = sticky ? 0 : (marginTop ?? theme.spacing.sectionGap)
   const resolvedTextColor = textColor
     ? resolveColor(textColor, theme.colors)
-    : undefined;
+    : undefined
   // A footer passed as a render option lays out at full page width, so the
   // page padding has to come from the footer itself to line up with the content.
   const placement: Style = sticky
@@ -391,18 +384,18 @@ export const PageFooter = ({
         position: "absolute",
         right: pagePadding,
       }
-    : { paddingLeft: pagePadding, paddingRight: pagePadding };
+    : { paddingLeft: pagePadding, paddingRight: pagePadding }
 
   const applyOverrides = (base: Style[]): Style[] => {
     if (background) {
-      base.push({ backgroundColor: resolveColor(background, theme.colors) });
+      base.push({ backgroundColor: resolveColor(background, theme.colors) })
     }
     if (style) {
-      base.push(style);
+      base.push(style)
     }
-    base.push(placement);
-    return base;
-  };
+    base.push(placement)
+    return base
+  }
 
   const variantRenderers: Record<PageFooterVariant, () => React.ReactNode> = {
     branded: () =>
@@ -477,7 +470,7 @@ export const PageFooter = ({
         website,
         noWrap
       ),
-  };
+  }
 
-  return variantRenderers[variant]() as React.ReactNode;
-};
+  return variantRenderers[variant]() as React.ReactNode
+}

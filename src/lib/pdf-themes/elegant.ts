@@ -1,6 +1,6 @@
-import type { PdfcnTheme } from "@/types/pdf-themes";
+import type { PdfcnTheme } from "@/types/pdf-themes"
 
-import { defaultPrimitives } from "./primitives";
+import { defaultPrimitives } from "./primitives"
 
 /**
  * Elegant theme preset.
@@ -61,4 +61,4 @@ export const elegantTheme: PdfcnTheme = {
       lineHeight: 1.2,
     },
   },
-};
+}

@@ -1,5 +1,5 @@
-import { getSetting, setSetting } from './db.ts'
-import { env } from './env.ts'
+import { getSetting, setSetting } from "./db.ts"
+import { env } from "./env.ts"
 
 /**
  * Exchange rates for showing totals in each person's own currency. Live mid-market rates come from
@@ -16,10 +16,10 @@ export interface FxRates {
   /** When Ledger last fetched them (ISO), or null if it never could. */
   fetchedAt: string | null
   /** 'live' for current market rates, 'ecb' for the ECB's once-a-day fixing. */
-  source: 'live' | 'ecb'
+  source: "live" | "ecb"
 }
 
-const KEY = 'fx_rates'
+const KEY = "fx_rates"
 /**
  * The "Update exchange rates" task keeps the saved copy current. This is only a safety net for when
  * the task hasn't run (a fresh install, or the server was off): past this age a page fetches them itself.
@@ -27,13 +27,19 @@ const KEY = 'fx_rates'
 const STALE_AFTER_MS = 3 * 60 * 60 * 1000
 /** After a failure, wait this long before asking again so pages don't each pay for a timeout. */
 const RETRY_AFTER_MS = 10 * 60 * 1000
-const NONE: FxRates = { base: 'EUR', date: '', rates: { EUR: 1 }, fetchedAt: null, source: 'ecb' }
+const NONE: FxRates = {
+  base: "EUR",
+  date: "",
+  rates: { EUR: 1 },
+  fetchedAt: null,
+  source: "ecb",
+}
 
 /**
  * Real ISO 4217 codes. The live feed also lists crypto and odd codes (some three letters, like
  * "APE"), which no account would use and which could clash with a real code later.
  */
-const ISO_CODES = new Set(Intl.supportedValuesOf('currency'))
+const ISO_CODES = new Set(Intl.supportedValuesOf("currency"))
 
 let inflight: Promise<Fetched> | null = null
 let lastFailure = 0
@@ -43,16 +49,20 @@ function cached(): FxRates | null {
   if (!raw) return null
   try {
     const parsed = JSON.parse(raw) as FxRates
-    return { ...parsed, source: parsed.source ?? 'ecb' }
+    return { ...parsed, source: parsed.source ?? "ecb" }
   } catch {
     return null
   }
 }
 
-const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
+const message = (err: unknown) =>
+  err instanceof Error ? err.message : String(err)
 
 async function getJson(url: string) {
-  const res = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { Accept: 'application/json' } })
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(8000),
+    headers: { Accept: "application/json" },
+  })
   if (!res.ok) throw new Error(`rates request failed (${res.status})`)
   return (await res.json()) as unknown
 }
@@ -60,31 +70,62 @@ async function getJson(url: string) {
 function cleanRates(base: string, raw: Record<string, unknown>) {
   const rates: Record<string, number> = { [base]: 1 }
   for (const [code, value] of Object.entries(raw)) {
-    const rate = typeof value === 'string' ? Number(value) : value
-    if (ISO_CODES.has(code) && typeof rate === 'number' && rate > 0 && Number.isFinite(rate)) rates[code] = rate
+    const rate = typeof value === "string" ? Number(value) : value
+    if (
+      ISO_CODES.has(code) &&
+      typeof rate === "number" &&
+      rate > 0 &&
+      Number.isFinite(rate)
+    )
+      rates[code] = rate
   }
-  if (Object.keys(rates).length < 2) throw new Error('the rates response had no rates in it')
+  if (Object.keys(rates).length < 2)
+    throw new Error("the rates response had no rates in it")
   return rates
 }
 
 /** Coinbase-style `{ data: { currency, rates: { CAD: "1.4256", … } } }`. */
 async function fetchLive(): Promise<FxRates> {
-  const body = (await getJson(env.fxLiveUrl)) as { data?: { currency?: unknown; rates?: unknown } }
+  const body = (await getJson(env.fxLiveUrl)) as {
+    data?: { currency?: unknown; rates?: unknown }
+  }
   const base = body.data?.currency
   const raw = body.data?.rates
-  if (typeof base !== 'string' || !raw || typeof raw !== 'object') throw new Error('unexpected live rates response')
+  if (typeof base !== "string" || !raw || typeof raw !== "object")
+    throw new Error("unexpected live rates response")
   const now = new Date().toISOString()
-  return { base, date: now.slice(0, 10), rates: cleanRates(base, raw as Record<string, unknown>), fetchedAt: now, source: 'live' }
+  return {
+    base,
+    date: now.slice(0, 10),
+    rates: cleanRates(base, raw as Record<string, unknown>),
+    fetchedAt: now,
+    source: "live",
+  }
 }
 
 /** Frankfurter-style `{ base, date, rates: { CAD: 1.4327, … } }`. */
 async function fetchEcb(): Promise<FxRates> {
-  const body = (await getJson(env.fxRatesUrl)) as { base?: unknown; date?: unknown; rates?: unknown }
-  if (typeof body.base !== 'string' || typeof body.date !== 'string' || !body.rates || typeof body.rates !== 'object') {
-    throw new Error('unexpected ECB rates response')
+  const body = (await getJson(env.fxRatesUrl)) as {
+    base?: unknown
+    date?: unknown
+    rates?: unknown
+  }
+  if (
+    typeof body.base !== "string" ||
+    typeof body.date !== "string" ||
+    !body.rates ||
+    typeof body.rates !== "object"
+  ) {
+    throw new Error("unexpected ECB rates response")
   }
   const rates = cleanRates(body.base, body.rates as Record<string, unknown>)
-  return { base: body.base, date: body.date, rates, fetchedAt: new Date().toISOString(), source: 'ecb' }
+  return {
+    base: body.base,
+    date: body.date,
+    rates,
+    fetchedAt: new Date().toISOString(),
+    source: "ecb",
+  }
 }
 
 interface Fetched {
@@ -101,14 +142,20 @@ async function fetchRates(): Promise<Fetched> {
       rates = await fetchLive()
     } catch (err) {
       liveError = message(err)
-      console.warn(`[fx] live rates failed, using the ECB's instead: ${liveError}`)
+      console.warn(
+        `[fx] live rates failed, using the ECB's instead: ${liveError}`
+      )
     }
   }
   if (!rates) {
     try {
       rates = await fetchEcb()
     } catch (err) {
-      throw new Error(liveError ? `live rates: ${liveError}; ECB rates: ${message(err)}` : message(err))
+      throw new Error(
+        liveError
+          ? `live rates: ${liveError}; ECB rates: ${message(err)}`
+          : message(err)
+      )
     }
   }
   setSetting(KEY, JSON.stringify(rates))
@@ -132,12 +179,16 @@ export async function refreshRates(): Promise<string> {
   const before = cached()
   const { rates: next, liveError } = await fetchOnce()
   const count = Object.keys(next.rates).length
-  if (next.source === 'live') {
-    const time = new Date(next.fetchedAt ?? Date.now()).toISOString().slice(11, 16)
+  if (next.source === "live") {
+    const time = new Date(next.fetchedAt ?? Date.now())
+      .toISOString()
+      .slice(11, 16)
     return `Live rates as of ${time} UTC · ${count} currencies`
   }
-  const why = liveError ? `Live rates unavailable (${liveError}), so using the ECB’s. ` : ''
-  if (before?.source === 'ecb' && before.date === next.date) {
+  const why = liveError
+    ? `Live rates unavailable (${liveError}), so using the ECB’s. `
+    : ""
+  if (before?.source === "ecb" && before.date === next.date) {
     return `${why}Still ${next.date}: the ECB hasn’t published a newer day yet · ${count} currencies`
   }
   return `${why}ECB rates for ${next.date} · ${count} currencies`
@@ -146,7 +197,9 @@ export async function refreshRates(): Promise<string> {
 /** Current rates: the saved copy, or (if there's none or it's old) a new fetch falling back to it. */
 export async function getRates(): Promise<FxRates> {
   const saved = cached()
-  const fresh = saved?.fetchedAt && Date.now() - Date.parse(saved.fetchedAt) < STALE_AFTER_MS
+  const fresh =
+    saved?.fetchedAt &&
+    Date.now() - Date.parse(saved.fetchedAt) < STALE_AFTER_MS
   if (saved && fresh) return saved
   if (Date.now() - lastFailure < RETRY_AFTER_MS) return saved ?? NONE
   return fetchOnce()
@@ -159,7 +212,12 @@ export async function getRates(): Promise<FxRates> {
 }
 
 /** amount in `from` → `to`, or null when either currency has no rate. */
-export function convert(amount: number, from: string, to: string, fx: FxRates): number | null {
+export function convert(
+  amount: number,
+  from: string,
+  to: string,
+  fx: FxRates
+): number | null {
   if (from === to) return amount
   const a = fx.rates[from]
   const b = fx.rates[to]

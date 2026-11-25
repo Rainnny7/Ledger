@@ -1,15 +1,7 @@
-import {
-  usePdfcnTheme,
-  useSafeMemo,
-} from "@/components/pdf/theme-provider";
-import {
-  View,
-  Text as PDFText,
-  StyleSheet,
-  Image,
-} from "@/lib/pdf-primitives";
-import type { Style } from "@/lib/pdf-primitives";
-import type { PdfcnTheme } from "@/types/pdf-themes";
+import { usePdfcnTheme, useSafeMemo } from "@/components/pdf/theme-provider"
+import { View, Text as PDFText, StyleSheet, Image } from "@/lib/pdf-primitives"
+import type { Style } from "@/lib/pdf-primitives"
+import type { PdfcnTheme } from "@/types/pdf-themes"
 
 /** HTTP method used when fetching the image from a URL. */
 export type PdfImageHTTPMethod =
@@ -18,18 +10,18 @@ export type PdfImageHTTPMethod =
   | "POST"
   | "PUT"
   | "DELETE"
-  | "PATCH";
+  | "PATCH"
 
 export type PdfImageSrc =
   | string
   | {
-      uri: string;
-      method?: PdfImageHTTPMethod;
-      headers?: Record<string, string>;
-      body?: string;
-    };
+      uri: string
+      method?: PdfImageHTTPMethod
+      headers?: Record<string, string>
+      body?: string
+    }
 
-export type PdfImageFit = "cover" | "contain" | "fill" | "none";
+export type PdfImageFit = "cover" | "contain" | "fill" | "none"
 
 export type PdfImageVariant =
   | "default"
@@ -38,7 +30,7 @@ export type PdfImageVariant =
   | "avatar"
   | "cover"
   | "bordered"
-  | "rounded";
+  | "rounded"
 
 /**
  * Image element with layout presets, caption, and aspect ratio support.
@@ -46,33 +38,33 @@ export type PdfImageVariant =
  * @see {@link PdfImageProps}
  */
 export interface PdfImageProps {
-  src: PdfImageSrc;
+  src: PdfImageSrc
   /**
    * @default 'default'
    */
-  variant?: PdfImageVariant;
-  width?: number | string;
-  height?: number | string;
-  fit?: PdfImageFit;
+  variant?: PdfImageVariant
+  width?: number | string
+  height?: number | string
+  fit?: PdfImageFit
   /**
    * @default '50% 50%'
    */
-  position?: string;
-  caption?: string;
-  aspectRatio?: number;
-  borderRadius?: number;
+  position?: string
+  caption?: string
+  aspectRatio?: number
+  borderRadius?: number
   /**
    * @default true
    */
-  noWrap?: boolean;
-  style?: Style;
+  noWrap?: boolean
+  style?: Style
 }
 
 interface VariantDefaults {
-  width?: number | string;
-  height?: number | string;
-  fit: PdfImageFit;
-  borderRadius?: number;
+  width?: number | string
+  height?: number | string
+  fit: PdfImageFit
+  borderRadius?: number
 }
 
 const VARIANT_DEFAULTS: Record<PdfImageVariant, VariantDefaults> = {
@@ -83,32 +75,32 @@ const VARIANT_DEFAULTS: Record<PdfImageVariant, VariantDefaults> = {
   "full-width": { fit: "cover", width: "100%" },
   rounded: { borderRadius: 8, fit: "contain", width: 200 },
   thumbnail: { fit: "cover", height: 80, width: 80 },
-};
+}
 
-const UNSUPPORTED_FORMATS = new Set(["webp", "avif", "heic", "heif", "ico"]);
+const UNSUPPORTED_FORMATS = new Set(["webp", "avif", "heic", "heif", "ico"])
 
 const detectFormat = (src: PdfImageSrc): string | null => {
   if (typeof src !== "string") {
-    return null;
+    return null
   }
-  const dataMatch = src.match(/^data:image\/([a-zA-Z0-9+.-]+)/);
+  const dataMatch = src.match(/^data:image\/([a-zA-Z0-9+.-]+)/)
   if (dataMatch) {
-    return dataMatch[1].toLowerCase();
+    return dataMatch[1].toLowerCase()
   }
-  return src.split("?")[0].split(".").pop()?.toLowerCase() ?? null;
-};
+  return src.split("?")[0].split(".").pop()?.toLowerCase() ?? null
+}
 
 const warnIfUnsupported = (src: PdfImageSrc): void => {
-  const fmt = detectFormat(src);
+  const fmt = detectFormat(src)
   if (fmt && UNSUPPORTED_FORMATS.has(fmt)) {
     console.warn(
       `[PdfImage] Unsupported format "${fmt}" detected. react-pdf supports: JPEG, PNG, GIF (first frame), BMP, SVG. Convert to PNG or JPEG before use.`
-    );
+    )
   }
-};
+}
 
 const createImageStyles = (t: PdfcnTheme) => {
-  const { spacing } = t.primitives;
+  const { spacing } = t.primitives
   return StyleSheet.create({
     caption: {
       color: t.colors.mutedForeground,
@@ -124,8 +116,8 @@ const createImageStyles = (t: PdfcnTheme) => {
       borderStyle: "solid",
       borderWidth: 1,
     },
-  });
-};
+  })
+}
 
 export const PdfImage = ({
   src,
@@ -140,46 +132,46 @@ export const PdfImage = ({
   noWrap = true,
   style,
 }: PdfImageProps) => {
-  warnIfUnsupported(src);
-  const theme = usePdfcnTheme();
-  const styles = useSafeMemo(() => createImageStyles(theme), [theme]);
-  const defaults = VARIANT_DEFAULTS[variant];
+  warnIfUnsupported(src)
+  const theme = usePdfcnTheme()
+  const styles = useSafeMemo(() => createImageStyles(theme), [theme])
+  const defaults = VARIANT_DEFAULTS[variant]
 
-  const resolvedWidth = width ?? defaults.width;
+  const resolvedWidth = width ?? defaults.width
   const resolvedHeight: number | string | undefined = (() => {
     if (height !== undefined) {
-      return height;
+      return height
     }
     if (defaults.height !== undefined) {
-      return defaults.height;
+      return defaults.height
     }
     if (aspectRatio !== undefined && typeof resolvedWidth === "number") {
-      return resolvedWidth / aspectRatio;
+      return resolvedWidth / aspectRatio
     }
-  })();
+  })()
 
-  const resolvedFit = fit ?? defaults.fit;
-  const resolvedRadius = borderRadius ?? defaults.borderRadius;
+  const resolvedFit = fit ?? defaults.fit
+  const resolvedRadius = borderRadius ?? defaults.borderRadius
 
-  const imageStyles: Style[] = [styles.image];
+  const imageStyles: Style[] = [styles.image]
   if (resolvedWidth !== undefined) {
-    imageStyles.push({ width: resolvedWidth } as Style);
+    imageStyles.push({ width: resolvedWidth } as Style)
   }
   if (resolvedHeight !== undefined) {
-    imageStyles.push({ height: resolvedHeight } as Style);
+    imageStyles.push({ height: resolvedHeight } as Style)
   }
   imageStyles.push({
     objectFit: resolvedFit,
     objectPosition: position,
-  } as Style);
+  } as Style)
   if (resolvedRadius !== undefined) {
-    imageStyles.push({ borderRadius: resolvedRadius } as Style);
+    imageStyles.push({ borderRadius: resolvedRadius } as Style)
   }
   if (variant === "bordered") {
-    imageStyles.push(styles.imageBordered);
+    imageStyles.push(styles.imageBordered)
   }
   if (style) {
-    imageStyles.push(style);
+    imageStyles.push(style)
   }
 
   const content = (
@@ -187,7 +179,7 @@ export const PdfImage = ({
       <Image src={src} style={imageStyles} />
       {caption ? <PDFText style={styles.caption}>{caption}</PDFText> : null}
     </View>
-  );
+  )
 
   return noWrap ? (
     <View style={[{ breakInside: "avoid" as const }].filter(Boolean)}>
@@ -195,5 +187,5 @@ export const PdfImage = ({
     </View>
   ) : (
     content
-  );
-};
+  )
+}

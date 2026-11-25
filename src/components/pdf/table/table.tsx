@@ -1,36 +1,30 @@
-import { Children, cloneElement, isValidElement } from "react";
-import type { ReactElement, ReactNode } from "react";
+import { Children, cloneElement, isValidElement } from "react"
+import type { ReactElement, ReactNode } from "react"
 
-import {
-  usePdfcnTheme,
-  useSafeMemo,
-} from "@/components/pdf/theme-provider";
-import {
-  View,
-  Text as PDFText,
-} from "@/lib/pdf-primitives";
-import type { Style } from "@/lib/pdf-primitives";
+import { usePdfcnTheme, useSafeMemo } from "@/components/pdf/theme-provider"
+import { View, Text as PDFText } from "@/lib/pdf-primitives"
+import type { Style } from "@/lib/pdf-primitives"
 
-import { createTableStyles } from "./table.styles";
+import { createTableStyles } from "./table.styles"
 import type {
   TableCellProps,
   TableProps,
   TableRowProps,
   TableSectionProps,
   TableVariant,
-} from "./table.types";
+} from "./table.types"
 
 export const TableHeader = ({ children, style }: TableSectionProps) => (
   <View style={style}>{children}</View>
-);
+)
 
 export const TableBody = ({ children, style }: TableSectionProps) => (
   <View style={style}>{children}</View>
-);
+)
 
 export const TableFooter = ({ children, style }: TableSectionProps) => (
   <View style={style}>{children}</View>
-);
+)
 
 export const TableCell = ({
   header,
@@ -42,12 +36,10 @@ export const TableCell = ({
   variant = "line",
   _last,
 }: TableCellProps) => {
-  const theme = usePdfcnTheme();
-  const styles = useSafeMemo(() => createTableStyles(theme), [theme]);
+  const theme = usePdfcnTheme()
+  const styles = useSafeMemo(() => createTableStyles(theme), [theme])
   const cellStyles: Style[] =
-    width === undefined
-      ? [styles.cell]
-      : [styles.cellFixed, { width } as Style];
+    width === undefined ? [styles.cell] : [styles.cellFixed, { width } as Style]
 
   const cellVariantStyle = (
     {
@@ -57,24 +49,24 @@ export const TableCell = ({
       "primary-header": styles.cellPrimaryHeader,
       striped: styles.cellStriped,
     } as Partial<Record<TableVariant, Style>>
-  )[variant];
+  )[variant]
   if (cellVariantStyle) {
-    cellStyles.push(cellVariantStyle);
+    cellStyles.push(cellVariantStyle)
   }
 
   if (variant === "grid" && !_last) {
-    cellStyles.push(styles.cellGridBorder);
+    cellStyles.push(styles.cellGridBorder)
   } else if (variant === "bordered" && !_last) {
-    cellStyles.push(styles.cellBorderedBorder);
+    cellStyles.push(styles.cellBorderedBorder)
   }
 
   if (align) {
-    cellStyles.push({ textAlign: align } as Style);
+    cellStyles.push({ textAlign: align } as Style)
   }
 
-  const styleArray = style ? [...cellStyles, style] : cellStyles;
+  const styleArray = style ? [...cellStyles, style] : cellStyles
 
-  let textStyle: Style = styles.cellText;
+  let textStyle: Style = styles.cellText
   if (header) {
     textStyle = {
       bordered: styles.cellTextHeaderBordered,
@@ -84,11 +76,11 @@ export const TableCell = ({
       minimal: styles.cellTextHeaderMinimal,
       "primary-header": styles.cellTextHeaderPrimaryHeader,
       striped: styles.cellTextHeaderStriped,
-    }[variant];
+    }[variant]
   } else if (footer) {
-    textStyle = styles.cellTextFooter;
+    textStyle = styles.cellTextFooter
   } else if (variant === "compact") {
-    textStyle = styles.cellTextCompact;
+    textStyle = styles.cellTextCompact
   }
 
   const content =
@@ -104,10 +96,10 @@ export const TableCell = ({
       </PDFText>
     ) : (
       children
-    );
+    )
 
-  return <View style={styleArray}>{content}</View>;
-};
+  return <View style={styleArray}>{content}</View>
+}
 
 export const TableRow = ({
   header,
@@ -117,8 +109,8 @@ export const TableRow = ({
   style,
   variant = "line",
 }: TableRowProps) => {
-  const theme = usePdfcnTheme();
-  const styles = useSafeMemo(() => createTableStyles(theme), [theme]);
+  const theme = usePdfcnTheme()
+  const styles = useSafeMemo(() => createTableStyles(theme), [theme])
   const rowStyles: Style[] = [
     styles.row,
     {
@@ -130,7 +122,7 @@ export const TableRow = ({
       "primary-header": styles.rowPrimaryHeader,
       striped: styles.rowStriped,
     }[variant],
-  ];
+  ]
 
   if (header) {
     rowStyles.push(
@@ -143,23 +135,23 @@ export const TableRow = ({
         "primary-header": styles.rowHeaderPrimaryHeader,
         striped: styles.rowHeaderStriped,
       }[variant]
-    );
+    )
   }
 
   if (footer) {
     if (variant === "striped") {
-      rowStyles.push(styles.rowFooterStriped);
+      rowStyles.push(styles.rowFooterStriped)
     } else {
-      rowStyles.push(styles.rowFooter);
+      rowStyles.push(styles.rowFooter)
     }
   }
 
   if (stripe && !header && !footer) {
-    rowStyles.push(styles.rowStripe);
+    rowStyles.push(styles.rowStripe)
   }
 
-  const styleArray = style ? [...rowStyles, style] : rowStyles;
-  const childArray = Children.toArray(children);
+  const styleArray = style ? [...rowStyles, style] : rowStyles
+  const childArray = Children.toArray(children)
   const processedChildren = childArray.map((child, i) => {
     if (isValidElement(child) && child.type === TableCell) {
       return cloneElement(child as ReactElement<TableCellProps>, {
@@ -167,10 +159,10 @@ export const TableRow = ({
         footer,
         header,
         variant,
-      });
+      })
     }
-    return child;
-  });
+    return child
+  })
 
   return (
     <View
@@ -180,19 +172,19 @@ export const TableRow = ({
     >
       {processedChildren}
     </View>
-  );
-};
+  )
+}
 
 const processTableChildren = (
   children: ReactNode,
   variant: TableVariant,
   zebraStripe: boolean
 ): ReactNode => {
-  let bodyRowIndex = 0;
+  let bodyRowIndex = 0
 
   return Children.map(children, (child) => {
     if (!isValidElement(child)) {
-      return child;
+      return child
     }
 
     if (
@@ -200,41 +192,41 @@ const processTableChildren = (
       child.type === TableBody ||
       child.type === TableFooter
     ) {
-      const isBody = child.type === TableBody;
-      const sectionChild = child as ReactElement<TableSectionProps>;
+      const isBody = child.type === TableBody
+      const sectionChild = child as ReactElement<TableSectionProps>
       const sectionChildren = Children.map(
         sectionChild.props.children,
         (rowChild) => {
           if (isValidElement(rowChild) && rowChild.type === TableRow) {
-            const rowProps: Partial<TableRowProps> = { variant };
+            const rowProps: Partial<TableRowProps> = { variant }
 
             if (isBody && zebraStripe) {
-              const isStripe = bodyRowIndex % 2 === 1;
-              bodyRowIndex += 1;
+              const isStripe = bodyRowIndex % 2 === 1
+              bodyRowIndex += 1
               if (isStripe) {
-                rowProps.stripe = true;
+                rowProps.stripe = true
               }
             }
 
             return cloneElement(
               rowChild as ReactElement<TableRowProps>,
               rowProps
-            );
+            )
           }
-          return rowChild;
+          return rowChild
         }
-      );
+      )
 
-      return cloneElement(child, {}, sectionChildren);
+      return cloneElement(child, {}, sectionChildren)
     }
 
     if (child.type === TableRow) {
-      return cloneElement(child as ReactElement<TableRowProps>, { variant });
+      return cloneElement(child as ReactElement<TableRowProps>, { variant })
     }
 
-    return child;
-  });
-};
+    return child
+  })
+}
 
 export const Table = ({
   children,
@@ -243,10 +235,10 @@ export const Table = ({
   zebraStripe = false,
   noWrap = false,
 }: TableProps) => {
-  const theme = usePdfcnTheme();
-  const styles = useSafeMemo(() => createTableStyles(theme), [theme]);
-  const tableStyles: Style[] = [styles.table];
-  const effectiveZebra = variant === "striped" ? true : zebraStripe;
+  const theme = usePdfcnTheme()
+  const styles = useSafeMemo(() => createTableStyles(theme), [theme])
+  const tableStyles: Style[] = [styles.table]
+  const effectiveZebra = variant === "striped" ? true : zebraStripe
 
   tableStyles.push(
     {
@@ -258,21 +250,21 @@ export const Table = ({
       "primary-header": styles.tablePrimaryHeader,
       striped: styles.tableStriped,
     }[variant]
-  );
+  )
 
-  const styleArray = style ? [...tableStyles, style] : tableStyles;
+  const styleArray = style ? [...tableStyles, style] : tableStyles
   const processedChildren = processTableChildren(
     children,
     variant,
     effectiveZebra
-  );
+  )
 
-  const inner = <View style={styleArray}>{processedChildren}</View>;
+  const inner = <View style={styleArray}>{processedChildren}</View>
   return noWrap ? (
     <View style={[{ breakInside: "avoid" as const }].filter(Boolean)}>
       {inner}
     </View>
   ) : (
     inner
-  );
-};
+  )
+}

@@ -1,7 +1,7 @@
-import { signedBalance } from './balances'
-import type { Account, Category, Transaction } from './api'
-import { NON_SPEND } from './categories'
-import { addDays, isoDate } from './format'
+import { signedBalance } from "./balances"
+import type { Account, Category, Transaction } from "./api"
+import { NON_SPEND } from "./categories"
+import { addDays, isoDate } from "./format"
 
 export const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -12,7 +12,12 @@ export const isSpend = (t: Transaction) => !NON_SPEND.has(t.category)
  * End-of-day combined balance for each day from `from` to today, reconstructed backwards from
  * today's balances: balance(d) = balance(today) − Σ posted amounts after d.
  */
-export function balanceSeries(accounts: Account[], txs: Transaction[], from: string, includeOverdraft = false) {
+export function balanceSeries(
+  accounts: Account[],
+  txs: Transaction[],
+  from: string,
+  includeOverdraft = false
+) {
   const ids = new Set(accounts.map((a) => a.id))
   const byDate = new Map<string, number>()
   let earliest = isoDate()
@@ -41,7 +46,7 @@ export function lastMonths(n: number) {
   const keys: string[] = []
   for (let i = n - 1; i >= 0; i--) {
     const m = new Date(d.getFullYear(), d.getMonth() - i, 1)
-    keys.push(`${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`)
+    keys.push(`${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, "0")}`)
   }
   return keys
 }
@@ -52,12 +57,14 @@ export function lastMonths(n: number) {
  * cancel the charge they undo instead of inflating both sides). Transfers are ignored.
  */
 export function monthlyCashflow(txs: Transaction[], months: string[]) {
-  const map = new Map(months.map((m) => [m, { month: m, in: 0, spent: 0, debt: 0 }]))
+  const map = new Map(
+    months.map((m) => [m, { month: m, in: 0, spent: 0, debt: 0 }])
+  )
   for (const t of txs) {
     const row = map.get(monthKey(t.date))
     if (!row) continue
-    if (t.category === 'income') row.in += t.amount
-    else if (t.category === 'debt') row.debt -= t.amount
+    if (t.category === "income") row.in += t.amount
+    else if (t.category === "debt") row.debt -= t.amount
     else if (isSpend(t)) row.spent -= t.amount
   }
   return [...map.values()].map((r) => {
@@ -82,16 +89,35 @@ export function spendByCategory(txs: Transaction[]) {
     map.set(t.category, row)
   }
   return [...map.entries()]
-    .map(([category, r]) => ({ category, total: round2(r.total), count: r.count }))
+    .map(([category, r]) => ({
+      category,
+      total: round2(r.total),
+      count: r.count,
+    }))
     .filter((r) => r.total > 0)
     .sort((a, b) => b.total - a.total)
 }
 
 export function topMerchants(txs: Transaction[], limit = 8) {
-  const map = new Map<string, { merchant: string; merchantKey: string; category: Category; total: number; count: number }>()
+  const map = new Map<
+    string,
+    {
+      merchant: string
+      merchantKey: string
+      category: Category
+      total: number
+      count: number
+    }
+  >()
   for (const t of txs) {
     if (!isSpend(t) || t.amount >= 0) continue
-    const row = map.get(t.merchantKey) ?? { merchant: t.merchant, merchantKey: t.merchantKey, category: t.category, total: 0, count: 0 }
+    const row = map.get(t.merchantKey) ?? {
+      merchant: t.merchant,
+      merchantKey: t.merchantKey,
+      category: t.category,
+      total: 0,
+      count: 0,
+    }
     row.total -= t.amount
     row.count++
     map.set(t.merchantKey, row)
@@ -103,22 +129,42 @@ export function topMerchants(txs: Transaction[], limit = 8) {
 }
 
 export function totalSpent(txs: Transaction[]) {
-  return round2(Math.max(0, txs.reduce((s, t) => (isSpend(t) ? s - t.amount : s), 0)))
+  return round2(
+    Math.max(
+      0,
+      txs.reduce((s, t) => (isSpend(t) ? s - t.amount : s), 0)
+    )
+  )
 }
 
 /** Net income: pay and other money in, less any reversal of it. */
 export function totalIncome(txs: Transaction[]) {
-  return round2(Math.max(0, txs.reduce((s, t) => (t.category === 'income' ? s + t.amount : s), 0)))
+  return round2(
+    Math.max(
+      0,
+      txs.reduce((s, t) => (t.category === "income" ? s + t.amount : s), 0)
+    )
+  )
 }
 
 /** Net loan & debt repayments (money out to lenders, less any money in from them). */
 export function totalDebtPaid(txs: Transaction[]) {
-  return round2(Math.max(0, txs.reduce((s, t) => (t.category === 'debt' ? s - t.amount : s), 0)))
+  return round2(
+    Math.max(
+      0,
+      txs.reduce((s, t) => (t.category === "debt" ? s - t.amount : s), 0)
+    )
+  )
 }
 
 /** Spending still pending (card holds that haven't posted yet). */
 export function pendingSpent(txs: Transaction[]) {
-  return round2(Math.max(0, txs.reduce((s, t) => (t.pending && isSpend(t) ? s - t.amount : s), 0)))
+  return round2(
+    Math.max(
+      0,
+      txs.reduce((s, t) => (t.pending && isSpend(t) ? s - t.amount : s), 0)
+    )
+  )
 }
 
 /** Only transactions on accounts in `accounts` (e.g. CAD ones, so currencies aren't summed together). */
@@ -132,14 +178,20 @@ export function startOfMonth(d = new Date()) {
 }
 
 /** CSV with a UTF-8 BOM so Excel opens accents correctly. */
-export function downloadCsv(filename: string, rows: (string | number | null | undefined)[][]) {
+export function downloadCsv(
+  filename: string,
+  rows: (string | number | null | undefined)[][]
+) {
   const esc = (v: string | number | null | undefined) => {
-    const s = v === null || v === undefined ? '' : String(v)
+    const s = v === null || v === undefined ? "" : String(v)
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
-  const blob = new Blob([`﻿${rows.map((r) => r.map(esc).join(',')).join('\n')}`], { type: 'text/csv;charset=utf-8' })
+  const blob = new Blob(
+    [`﻿${rows.map((r) => r.map(esc).join(",")).join("\n")}`],
+    { type: "text/csv;charset=utf-8" }
+  )
   const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
+  const a = document.createElement("a")
   a.href = url
   a.download = filename
   a.click()

@@ -1,11 +1,15 @@
-import { CalendarDays, X } from 'lucide-react'
-import { useState } from 'react'
-import type { Matcher } from 'react-day-picker'
-import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { formatDate, isoDate, parseIso } from '@/lib/format'
-import { cn } from '@/lib/utils'
+import { CalendarDays, X } from "lucide-react"
+import { useState } from "react"
+import type { Matcher } from "react-day-picker"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { formatDate, isoDate, parseIso } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/
 
@@ -19,10 +23,10 @@ export function DatePicker({
   onChange,
   min,
   max,
-  placeholder = 'Pick a date',
+  placeholder = "Pick a date",
   clearable,
   className,
-  'aria-label': ariaLabel,
+  "aria-label": ariaLabel,
 }: {
   id?: string
   value: string
@@ -33,7 +37,7 @@ export function DatePicker({
   /** Shows an × that empties the field. */
   clearable?: boolean
   className?: string
-  'aria-label'?: string
+  "aria-label"?: string
 }) {
   const [open, setOpen] = useState(false)
   const selected = ISO.test(value) ? parseIso(value) : undefined
@@ -43,7 +47,7 @@ export function DatePicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <div className={cn('relative', className)}>
+      <div className={cn("relative", className)}>
         <PopoverTrigger
           render={
             <Button
@@ -52,21 +56,23 @@ export function DatePicker({
               variant="outline"
               aria-label={ariaLabel}
               className={cn(
-                'w-full justify-start px-2.5 font-normal tabular-nums',
-                !selected && 'text-muted-foreground',
-                clearable && selected && 'pr-8',
+                "w-full justify-start px-2.5 font-normal tabular-nums",
+                !selected && "text-muted-foreground",
+                clearable && selected && "pr-8"
               )}
             />
           }
         >
           <CalendarDays className="text-muted-foreground" />
-          <span className="truncate">{selected ? formatDate(value) : placeholder}</span>
+          <span className="truncate">
+            {selected ? formatDate(value) : placeholder}
+          </span>
         </PopoverTrigger>
         {clearable && selected && (
           <button
             type="button"
             aria-label="Clear date"
-            onClick={() => onChange('')}
+            onClick={() => onChange("")}
             className="absolute top-1/2 right-1.5 grid size-5 -translate-y-1/2 place-items-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <X className="size-3.5" />
@@ -77,7 +83,9 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={selected}
-          defaultMonth={selected ?? (max && ISO.test(max) ? parseIso(max) : undefined)}
+          defaultMonth={
+            selected ?? (max && ISO.test(max) ? parseIso(max) : undefined)
+          }
           disabled={disabled}
           onSelect={(d) => {
             if (!d) return

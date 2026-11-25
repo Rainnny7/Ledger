@@ -7,7 +7,10 @@ import { XIcon } from "lucide-react"
 
 // Scroll locking hides the page scrollbar (Base UI sets overflow: hidden on <html>), so overlays
 // trap focus without locking scroll; popups use overscroll-contain so their own scrolling doesn't leak.
-function Dialog({ modal = "trap-focus", ...props }: DialogPrimitive.Root.Props) {
+function Dialog({
+  modal = "trap-focus",
+  ...props
+}: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" modal={modal} {...props} />
 }
 
@@ -70,8 +73,7 @@ function DialogContent({
               />
             }
           >
-            <XIcon
-            />
+            <XIcon />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}

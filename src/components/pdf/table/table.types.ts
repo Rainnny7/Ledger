@@ -1,4 +1,4 @@
-import type { PDFComponentProps } from "@/types/pdf-components";
+import type { PDFComponentProps } from "@/types/pdf-components"
 
 /** Table visual style variant. */
 export type TableVariant =
@@ -8,7 +8,7 @@ export type TableVariant =
   | "striped"
   | "compact"
   | "bordered"
-  | "primary-header";
+  | "primary-header"
 
 /**
  * Table container with visual style variants and optional zebra striping.
@@ -19,18 +19,18 @@ export interface TableProps extends PDFComponentProps {
   /**
    * @default 'line'
    */
-  variant?: TableVariant;
+  variant?: TableVariant
   /**
    * @default false
    */
-  zebraStripe?: boolean;
+  zebraStripe?: boolean
   /**
    * @default false
    */
-  noWrap?: boolean;
+  noWrap?: boolean
 }
 
-export type TableSectionProps = PDFComponentProps;
+export type TableSectionProps = PDFComponentProps
 
 /**
  * Table row with optional header, footer, and stripe states.
@@ -38,10 +38,10 @@ export type TableSectionProps = PDFComponentProps;
  * @see {@link TableRowProps}
  */
 export interface TableRowProps extends PDFComponentProps {
-  header?: boolean;
-  footer?: boolean;
-  stripe?: boolean;
-  variant?: TableVariant;
+  header?: boolean
+  footer?: boolean
+  stripe?: boolean
+  variant?: TableVariant
 }
 
 /**
@@ -50,10 +50,10 @@ export interface TableRowProps extends PDFComponentProps {
  * @see {@link TableCellProps}
  */
 export interface TableCellProps extends PDFComponentProps {
-  header?: boolean;
-  footer?: boolean;
-  align?: "left" | "center" | "right";
-  width?: string | number;
-  variant?: TableVariant;
-  _last?: boolean;
+  header?: boolean
+  footer?: boolean
+  align?: "left" | "center" | "right"
+  width?: string | number
+  variant?: TableVariant
+  _last?: boolean
 }

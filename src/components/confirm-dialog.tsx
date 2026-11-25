@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useState, useSyncExternalStore } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,7 +8,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+} from "@/components/ui/alert-dialog"
 
 export interface ConfirmOptions {
   title: string
@@ -52,23 +52,32 @@ export function ConfirmHost() {
       listeners.add(l)
       return () => listeners.delete(l)
     },
-    () => pending,
+    () => pending
   )
   // Keep showing the last request while the dialog animates closed.
   const [shown, setShown] = useState<ConfirmOptions | null>(null)
   if (current && current !== shown) setShown(current)
 
   return (
-    <AlertDialog open={!!current} onOpenChange={(open) => !open && settle(false)}>
+    <AlertDialog
+      open={!!current}
+      onOpenChange={(open) => !open && settle(false)}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{shown?.title}</AlertDialogTitle>
-          {shown?.description && <AlertDialogDescription>{shown.description}</AlertDialogDescription>}
+          {shown?.description && (
+            <AlertDialogDescription>{shown.description}</AlertDialogDescription>
+          )}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction variant={shown?.destructive ? 'destructive' : 'default'} onClick={() => settle(true)} autoFocus>
-            {shown?.action ?? 'Continue'}
+          <AlertDialogAction
+            variant={shown?.destructive ? "destructive" : "default"}
+            onClick={() => settle(true)}
+            autoFocus
+          >
+            {shown?.action ?? "Continue"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

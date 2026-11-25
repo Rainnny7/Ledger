@@ -1,45 +1,80 @@
-import { ArrowDownLeft, ArrowUpRight, BriefcaseBusiness, Download, FileSpreadsheet, Loader2, Tags, X } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
-import { toast } from 'sonner'
-import { confirmDialog } from '@/components/confirm-dialog'
-import { RANGES, type RangeKey, rangeStart } from '@/components/range-picker'
-import { TransactionSheet } from '@/components/transaction-sheet'
-import { TransactionsTable } from '@/components/transactions-table'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { SearchInput } from '@/components/search-input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { api, type Category, type TaxTag, type Transaction } from '@/lib/api'
-import { CATEGORY_LIST, CATEGORY_META, TAX_TAG_LIST, TAX_TAG_META } from '@/lib/categories'
-import { inHomeCurrency, useConverter } from '@/lib/currency'
-import { demoMode } from '@/lib/demo'
-import { downloadCsv } from '@/lib/finance'
-import { formatMoney, formatShortDate } from '@/lib/format'
-import { useOverview, useTransactions } from '@/lib/queries'
-import { useIntent, useUrlState } from '@/lib/url-state'
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  BriefcaseBusiness,
+  Download,
+  FileSpreadsheet,
+  Loader2,
+  Tags,
+  X,
+} from "lucide-react"
+import { useMemo, useRef, useState } from "react"
+import { Link, useSearchParams } from "react-router"
+import { toast } from "sonner"
+import { confirmDialog } from "@/components/confirm-dialog"
+import { RANGES, type RangeKey, rangeStart } from "@/components/range-picker"
+import { TransactionSheet } from "@/components/transaction-sheet"
+import { TransactionsTable } from "@/components/transactions-table"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { SearchInput } from "@/components/search-input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { api, type Category, type TaxTag, type Transaction } from "@/lib/api"
+import {
+  CATEGORY_LIST,
+  CATEGORY_META,
+  TAX_TAG_LIST,
+  TAX_TAG_META,
+} from "@/lib/categories"
+import { inHomeCurrency, useConverter } from "@/lib/currency"
+import { demoMode } from "@/lib/demo"
+import { downloadCsv } from "@/lib/finance"
+import { formatMoney, formatShortDate } from "@/lib/format"
+import { useOverview, useTransactions } from "@/lib/queries"
+import { useIntent, useUrlState } from "@/lib/url-state"
 
-type Flow = 'all' | 'in' | 'out'
-type TagFilter = 'all' | TaxTag | 'untagged'
+type Flow = "all" | "in" | "out"
+type TagFilter = "all" | TaxTag | "untagged"
 const PAGE = 100
 
 const periodItems: { value: RangeKey; label: string }[] = [
-  { value: '30d', label: 'Last 30 days' },
-  { value: '90d', label: 'Last 90 days' },
-  { value: '6m', label: 'Last 6 months' },
-  { value: '1y', label: 'Last year' },
-  { value: 'all', label: 'All time' },
+  { value: "30d", label: "Last 30 days" },
+  { value: "90d", label: "Last 90 days" },
+  { value: "6m", label: "Last 6 months" },
+  { value: "1y", label: "Last year" },
+  { value: "all", label: "All time" },
 ]
-const categoryItems = [{ value: 'all', label: 'All categories' }, ...CATEGORY_LIST.map((c) => ({ value: c, label: CATEGORY_META[c].label }))]
+const categoryItems = [
+  { value: "all", label: "All categories" },
+  ...CATEGORY_LIST.map((c) => ({ value: c, label: CATEGORY_META[c].label })),
+]
 const tagItems: { value: TagFilter; label: string }[] = [
-  { value: 'all', label: 'Any tax tag' },
+  { value: "all", label: "Any tax tag" },
   ...TAX_TAG_LIST.map((t) => ({ value: t, label: TAX_TAG_META[t].label })),
-  { value: 'untagged', label: 'Untagged' },
+  { value: "untagged", label: "Untagged" },
 ]
-const retagItems = [...TAX_TAG_LIST.map((t) => ({ value: t, label: TAX_TAG_META[t].label })), { value: 'none', label: 'Remove tag' }]
-const recategorizeItems = [{ value: 'auto', label: 'Automatic' }, ...CATEGORY_LIST.map((c) => ({ value: c, label: CATEGORY_META[c].label }))]
+const retagItems = [
+  ...TAX_TAG_LIST.map((t) => ({ value: t, label: TAX_TAG_META[t].label })),
+  { value: "none", label: "Remove tag" },
+]
+const recategorizeItems = [
+  { value: "auto", label: "Automatic" },
+  ...CATEGORY_LIST.map((c) => ({ value: c, label: CATEGORY_META[c].label })),
+]
 
 /** Every transaction on every account, searchable, with bulk recategorizing. */
 export function TransactionsPage() {
@@ -47,21 +82,40 @@ export function TransactionsPage() {
   const txq = useTransactions(null)
   const converter = useConverter()
 
-  const [query, setQuery] = useUrlState<string>('q', '')
-  const [accountId, setAccountId] = useUrlState<string>('account', 'all')
-  const [category, setCategory] = useUrlState<Category | 'all'>('category', 'all', ['all', ...CATEGORY_LIST])
-  const [flow, setFlow] = useUrlState<Flow>('flow', 'all', ['all', 'in', 'out'])
-  const [period, setPeriod] = useUrlState<RangeKey>('period', '90d', Object.keys(RANGES) as RangeKey[])
-  const [tag, setTag] = useUrlState<TagFilter>('tag', 'all', ['all', ...TAX_TAG_LIST, 'untagged'])
+  const [query, setQuery] = useUrlState<string>("q", "")
+  const [accountId, setAccountId] = useUrlState<string>("account", "all")
+  const [category, setCategory] = useUrlState<Category | "all">(
+    "category",
+    "all",
+    ["all", ...CATEGORY_LIST]
+  )
+  const [flow, setFlow] = useUrlState<Flow>("flow", "all", ["all", "in", "out"])
+  const [period, setPeriod] = useUrlState<RangeKey>(
+    "period",
+    "90d",
+    Object.keys(RANGES) as RangeKey[]
+  )
+  const [tag, setTag] = useUrlState<TagFilter>("tag", "all", [
+    "all",
+    ...TAX_TAG_LIST,
+    "untagged",
+  ])
   // Links from elsewhere (the Advisor) can narrow to a few merchants and an exact start date.
   const [params, setParams] = useSearchParams()
-  const merchantsParam = params.get('merchants') ?? ''
-  const merchantKeys = useMemo(() => new Set(merchantsParam.split(',').filter(Boolean)), [merchantsParam])
-  const sinceParam = params.get('from')
-  const since = sinceParam && /^\d{4}-\d{2}-\d{2}$/.test(sinceParam) ? sinceParam : null
+  const merchantsParam = params.get("merchants") ?? ""
+  const merchantKeys = useMemo(
+    () => new Set(merchantsParam.split(",").filter(Boolean)),
+    [merchantsParam]
+  )
+  const sinceParam = params.get("from")
+  const since =
+    sinceParam && /^\d{4}-\d{2}-\d{2}$/.test(sinceParam) ? sinceParam : null
   // The tax report links to one year: `from` and `to` together.
-  const untilParam = params.get('to')
-  const until = since && untilParam && /^\d{4}-\d{2}-\d{2}$/.test(untilParam) ? untilParam : null
+  const untilParam = params.get("to")
+  const until =
+    since && untilParam && /^\d{4}-\d{2}-\d{2}$/.test(untilParam)
+      ? untilParam
+      : null
   /** Several filters change at once in one URL update (separate setters would each start from the old URL). */
   const updateParams = (edit: (p: URLSearchParams) => void) =>
     setParams(
@@ -70,7 +124,7 @@ export function TransactionsPage() {
         edit(out)
         return out
       },
-      { replace: true, preventScrollReset: true },
+      { replace: true, preventScrollReset: true }
     )
   const [limit, setLimit] = useState(PAGE)
   const [selected, setSelected] = useState<Transaction | null>(null)
@@ -80,7 +134,13 @@ export function TransactionsPage() {
 
   const accounts = useMemo(() => overview.data?.accounts ?? [], [overview.data])
   const transactions = useMemo(() => txq.data?.transactions ?? [], [txq.data])
-  const accountItems = useMemo(() => [{ value: 'all', label: 'All accounts' }, ...accounts.map((a) => ({ value: a.id, label: a.name }))], [accounts])
+  const accountItems = useMemo(
+    () => [
+      { value: "all", label: "All accounts" },
+      ...accounts.map((a) => ({ value: a.id, label: a.name })),
+    ],
+    [accounts]
+  )
 
   const from = since ?? rangeStart(period)
   const filtered = useMemo(() => {
@@ -89,18 +149,29 @@ export function TransactionsPage() {
       (t) =>
         (!from || t.date >= from) &&
         (!until || t.date <= until) &&
-        (tag === 'all' || (tag === 'untagged' ? !t.taxTag : t.taxTag === tag)) &&
-        (accountId === 'all' || t.accountId === accountId) &&
-        (flow === 'all' || (flow === 'in' ? t.amount > 0 : t.amount < 0)) &&
-        (category === 'all' || t.category === category) &&
+        (tag === "all" ||
+          (tag === "untagged" ? !t.taxTag : t.taxTag === tag)) &&
+        (accountId === "all" || t.accountId === accountId) &&
+        (flow === "all" || (flow === "in" ? t.amount > 0 : t.amount < 0)) &&
+        (category === "all" || t.category === category) &&
         (merchantKeys.size === 0 || merchantKeys.has(t.merchantKey)) &&
         (!q ||
           t.description.toLowerCase().includes(q) ||
           t.merchant.toLowerCase().includes(q) ||
-          (t.note ?? '').toLowerCase().includes(q) ||
-          Math.abs(t.amount).toFixed(2).includes(q)),
+          (t.note ?? "").toLowerCase().includes(q) ||
+          Math.abs(t.amount).toFixed(2).includes(q))
     )
-  }, [transactions, query, accountId, flow, category, from, until, tag, merchantKeys])
+  }, [
+    transactions,
+    query,
+    accountId,
+    flow,
+    category,
+    from,
+    until,
+    tag,
+    merchantKeys,
+  ])
 
   // Totals add up across currencies in the home currency.
   const totals = useMemo(() => {
@@ -117,14 +188,27 @@ export function TransactionsPage() {
   const shown = filtered.slice(0, limit)
   const pickedShown = shown.filter((t) => picked.has(t.id))
   const allShownPicked = shown.length > 0 && pickedShown.length === shown.length
-  const filtersOn = query || accountId !== 'all' || category !== 'all' || flow !== 'all' || tag !== 'all' || merchantKeys.size > 0 || since
+  const filtersOn =
+    query ||
+    accountId !== "all" ||
+    category !== "all" ||
+    flow !== "all" ||
+    tag !== "all" ||
+    merchantKeys.size > 0 ||
+    since
   const merchantNames = useMemo(() => {
     const names = new Map<string, string>()
-    for (const t of transactions) if (merchantKeys.has(t.merchantKey) && !names.has(t.merchantKey)) names.set(t.merchantKey, t.merchant)
+    for (const t of transactions)
+      if (merchantKeys.has(t.merchantKey) && !names.has(t.merchantKey))
+        names.set(t.merchantKey, t.merchant)
     return [...names.values()]
   }, [transactions, merchantKeys])
-  const sinceLabel = until ? `${formatShortDate(since!)} – ${formatShortDate(until)}` : `Since ${formatShortDate(since ?? '')}`
-  const periodOptions = since ? [{ value: 'since', label: sinceLabel }, ...periodItems] : periodItems
+  const sinceLabel = until
+    ? `${formatShortDate(since!)} – ${formatShortDate(until)}`
+    : `Since ${formatShortDate(since ?? "")}`
+  const periodOptions = since
+    ? [{ value: "since", label: sinceLabel }, ...periodItems]
+    : periodItems
 
   function changed() {
     setLimit(PAGE)
@@ -137,7 +221,9 @@ export function TransactionsPage() {
     setPicked((cur) => {
       const next = new Set(cur)
       const on = !cur.has(t.id)
-      const a = lastPicked.current ? shown.findIndex((x) => x.id === lastPicked.current) : -1
+      const a = lastPicked.current
+        ? shown.findIndex((x) => x.id === lastPicked.current)
+        : -1
       const b = shown.findIndex((x) => x.id === t.id)
       if (range && a >= 0 && b >= 0) {
         for (const x of shown.slice(Math.min(a, b), Math.max(a, b) + 1)) {
@@ -152,19 +238,31 @@ export function TransactionsPage() {
   }
 
   async function recategorize(value: string) {
-    if (demoMode) return toast.error('Demo mode is read-only. Exit demo mode to make changes.')
+    if (demoMode)
+      return toast.error(
+        "Demo mode is read-only. Exit demo mode to make changes."
+      )
     const ids = [...picked]
-    const label = value === 'auto' ? 'automatic' : CATEGORY_META[value as Category].label
+    const label =
+      value === "auto" ? "automatic" : CATEGORY_META[value as Category].label
     if (
       ids.length > 25 &&
-      !(await confirmDialog({ title: `Recategorize ${ids.length} transactions?`, description: `They’ll all be filed under ${label}.`, action: 'Recategorize' }))
+      !(await confirmDialog({
+        title: `Recategorize ${ids.length} transactions?`,
+        description: `They’ll all be filed under ${label}.`,
+        action: "Recategorize",
+      }))
     ) {
       return
     }
     setApplying(true)
     try {
-      const { updated } = await api.updateTransactions(ids, { category: value === 'auto' ? null : (value as Category) })
-      toast.success(`${updated} transaction${updated === 1 ? '' : 's'} filed under ${label}`)
+      const { updated } = await api.updateTransactions(ids, {
+        category: value === "auto" ? null : (value as Category),
+      })
+      toast.success(
+        `${updated} transaction${updated === 1 ? "" : "s"} filed under ${label}`
+      )
       setPicked(new Set())
     } catch (err) {
       toast.error((err as Error).message)
@@ -174,16 +272,19 @@ export function TransactionsPage() {
   }
 
   async function retag(value: string) {
-    if (demoMode) return toast.error('Demo mode is read-only. Exit demo mode to make changes.')
+    if (demoMode)
+      return toast.error(
+        "Demo mode is read-only. Exit demo mode to make changes."
+      )
     const ids = [...picked]
-    const taxTag = value === 'none' ? null : (value as TaxTag)
+    const taxTag = value === "none" ? null : (value as TaxTag)
     setApplying(true)
     try {
       const { updated } = await api.updateTransactions(ids, { taxTag })
       toast.success(
         taxTag
-          ? `${updated} transaction${updated === 1 ? '' : 's'} tagged ${TAX_TAG_META[taxTag].label.toLowerCase()}`
-          : `Tag removed from ${updated} transaction${updated === 1 ? '' : 's'}`,
+          ? `${updated} transaction${updated === 1 ? "" : "s"} tagged ${TAX_TAG_META[taxTag].label.toLowerCase()}`
+          : `Tag removed from ${updated} transaction${updated === 1 ? "" : "s"}`
       )
       setPicked(new Set())
     } catch (err) {
@@ -195,29 +296,40 @@ export function TransactionsPage() {
 
   // From the command palette: open one transaction, or download what's shown.
   useIntent(
-    'tx',
+    "tx",
     (id) => {
       const t = transactions.find((x) => x.id === id)
       if (t) setSelected(t)
     },
-    !!txq.data,
+    !!txq.data
   )
-  useIntent('export', () => exportCsv(), !!txq.data && !!overview.data)
+  useIntent("export", () => exportCsv(), !!txq.data && !!overview.data)
 
   function exportCsv() {
     const byId = new Map(accounts.map((a) => [a.id, a]))
-    downloadCsv('transactions.csv', [
-      ['Date', 'Account', 'Merchant', 'Description', 'Category', 'Tax tag', 'Amount', 'Currency', 'Pending', 'Note'],
+    downloadCsv("transactions.csv", [
+      [
+        "Date",
+        "Account",
+        "Merchant",
+        "Description",
+        "Category",
+        "Tax tag",
+        "Amount",
+        "Currency",
+        "Pending",
+        "Note",
+      ],
       ...filtered.map((t) => [
         t.date,
         byId.get(t.accountId)?.name,
         t.merchant,
         t.description,
         CATEGORY_META[t.category].label,
-        t.taxTag ? TAX_TAG_META[t.taxTag].label : '',
+        t.taxTag ? TAX_TAG_META[t.taxTag].label : "",
         t.amount.toFixed(2),
         byId.get(t.accountId)?.currency,
-        t.pending ? 'yes' : '',
+        t.pending ? "yes" : "",
         t.note,
       ]),
     ])
@@ -230,39 +342,64 @@ export function TransactionsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
         <p className="text-sm text-muted-foreground">
-          Everything across your accounts. Tick a few to file them under one category, or tag them business or personal for{' '}
-          <Link to="/taxes" className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline">
+          Everything across your accounts. Tick a few to file them under one
+          category, or tag them business or personal for{" "}
+          <Link
+            to="/taxes"
+            className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+          >
             <FileSpreadsheet className="size-3.5" /> your tax report
           </Link>
           .
         </p>
       </div>
 
-      {txq.error && <p className="text-sm text-destructive">{txq.error.message}</p>}
+      {txq.error && (
+        <p className="text-sm text-destructive">{txq.error.message}</p>
+      )}
 
       <Card className="gap-0 pb-0">
         <CardHeader className="gap-4 pb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <CardTitle>{loading ? 'Loading…' : `${filtered.length.toLocaleString()} transactions`}</CardTitle>
+              <CardTitle>
+                {loading
+                  ? "Loading…"
+                  : `${filtered.length.toLocaleString()} transactions`}
+              </CardTitle>
               <CardDescription>
-                {loading ? ' ' : `of ${transactions.length.toLocaleString()}`}
+                {loading ? " " : `of ${transactions.length.toLocaleString()}`}
                 {totals.mixed && ` · totals in ${converter.home}`}
               </CardDescription>
             </div>
             <div className="flex items-center gap-4 text-sm">
               <span className="flex items-center gap-1 text-emerald-600 tabular-nums dark:text-emerald-400">
-                <ArrowDownLeft className="size-4" /> {formatMoney(totals.moneyIn)}
+                <ArrowDownLeft className="size-4" />{" "}
+                {formatMoney(totals.moneyIn)}
               </span>
               <span className="flex items-center gap-1 text-muted-foreground tabular-nums">
-                <ArrowUpRight className="size-4" /> {formatMoney(totals.moneyOut)}
+                <ArrowUpRight className="size-4" />{" "}
+                {formatMoney(totals.moneyOut)}
               </span>
               {totals.moneyIn > 0 && totals.moneyOut > 0 && (
-                <span className="font-medium tabular-nums" title="Money in minus money out, so refunds cancel the charges they undo">
-                  Net {formatMoney(totals.moneyIn - totals.moneyOut, converter.home, { sign: true })}
+                <span
+                  className="font-medium tabular-nums"
+                  title="Money in minus money out, so refunds cancel the charges they undo"
+                >
+                  Net{" "}
+                  {formatMoney(
+                    totals.moneyIn - totals.moneyOut,
+                    converter.home,
+                    { sign: true }
+                  )}
                 </span>
               )}
-              <Button variant="outline" size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportCsv}
+                disabled={filtered.length === 0}
+              >
                 <Download /> CSV
               </Button>
             </div>
@@ -276,21 +413,46 @@ export function TransactionsPage() {
                 changed()
               }}
             />
-            <FilterSelect items={accountItems} value={accountId} onChange={(v) => (setAccountId(v), changed())} className="w-44" />
+            <FilterSelect
+              items={accountItems}
+              value={accountId}
+              onChange={(v) => (setAccountId(v), changed())}
+              className="w-44"
+            />
             <FilterSelect
               items={periodOptions}
-              value={since ? 'since' : period}
+              value={since ? "since" : period}
               onChange={(v) => {
-                if (v === 'since') return
-                if (since) updateParams((p) => (p.delete('from'), p.delete('to'), v === '90d' ? p.delete('period') : p.set('period', v)))
+                if (v === "since") return
+                if (since)
+                  updateParams(
+                    (p) => (
+                      p.delete("from"),
+                      p.delete("to"),
+                      v === "90d" ? p.delete("period") : p.set("period", v)
+                    )
+                  )
                 else setPeriod(v as RangeKey)
                 changed()
               }}
               className="w-36"
             />
-            <FilterSelect items={categoryItems} value={category} onChange={(v) => (setCategory(v as Category | 'all'), changed())} className="w-44" />
-            <FilterSelect items={tagItems} value={tag} onChange={(v) => (setTag(v as TagFilter), changed())} className="w-36" />
-            <Tabs value={flow} onValueChange={(v) => (setFlow(v as Flow), changed())}>
+            <FilterSelect
+              items={categoryItems}
+              value={category}
+              onChange={(v) => (setCategory(v as Category | "all"), changed())}
+              className="w-44"
+            />
+            <FilterSelect
+              items={tagItems}
+              value={tag}
+              onChange={(v) => (setTag(v as TagFilter), changed())}
+              className="w-36"
+            />
+            <Tabs
+              value={flow}
+              onValueChange={(v) => (setFlow(v as Flow), changed())}
+            >
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="in">In</TabsTrigger>
@@ -303,7 +465,17 @@ export function TransactionsPage() {
                 size="sm"
                 onClick={() => {
                   updateParams((p) => {
-                    for (const k of ['q', 'account', 'category', 'flow', 'tag', 'merchants', 'from', 'to']) p.delete(k)
+                    for (const k of [
+                      "q",
+                      "account",
+                      "category",
+                      "flow",
+                      "tag",
+                      "merchants",
+                      "from",
+                      "to",
+                    ])
+                      p.delete(k)
                   })
                   changed()
                 }}
@@ -316,13 +488,18 @@ export function TransactionsPage() {
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="text-muted-foreground">Only</span>
               <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 py-0.5 pr-1 pl-2.5">
-                {merchantNames.length <= 3 ? merchantNames.join(', ') : `${merchantNames.slice(0, 2).join(', ')} and ${merchantNames.length - 2} more`}
+                {merchantNames.length <= 3
+                  ? merchantNames.join(", ")
+                  : `${merchantNames.slice(0, 2).join(", ")} and ${merchantNames.length - 2} more`}
                 <Button
                   variant="ghost"
                   size="icon-xs"
                   className="rounded-full"
                   aria-label="Show every merchant"
-                  onClick={() => (updateParams((p) => p.delete('merchants')), changed())}
+                  onClick={() => (
+                    updateParams((p) => p.delete("merchants")),
+                    changed()
+                  )}
                 >
                   <X />
                 </Button>
@@ -334,16 +511,36 @@ export function TransactionsPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setPicked(allShownPicked ? new Set() : new Set(shown.map((t) => t.id)))}
+                onClick={() =>
+                  setPicked(
+                    allShownPicked ? new Set() : new Set(shown.map((t) => t.id))
+                  )
+                }
               >
-                {allShownPicked ? 'Select none' : `Select ${shown.length === filtered.length ? 'all' : `these ${shown.length}`}`}
+                {allShownPicked
+                  ? "Select none"
+                  : `Select ${shown.length === filtered.length ? "all" : `these ${shown.length}`}`}
               </Button>
               {picked.size > 0 && (
                 <>
-                  <span className="text-muted-foreground">{picked.size} selected</span>
-                  <Select items={recategorizeItems} value={null} onValueChange={(v) => v && void recategorize(v as string)}>
-                    <SelectTrigger size="sm" className="w-48" disabled={applying}>
-                      {applying ? <Loader2 className="animate-spin" /> : <Tags />}
+                  <span className="text-muted-foreground">
+                    {picked.size} selected
+                  </span>
+                  <Select
+                    items={recategorizeItems}
+                    value={null}
+                    onValueChange={(v) => v && void recategorize(v as string)}
+                  >
+                    <SelectTrigger
+                      size="sm"
+                      className="w-48"
+                      disabled={applying}
+                    >
+                      {applying ? (
+                        <Loader2 className="animate-spin" />
+                      ) : (
+                        <Tags />
+                      )}
                       <SelectValue placeholder="Change category…" />
                     </SelectTrigger>
                     <SelectContent>
@@ -354,8 +551,16 @@ export function TransactionsPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select items={retagItems} value={null} onValueChange={(v) => v && void retag(v as string)}>
-                    <SelectTrigger size="sm" className="w-44" disabled={applying}>
+                  <Select
+                    items={retagItems}
+                    value={null}
+                    onValueChange={(v) => v && void retag(v as string)}
+                  >
+                    <SelectTrigger
+                      size="sm"
+                      className="w-44"
+                      disabled={applying}
+                    >
                       <BriefcaseBusiness />
                       <SelectValue placeholder="Tag for taxes…" />
                     </SelectTrigger>
@@ -381,7 +586,9 @@ export function TransactionsPage() {
             </div>
           ) : filtered.length === 0 ? (
             <p className="px-4 py-12 text-center text-sm text-muted-foreground">
-              {transactions.length === 0 ? 'No transactions yet. Connect a bank to see them here.' : 'No transactions match.'}
+              {transactions.length === 0
+                ? "No transactions yet. Connect a bank to see them here."
+                : "No transactions match."}
             </p>
           ) : (
             <TransactionsTable
@@ -394,7 +601,11 @@ export function TransactionsPage() {
           )}
           {filtered.length > limit && (
             <div className="border-t p-3 text-center">
-              <Button variant="ghost" size="sm" onClick={() => setLimit((l) => l + PAGE)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLimit((l) => l + PAGE)}
+              >
                 Show {Math.min(PAGE, filtered.length - limit)} more
               </Button>
             </div>
@@ -426,7 +637,11 @@ function FilterSelect({
   className?: string
 }) {
   return (
-    <Select items={items} value={value} onValueChange={(v) => v && onChange(v as string)}>
+    <Select
+      items={items}
+      value={value}
+      onValueChange={(v) => v && onChange(v as string)}
+    >
       <SelectTrigger className={className}>
         <SelectValue />
       </SelectTrigger>

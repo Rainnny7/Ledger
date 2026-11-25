@@ -1,28 +1,39 @@
-import { LinkMenuItems } from "@/components/app-context-menu";
-import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Brand } from "@/components/brand";
-import { CommandPalette, openCommandPalette } from "@/components/command-palette";
-import { BriefcaseBusinessIcon } from "@/components/icons/briefcase-business";
-import { CalculatorIcon } from "@/components/icons/calculator";
-import { ChartPieIcon } from "@/components/icons/chart-pie";
-import { FileTextIcon } from "@/components/icons/file-text";
-import { LogoutIcon } from "@/components/icons/logout";
-import { ReceiptIcon } from "@/components/icons/receipt";
-import { RefreshCWIcon } from "@/components/icons/refresh-cw";
-import { LightbulbIcon } from "@/components/icons/lightbulb";
-import { RocketIcon } from "@/components/icons/rocket";
-import { SettingsIcon } from "@/components/icons/settings";
-import { ShieldCheckIcon } from "@/components/icons/shield-check";
+import { LinkMenuItems } from "@/components/app-context-menu"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { Brand } from "@/components/brand"
+import {
+  CommandPalette,
+  openCommandPalette,
+} from "@/components/command-palette"
+import { BriefcaseBusinessIcon } from "@/components/icons/briefcase-business"
+import { CalculatorIcon } from "@/components/icons/calculator"
+import { ChartPieIcon } from "@/components/icons/chart-pie"
+import { FileTextIcon } from "@/components/icons/file-text"
+import { LogoutIcon } from "@/components/icons/logout"
+import { ReceiptIcon } from "@/components/icons/receipt"
+import { RefreshCWIcon } from "@/components/icons/refresh-cw"
+import { LightbulbIcon } from "@/components/icons/lightbulb"
+import { RocketIcon } from "@/components/icons/rocket"
+import { SettingsIcon } from "@/components/icons/settings"
+import { ShieldCheckIcon } from "@/components/icons/shield-check"
 import {
   type AnimatedIconHandle,
   useAnimatedIcon,
-} from "@/components/icons/use-animated-icon";
-import { UsersIcon } from "@/components/icons/users";
-import { WalletIcon } from "@/components/icons/wallet";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from "@/components/icons/use-animated-icon"
+import { UsersIcon } from "@/components/icons/users"
+import { WalletIcon } from "@/components/icons/wallet"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +47,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu"
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -44,15 +55,21 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import { useAdvice } from "@/components/advisor-bits";
-import { api } from "@/lib/api";
-import { authClient, signOut, useSession } from "@/lib/auth-client";
-import { detectCurrency, savedCurrency, useHomeCurrency } from "@/lib/currency";
-import { DEMO_IDENTITY, demoMode, setDemoMode } from "@/lib/demo";
-import { setDisplayCurrency } from "@/lib/format";
-import { usePageTitle } from "@/lib/page-title";
-import { THEMES, type ThemeChoice, themeMeta, useAccountTheme, useAppTheme } from "@/lib/theme";
+} from "@/components/ui/navigation-menu"
+import { useAdvice } from "@/components/advisor-bits"
+import { api } from "@/lib/api"
+import { authClient, signOut, useSession } from "@/lib/auth-client"
+import { detectCurrency, savedCurrency, useHomeCurrency } from "@/lib/currency"
+import { DEMO_IDENTITY, demoMode, setDemoMode } from "@/lib/demo"
+import { setDisplayCurrency } from "@/lib/format"
+import { usePageTitle } from "@/lib/page-title"
+import {
+  THEMES,
+  type ThemeChoice,
+  themeMeta,
+  useAccountTheme,
+  useAppTheme,
+} from "@/lib/theme"
 import {
   queryClient,
   queryKeys,
@@ -60,46 +77,46 @@ import {
   useOverview,
   useSubscriptions,
   useWork,
-} from "@/lib/queries";
-import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { Monitor, MonitorPlay, Palette, Search, X } from "lucide-react";
+} from "@/lib/queries"
+import { cn } from "@/lib/utils"
+import { useQuery } from "@tanstack/react-query"
+import { Monitor, MonitorPlay, Palette, Search, X } from "lucide-react"
 import {
   type ForwardRefExoticComponent,
   type RefAttributes,
   useEffect,
   useLayoutEffect,
   useRef,
-} from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
+} from "react"
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router"
 
 /** Clicking a link to the page you're already on takes you back to its top. */
 function scrollUpIfHere(to: string, pathname: string) {
-  if (to === pathname) window.scrollTo({ top: 0, behavior: "smooth" });
+  if (to === pathname) window.scrollTo({ top: 0, behavior: "smooth" })
 }
 
 /** Every new page starts at the top (the browser would otherwise keep, or restore, the old scroll). */
 function useScrollTopOnPageChange(pathname: string) {
   useEffect(() => {
-    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-  }, []);
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual"
+  }, [])
   useLayoutEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+    window.scrollTo(0, 0)
+  }, [pathname])
 }
 
 type AnimatedIcon = ForwardRefExoticComponent<
   { size?: number; className?: string } & RefAttributes<AnimatedIconHandle>
->;
+>
 
 type NavEntry = {
-  to: string;
-  label: string;
-  icon: AnimatedIcon;
-  count?: "accounts" | "subscriptions" | "goals" | "work" | "advice";
+  to: string
+  label: string
+  icon: AnimatedIcon
+  count?: "accounts" | "subscriptions" | "goals" | "work" | "advice"
   /** One line under the label in a grouped menu. */
-  description?: string;
-};
+  description?: string
+}
 
 /** The everyday pages, always in the bar. */
 const NAV: NavEntry[] = [
@@ -114,7 +131,7 @@ const NAV: NavEntry[] = [
   },
   { to: "/goals", label: "Goals", icon: RocketIcon, count: "goals" },
   { to: "/advisor", label: "Advisor", icon: LightbulbIcon, count: "advice" },
-];
+]
 
 /** Freelance and paperwork pages, folded into one "Business" menu to keep the bar short. */
 const BUSINESS_NAV: NavEntry[] = [
@@ -137,26 +154,42 @@ const BUSINESS_NAV: NavEntry[] = [
     icon: CalculatorIcon,
     description: "Income and deductions, ready for your accountant",
   },
-];
+]
 
-const ALL_NAV = [...NAV, ...BUSINESS_NAV];
+const ALL_NAV = [...NAV, ...BUSINESS_NAV]
 
 /** The shared look of a top-level nav entry, link or menu trigger. */
 const navEntryClass = (active: boolean) =>
   cn(
-    "flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm sm:gap-2 sm:px-2.5 font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-    active && "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
-  );
+    "flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:gap-2 sm:px-2.5",
+    active &&
+      "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+  )
 
-function NavCount({ count, active }: { count: number; active: boolean }) {
+function NavCount({
+  count,
+  active,
+  alert,
+}: {
+  count: number
+  active: boolean
+  /** Something here needs you (a bank waiting on a sign-in): the badge turns red. */
+  alert?: boolean
+}) {
   return (
     <Badge
       variant={active ? "default" : "secondary"}
-      className="h-4.5 min-w-4.5 px-1 text-[10px] tabular-nums"
+      className={cn(
+        "h-4.5 min-w-4.5 px-1 text-[10px] tabular-nums",
+        alert && "relative bg-destructive text-white"
+      )}
     >
+      {alert && (
+        <span className="absolute -top-0.5 -right-0.5 size-1.5 animate-ping rounded-full bg-destructive" />
+      )}
       {count}
     </Badge>
-  );
+  )
 }
 
 /** A nav link whose icon plays its animation when the link is hovered or focused. */
@@ -166,21 +199,26 @@ function NavItem({
   icon: Icon,
   count,
   active,
+  alert,
 }: {
-  to: string;
-  label: string;
-  icon: AnimatedIcon;
-  count: number | null;
-  active: boolean;
+  to: string
+  label: string
+  icon: AnimatedIcon
+  count: number | null
+  active: boolean
+  alert?: string | null
 }) {
-  const icon = useAnimatedIcon<HTMLAnchorElement>();
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const icon = useAnimatedIcon<HTMLAnchorElement>()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
   const link = (
     <NavLink
       to={to}
       onClick={() => scrollUpIfHere(to, pathname)}
-      aria-label={count !== null ? `${label} (${count})` : label}
+      aria-label={
+        (count !== null ? `${label} (${count})` : label) +
+        (alert ? `: ${alert}` : "")
+      }
       aria-current={active ? "page" : undefined}
       data-nav-active={active || undefined}
       {...icon.handlers}
@@ -191,23 +229,32 @@ function NavItem({
       <span className={cn("hidden lg:inline", active && "sm:inline")}>
         {label}
       </span>
-      {count !== null && <NavCount count={count} active={active} />}
+      {count !== null && (
+        <NavCount count={count} active={active} alert={Boolean(alert)} />
+      )}
     </NavLink>
-  );
+  )
   // The link is the trigger for both its right-click menu and, while it shows only an icon, a tooltip.
   return (
     <Tooltip>
       <ContextMenu>
         <ContextMenuTrigger render={<TooltipTrigger render={link} />} />
         <ContextMenuContent className="w-52">
-          <LinkMenuItems to={to} label={`Go to ${label}`} onOpen={() => void navigate(to)} />
+          <LinkMenuItems
+            to={to}
+            label={`Go to ${label}`}
+            onOpen={() => void navigate(to)}
+          />
         </ContextMenuContent>
       </ContextMenu>
-      <TooltipContent side="bottom" className={cn("lg:hidden", active && "sm:hidden")}>
-        {label}
+      <TooltipContent
+        side="bottom"
+        className={cn(!alert && "lg:hidden", !alert && active && "sm:hidden")}
+      >
+        {alert ?? label}
       </TooltipContent>
     </Tooltip>
-  );
+  )
 }
 
 /** One page in a grouped nav menu: icon, name and a line about it. */
@@ -216,13 +263,13 @@ function NavGroupLink({
   count,
   active,
 }: {
-  item: NavEntry;
-  count: number | null;
-  active: boolean;
+  item: NavEntry
+  count: number | null
+  active: boolean
 }) {
-  const { icon: Icon } = item;
-  const icon = useAnimatedIcon<HTMLAnchorElement>();
-  const { pathname } = useLocation();
+  const { icon: Icon } = item
+  const icon = useAnimatedIcon<HTMLAnchorElement>()
+  const { pathname } = useLocation()
   return (
     <NavigationMenuLink
       closeOnClick
@@ -237,13 +284,13 @@ function NavGroupLink({
       }
       className={cn(
         "items-start gap-3 p-2.5",
-        active && "bg-primary/10 hover:bg-primary/15 focus:bg-primary/15",
+        active && "bg-primary/10 hover:bg-primary/15 focus:bg-primary/15"
       )}
     >
       <span
         className={cn(
           "mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground",
-          active && "bg-primary/15 text-primary",
+          active && "bg-primary/15 text-primary"
         )}
       >
         <Icon ref={icon.ref} size={16} className="flex" />
@@ -252,7 +299,7 @@ function NavGroupLink({
         <span
           className={cn(
             "flex items-center gap-2 font-medium",
-            active && "text-primary",
+            active && "text-primary"
           )}
         >
           {item.label}
@@ -263,7 +310,7 @@ function NavGroupLink({
         </span>
       </span>
     </NavigationMenuLink>
-  );
+  )
 }
 
 /**
@@ -277,20 +324,20 @@ function NavGroup({
   counts,
   pathname,
 }: {
-  label: string;
-  icon: AnimatedIcon;
-  items: NavEntry[];
-  counts: ReturnType<typeof useNavCounts>;
-  pathname: string;
+  label: string
+  icon: AnimatedIcon
+  items: NavEntry[]
+  counts: ReturnType<typeof useNavCounts>
+  pathname: string
 }) {
-  const icon = useAnimatedIcon<HTMLButtonElement>();
-  const current = items.find((i) => pathname.startsWith(i.to));
-  const active = Boolean(current);
-  const ShownIcon = current?.icon ?? Icon;
-  const counted = items.filter((i) => i.count);
+  const icon = useAnimatedIcon<HTMLButtonElement>()
+  const current = items.find((i) => pathname.startsWith(i.to))
+  const active = Boolean(current)
+  const ShownIcon = current?.icon ?? Icon
+  const counted = items.filter((i) => i.count)
   const total = counted.length
     ? counted.reduce((s, i) => s + (counts[i.count!] ?? 0), 0)
-    : null;
+    : null
   return (
     <NavigationMenu render={<div />} className="max-w-none flex-none">
       <NavigationMenuList>
@@ -303,7 +350,7 @@ function NavGroup({
               navEntryClass(active),
               "w-auto py-0 focus:bg-transparent data-popup-open:bg-muted data-popup-open:text-foreground",
               active &&
-                "focus:bg-primary/10 data-popup-open:bg-primary/15 data-popup-open:text-primary",
+                "focus:bg-primary/10 data-popup-open:bg-primary/15 data-popup-open:text-primary"
             )}
           >
             <ShownIcon ref={icon.ref} size={16} className="flex shrink-0" />
@@ -328,7 +375,7 @@ function NavGroup({
         </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
-  );
+  )
 }
 
 /**
@@ -339,57 +386,57 @@ function ScrollNav({
   pathname,
   children,
 }: {
-  pathname: string;
-  children: React.ReactNode;
+  pathname: string
+  children: React.ReactNode
 }) {
-  const ref = useRef<HTMLElement>(null);
+  const ref = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    const nav = ref.current;
-    if (!nav) return;
+    const nav = ref.current
+    if (!nav) return
     const update = () => {
-      const max = nav.scrollWidth - nav.clientWidth;
-      nav.style.setProperty("--fade-l", nav.scrollLeft > 1 ? "1.5rem" : "0px");
+      const max = nav.scrollWidth - nav.clientWidth
+      nav.style.setProperty("--fade-l", nav.scrollLeft > 1 ? "1.5rem" : "0px")
       nav.style.setProperty(
         "--fade-r",
-        nav.scrollLeft < max - 1 ? "1.5rem" : "0px",
-      );
-    };
-    update();
-    nav.addEventListener("scroll", update, { passive: true });
-    const observer = new ResizeObserver(update);
-    observer.observe(nav);
-    for (const child of Array.from(nav.children)) observer.observe(child);
+        nav.scrollLeft < max - 1 ? "1.5rem" : "0px"
+      )
+    }
+    update()
+    nav.addEventListener("scroll", update, { passive: true })
+    const observer = new ResizeObserver(update)
+    observer.observe(nav)
+    for (const child of Array.from(nav.children)) observer.observe(child)
     return () => {
-      nav.removeEventListener("scroll", update);
-      observer.disconnect();
-    };
-  }, []);
+      nav.removeEventListener("scroll", update)
+      observer.disconnect()
+    }
+  }, [])
 
   // Bring the current page's link into view, without moving the page itself.
   useEffect(() => {
-    const nav = ref.current;
-    const link = nav?.querySelector<HTMLElement>("[data-nav-active]");
-    if (!nav || !link) return;
-    const pad = 24;
-    const left = link.offsetLeft;
-    const right = left + link.offsetWidth;
+    const nav = ref.current
+    const link = nav?.querySelector<HTMLElement>("[data-nav-active]")
+    if (!nav || !link) return
+    const pad = 24
+    const left = link.offsetLeft
+    const right = left + link.offsetWidth
     if (left - pad < nav.scrollLeft) {
-      nav.scrollTo({ left: left - pad, behavior: "smooth" });
+      nav.scrollTo({ left: left - pad, behavior: "smooth" })
     } else if (right + pad > nav.scrollLeft + nav.clientWidth) {
-      nav.scrollTo({ left: right + pad - nav.clientWidth, behavior: "smooth" });
+      nav.scrollTo({ left: right + pad - nav.clientWidth, behavior: "smooth" })
     }
-  }, [pathname]);
+  }, [pathname])
 
   return (
     <nav
       ref={ref}
       aria-label="Main"
-      className="relative flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [--fade-l:0px] [--fade-r:0px] [mask-image:linear-gradient(to_right,transparent,#000_var(--fade-l),#000_calc(100%-var(--fade-r)),transparent)] sm:gap-1 [&::-webkit-scrollbar]:hidden"
+      className="relative flex min-w-0 flex-1 [scrollbar-width:none] items-center gap-0.5 overflow-x-auto [mask-image:linear-gradient(to_right,transparent,#000_var(--fade-l),#000_calc(100%-var(--fade-r)),transparent)] [--fade-l:0px] [--fade-r:0px] sm:gap-1 [&::-webkit-scrollbar]:hidden"
     >
       {children}
     </nav>
-  );
+  )
 }
 
 /** A menu item with an animated icon that plays while the item is highlighted. */
@@ -398,11 +445,11 @@ function MenuItem({
   children,
   onClick,
 }: {
-  icon: AnimatedIcon;
-  children: React.ReactNode;
-  onClick: () => void;
+  icon: AnimatedIcon
+  children: React.ReactNode
+  onClick: () => void
 }) {
-  const icon = useAnimatedIcon();
+  const icon = useAnimatedIcon()
   return (
     <DropdownMenuItem
       onClick={onClick}
@@ -411,16 +458,23 @@ function MenuItem({
     >
       <Icon ref={icon.ref} size={16} className="flex shrink-0" /> {children}
     </DropdownMenuItem>
-  );
+  )
 }
+
+const attentionLabel = (n: number) =>
+  n === 0
+    ? null
+    : n === 1
+      ? "A bank needs you to sign in"
+      : `${n} banks need you to sign in`
 
 /** Number of linked accounts, active subscriptions, open goals and jobs, for the nav badges (shares the pages' cache). */
 function useNavCounts() {
-  const overview = useOverview().data;
-  const subs = useSubscriptions().data;
-  const goals = useGoals().data;
-  const work = useWork().data;
-  const advice = useAdvice();
+  const overview = useOverview().data
+  const subs = useSubscriptions().data
+  const goals = useGoals().data
+  const work = useWork().data
+  const advice = useAdvice()
   return {
     advice: advice.report ? advice.tips.length : null,
     work: work ? work.jobs.filter((j) => !j.archived).length : null,
@@ -428,10 +482,17 @@ function useNavCounts() {
       ? goals.goals.filter((g) => !g.archived && g.status !== "done").length
       : null,
     accounts: overview ? overview.accounts.length : null,
+    /** Banks whose auto-refresh is stuck on a two-factor prompt or an error. */
+    accountsAlert: overview
+      ? attentionLabel(
+          overview.connections.filter((c) => c.lastError || c.needsSignIn)
+            .length
+        )
+      : null,
     subscriptions: subs
       ? subs.subscriptions.filter((s) => s.active).length
       : null,
-  };
+  }
 }
 
 /** Section names for the tab title, beyond the nav's own labels. */
@@ -440,35 +501,35 @@ const EXTRA_TITLES: Record<string, string> = {
   "/settings": "Settings",
   "/admin": "Admin",
   "/contacts": "Contacts",
-};
+}
 
 /** The browser tab title for where you are: "Bank Accounts | Ledger", "TD Chequing | Ledger"… */
 function useRouteTitle(pathname: string) {
-  const overview = useOverview().data;
-  const accountId = pathname.match(/^\/accounts\/([^/]+)/)?.[1];
-  const invoiceId = pathname.match(/^\/invoices\/([^/]+)$/)?.[1];
-  const editingInvoice = invoiceId && invoiceId !== "new" ? invoiceId : null;
+  const overview = useOverview().data
+  const accountId = pathname.match(/^\/accounts\/([^/]+)/)?.[1]
+  const invoiceId = pathname.match(/^\/invoices\/([^/]+)$/)?.[1]
+  const editingInvoice = invoiceId && invoiceId !== "new" ? invoiceId : null
   // Only subscribes to the invoices cache on an invoice's own page (the editor loads it anyway).
   const invoices = useQuery({
     queryKey: queryKeys.invoices,
     queryFn: api.invoices,
     enabled: !!editingInvoice,
-  }).data;
+  }).data
 
-  let title: string | null = EXTRA_TITLES[pathname] ?? null;
+  let title: string | null = EXTRA_TITLES[pathname] ?? null
   if (!title && accountId) {
-    const account = overview?.accounts.find((a) => a.id === accountId);
-    title = account ? account.name : "Bank Accounts";
+    const account = overview?.accounts.find((a) => a.id === accountId)
+    title = account ? account.name : "Bank Accounts"
   } else if (!title && editingInvoice) {
-    const invoice = invoices?.invoices.find((i) => i.id === editingInvoice);
-    title = invoice ? `Invoice ${invoice.number}` : "Invoices";
+    const invoice = invoices?.invoices.find((i) => i.id === editingInvoice)
+    title = invoice ? `Invoice ${invoice.number}` : "Invoices"
   } else if (!title) {
     title =
       ALL_NAV.find((n) =>
-        n.to === "/" ? pathname === "/" : pathname.startsWith(n.to),
-      )?.label ?? null;
+        n.to === "/" ? pathname === "/" : pathname.startsWith(n.to)
+      )?.label ?? null
   }
-  usePageTitle(title);
+  usePageTitle(title)
 }
 
 /**
@@ -476,19 +537,23 @@ function useRouteTitle(pathname: string) {
  * an admin) don't have one yet: the first sign-in saves the guess from this device's time zone.
  */
 function useHomeCurrencySetup(user: { id: string } | undefined) {
-  const home = useHomeCurrency();
+  const home = useHomeCurrency()
   // Set during render so pages below format their totals in it on this same pass.
-  setDisplayCurrency(home);
-  const needsSaving = Boolean(user) && !savedCurrency(user) && !demoMode;
+  setDisplayCurrency(home)
+  const needsSaving = Boolean(user) && !savedCurrency(user) && !demoMode
   useEffect(() => {
-    if (!needsSaving) return;
-    authClient.updateUser({ currency: detectCurrency() }).catch(() => {});
-  }, [needsSaving]);
+    if (!needsSaving) return
+    authClient.updateUser({ currency: detectCurrency() }).catch(() => {})
+  }, [needsSaving])
 }
 
 /** Theme picker in the account menu: follow the device, or one of the themes. */
-function ThemeMenu({ origin }: { origin: React.RefObject<HTMLElement | null> }) {
-  const { choice, resolved, change } = useAppTheme();
+function ThemeMenu({
+  origin,
+}: {
+  origin: React.RefObject<HTMLElement | null>
+}) {
+  const { choice, resolved, change } = useAppTheme()
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger>
@@ -514,49 +579,52 @@ function ThemeMenu({ origin }: { origin: React.RefObject<HTMLElement | null> }) 
         </DropdownMenuRadioGroup>
       </DropdownMenuSubContent>
     </DropdownMenuSub>
-  );
+  )
 }
 
 /** A small round preview of a theme: its background, split with its accent colour. */
 function ThemeSwatch({ id, className }: { id: string; className?: string }) {
-  const [bg, , accent] = themeMeta(id)!.swatch;
+  const [bg, , accent] = themeMeta(id)!.swatch
   return (
     <span
       aria-hidden
       className={cn(
         "relative size-4 shrink-0 overflow-hidden rounded-full ring-1 ring-foreground/15",
-        className,
+        className
       )}
       style={{ background: bg }}
     >
-      <span className="absolute inset-y-0 right-0 w-1/2" style={{ background: accent }} />
+      <span
+        className="absolute inset-y-0 right-0 w-1/2"
+        style={{ background: accent }}
+      />
     </span>
-  );
+  )
 }
 
 export function AppShell() {
-  const { data } = useSession();
-  useHomeCurrencySetup(data?.user);
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const counts = useNavCounts();
-  useRouteTitle(pathname);
-  useScrollTopOnPageChange(pathname);
-  useAccountTheme();
-  const accountButton = useRef<HTMLButtonElement>(null);
-  const user = demoMode ? DEMO_IDENTITY : data?.user;
-  const isAdmin = data?.user.role === "admin";
+  const { data } = useSession()
+  useHomeCurrencySetup(data?.user)
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const counts = useNavCounts()
+  useRouteTitle(pathname)
+  useScrollTopOnPageChange(pathname)
+  useAccountTheme()
+  const accountButton = useRef<HTMLButtonElement>(null)
+  const user = demoMode ? DEMO_IDENTITY : data?.user
+  const isAdmin = data?.user.role === "admin"
   const initials = (user?.name || user?.email || "?")
     .split(/\s+/)
     .map((p) => p[0])
     .slice(0, 2)
     .join("")
-    .toUpperCase();
+    .toUpperCase()
 
   return (
     <div className="min-h-svh bg-muted/40 print:bg-background">
       {demoMode && (
-        <div className="relative z-40 flex items-center justify-center gap-3 bg-primary print:hidden px-4 py-1.5 text-sm text-primary-foreground animate-in slide-in-from-top duration-300">
+        <div className="relative z-40 flex animate-in items-center justify-center gap-3 bg-primary px-4 py-1.5 text-sm text-primary-foreground duration-300 slide-in-from-top print:hidden">
           <MonitorPlay className="size-4 shrink-0" />
           <span className="truncate">
             <span className="font-medium">Demo mode</span>
@@ -575,7 +643,7 @@ export function AppShell() {
           </Button>
         </div>
       )}
-      <header className="sticky top-0 z-30 border-b print:hidden bg-background/80 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur print:hidden">
         <div className="mx-auto flex h-14 max-w-[90rem] items-center gap-2 px-3 sm:gap-4 sm:px-4">
           <Link
             to="/"
@@ -592,6 +660,7 @@ export function AppShell() {
                 {...item}
                 // Counted links always show their badge (0 while loading) so the nav doesn't shift.
                 count={item.count ? (counts[item.count] ?? 0) : null}
+                alert={item.count === "accounts" ? counts.accountsAlert : null}
                 // Account detail pages live under Bank Accounts.
                 active={
                   item.to === "/"
@@ -689,11 +758,11 @@ export function AppShell() {
                 <MenuItem
                   icon={LogoutIcon}
                   onClick={async () => {
-                    await signOut();
-                    if (demoMode) setDemoMode(false);
+                    await signOut()
+                    if (demoMode) setDemoMode(false)
                     // Don't leave this user's data in memory for whoever signs in next.
-                    queryClient.clear();
-                    navigate("/login", { replace: true });
+                    queryClient.clear()
+                    navigate("/login", { replace: true })
                   }}
                 >
                   Sign out
@@ -714,5 +783,5 @@ export function AppShell() {
         </div>
       </main>
     </div>
-  );
+  )
 }

@@ -1,9 +1,6 @@
-import type { CSSProperties, ReactNode, SVGProps } from "react";
+import type { CSSProperties, ReactNode, SVGProps } from "react"
 
-import {
-  normalizeTakumiStyle,
-  pointToCssPixel,
-} from "@/lib/pdf-primitives";
+import { normalizeTakumiStyle, pointToCssPixel } from "@/lib/pdf-primitives"
 
 export const Svg = ({
   children,
@@ -13,8 +10,8 @@ export const Svg = ({
   width,
   ...rest
 }: SVGProps<SVGSVGElement> & { style?: CSSProperties }) => {
-  const numericHeight = typeof height === "number" ? height : undefined;
-  const numericWidth = typeof width === "number" ? width : undefined;
+  const numericHeight = typeof height === "number" ? height : undefined
+  const numericWidth = typeof width === "number" ? width : undefined
 
   return (
     <svg
@@ -39,26 +36,26 @@ export const Svg = ({
     >
       {children}
     </svg>
-  );
-};
+  )
+}
 
-export const Rect = (props: SVGProps<SVGRectElement>) => <rect {...props} />;
+export const Rect = (props: SVGProps<SVGRectElement>) => <rect {...props} />
 export const Circle = (props: SVGProps<SVGCircleElement>) => (
   <circle {...props} />
-);
-export const G = (props: SVGProps<SVGGElement>) => <g {...props} />;
-export const Line = (props: SVGProps<SVGLineElement>) => <line {...props} />;
-export const Path = (props: SVGProps<SVGPathElement>) => <path {...props} />;
+)
+export const G = (props: SVGProps<SVGGElement>) => <g {...props} />
+export const Line = (props: SVGProps<SVGLineElement>) => <line {...props} />
+export const Path = (props: SVGProps<SVGPathElement>) => <path {...props} />
 export const SvgText = ({
   children,
   style,
   ...rest
 }: SVGProps<SVGTextElement> & {
-  children?: ReactNode;
-  style?: CSSProperties;
+  children?: ReactNode
+  style?: CSSProperties
 }) => {
   const { fontFamily, fontSize, fontStyle, fontWeight, ...remainingStyle } =
-    style ?? {};
+    style ?? {}
 
   return (
     <text
@@ -71,5 +68,5 @@ export const SvgText = ({
     >
       {children}
     </text>
-  );
-};
+  )
+}

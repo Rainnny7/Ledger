@@ -1,18 +1,11 @@
-import type { ReactNode } from "react";
+import type { ReactNode } from "react"
 
-import {
-  usePdfcnTheme,
-  useSafeMemo,
-} from "@/components/pdf/theme-provider";
-import {
-  Text as PDFText,
-  StyleSheet,
-  View,
-} from "@/lib/pdf-primitives";
-import type { Style } from "@/lib/pdf-primitives";
-import { resolveColor } from "@/lib/resolve-color";
-import type { PDFComponentProps } from "@/types/pdf-components";
-import type { PdfcnTheme } from "@/types/pdf-themes";
+import { usePdfcnTheme, useSafeMemo } from "@/components/pdf/theme-provider"
+import { Text as PDFText, StyleSheet, View } from "@/lib/pdf-primitives"
+import type { Style } from "@/lib/pdf-primitives"
+import { resolveColor } from "@/lib/resolve-color"
+import type { PDFComponentProps } from "@/types/pdf-components"
+import type { PdfcnTheme } from "@/types/pdf-themes"
 
 export type PageHeaderVariant =
   | "simple"
@@ -21,7 +14,7 @@ export type PageHeaderVariant =
   | "branded"
   | "logo-left"
   | "logo-right"
-  | "two-column";
+  | "two-column"
 
 /**
  * Header row with layout variants, logo support, and optional fixed positioning.
@@ -29,35 +22,35 @@ export type PageHeaderVariant =
  * @see {@link PageHeaderProps}
  */
 export interface PageHeaderProps extends Omit<PDFComponentProps, "children"> {
-  title: string;
-  subtitle?: string;
-  rightText?: string;
-  rightSubText?: string;
+  title: string
+  subtitle?: string
+  rightText?: string
+  rightSubText?: string
   /**
    * @default 'simple'
    */
-  variant?: PageHeaderVariant;
-  background?: string;
-  titleColor?: string;
-  marginBottom?: number;
-  address?: string;
-  phone?: string;
-  email?: string;
-  logo?: ReactNode;
+  variant?: PageHeaderVariant
+  background?: string
+  titleColor?: string
+  marginBottom?: number
+  address?: string
+  phone?: string
+  email?: string
+  logo?: ReactNode
   /**
    * @default false
    */
-  fixed?: boolean;
+  fixed?: boolean
   /**
    * @default true
    */
-  noWrap?: boolean;
+  noWrap?: boolean
 }
 
 const createPageHeaderStyles = (t: PdfcnTheme) => {
-  const { spacing, borderRadius, fontWeights } = t.primitives;
-  const c = t.colors;
-  const { heading, body } = t.typography;
+  const { spacing, borderRadius, fontWeights } = t.primitives
+  const c = t.colors
+  const { heading, body } = t.typography
 
   return StyleSheet.create({
     brandedContainer: {
@@ -234,10 +227,10 @@ const createPageHeaderStyles = (t: PdfcnTheme) => {
       display: "flex",
       flexDirection: "column",
     },
-  });
-};
+  })
+}
 
-type Styles = ReturnType<typeof createPageHeaderStyles>;
+type Styles = ReturnType<typeof createPageHeaderStyles>
 
 const buildContainerStyles = (
   base: Style,
@@ -247,15 +240,15 @@ const buildContainerStyles = (
   style: Style | undefined,
   ...extras: Style[]
 ): Style[] => {
-  const result: Style[] = [base, { marginBottom: mb }, ...extras];
+  const result: Style[] = [base, { marginBottom: mb }, ...extras]
   if (background) {
-    result.push({ backgroundColor: resolveColor(background, theme.colors) });
+    result.push({ backgroundColor: resolveColor(background, theme.colors) })
   }
   if (style) {
-    result.push(style);
+    result.push(style)
   }
-  return result;
-};
+  return result
+}
 
 const buildTitleStyles = (
   base: Style[],
@@ -263,10 +256,10 @@ const buildTitleStyles = (
   theme: PdfcnTheme
 ): Style[] => {
   if (!titleColor) {
-    return base;
+    return base
   }
-  return [...base, { color: resolveColor(titleColor, theme.colors) }];
-};
+  return [...base, { color: resolveColor(titleColor, theme.colors) }]
+}
 
 const renderBranded = (
   styles: Styles,
@@ -284,7 +277,7 @@ const renderBranded = (
       </PDFText>
     )}
   </View>
-);
+)
 
 const renderCentered = (
   styles: Styles,
@@ -302,7 +295,7 @@ const renderCentered = (
       </PDFText>
     )}
   </View>
-);
+)
 
 const renderLogoRight = (
   styles: Styles,
@@ -320,7 +313,7 @@ const renderLogoRight = (
     </View>
     {logo && <View style={styles.logoRightLogoContainer}>{logo}</View>}
   </View>
-);
+)
 
 const renderLogoLeft = (
   styles: Styles,
@@ -348,7 +341,7 @@ const renderLogoLeft = (
       </View>
     )}
   </View>
-);
+)
 
 const renderTwoColumn = (
   styles: Styles,
@@ -374,7 +367,7 @@ const renderTwoColumn = (
       </View>
     )}
   </View>
-);
+)
 
 const renderMinimal = (
   styles: Styles,
@@ -400,7 +393,7 @@ const renderMinimal = (
       </View>
     )}
   </View>
-);
+)
 
 const renderSimple = (
   styles: Styles,
@@ -426,7 +419,7 @@ const renderSimple = (
       </View>
     )}
   </View>
-);
+)
 
 export const PageHeader = ({
   title,
@@ -444,9 +437,9 @@ export const PageHeader = ({
   noWrap = true,
   style,
 }: PageHeaderProps) => {
-  const theme = usePdfcnTheme();
-  const styles = useSafeMemo(() => createPageHeaderStyles(theme), [theme]);
-  const mb = marginBottom ?? theme.spacing.sectionGap;
+  const theme = usePdfcnTheme()
+  const styles = useSafeMemo(() => createPageHeaderStyles(theme), [theme])
+  const mb = marginBottom ?? theme.spacing.sectionGap
 
   const variantRenderers: Record<PageHeaderVariant, () => React.ReactNode> = {
     branded: () =>
@@ -577,7 +570,7 @@ export const PageHeader = ({
         email,
         noWrap
       ),
-  };
+  }
 
-  return variantRenderers[variant]() as React.ReactNode;
-};
+  return variantRenderers[variant]() as React.ReactNode
+}

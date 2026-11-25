@@ -1,33 +1,48 @@
-import { existsSync, readFileSync, rmSync } from 'node:fs'
-import path from 'node:path'
-import { serve } from '@hono/node-server'
-import { serveStatic } from '@hono/node-server/serve-static'
-import { Hono } from 'hono'
-import { bodyLimit } from 'hono/body-limit'
-import { compress } from 'hono/compress'
-import { csrf } from 'hono/csrf'
-import { secureHeaders } from 'hono/secure-headers'
-import type { HttpBindings } from '@hono/node-server'
-import { audit, getOwnerId, migrateAdminTables, recentAudit } from './admin.ts'
-import { auth, CLIENT_IP_HEADER, migrateAuthTables, registrationOpen } from './auth.ts'
-import { migrateAppTables, setSetting } from './db.ts'
-import { DEMO_USER_ID, ensureDemoData, reseedDemoData } from './demo.ts'
-import { DATA_DIR, env } from './env.ts'
-import { banks, STATEMENT_UPLOAD_PATH } from './routes/banks.ts'
-import { finance } from './routes/finance.ts'
-import { invoices, publicInvoices } from './routes/invoices.ts'
-import { handlePaypalWebhook } from './banks/paypal/webhooks.ts'
-import { sharing } from './routes/sharing.ts'
-import { work } from './routes/work.ts'
-import { inTimeZone } from './today.ts'
-import { BACKUP_DIR, hasTask, listBackups, listTasks, runTask, startScheduler } from './tasks.ts'
+import { existsSync, readFileSync, rmSync } from "node:fs"
+import path from "node:path"
+import { serve } from "@hono/node-server"
+import { serveStatic } from "@hono/node-server/serve-static"
+import { Hono } from "hono"
+import { bodyLimit } from "hono/body-limit"
+import { compress } from "hono/compress"
+import { csrf } from "hono/csrf"
+import { secureHeaders } from "hono/secure-headers"
+import type { HttpBindings } from "@hono/node-server"
+import { audit, getOwnerId, migrateAdminTables, recentAudit } from "./admin.ts"
+import {
+  auth,
+  CLIENT_IP_HEADER,
+  migrateAuthTables,
+  registrationOpen,
+} from "./auth.ts"
+import { migrateAppTables, setSetting } from "./db.ts"
+import { DEMO_USER_ID, ensureDemoData, reseedDemoData } from "./demo.ts"
+import { DATA_DIR, env } from "./env.ts"
+import { banks, STATEMENT_UPLOAD_PATH } from "./routes/banks.ts"
+import { finance } from "./routes/finance.ts"
+import { invoices, publicInvoices } from "./routes/invoices.ts"
+import { handlePaypalWebhook } from "./banks/paypal/webhooks.ts"
+import { sharing } from "./routes/sharing.ts"
+import { work } from "./routes/work.ts"
+import { inTimeZone } from "./today.ts"
+import {
+  BACKUP_DIR,
+  hasTask,
+  listBackups,
+  listTasks,
+  runTask,
+  startScheduler,
+} from "./tasks.ts"
 
 await migrateAuthTables()
 migrateAppTables()
 migrateAdminTables()
 removeOldDebugDumps()
 
-type Vars = { Bindings: HttpBindings; Variables: { user: typeof auth.$Infer.Session.user } }
+type Vars = {
+  Bindings: HttpBindings
+  Variables: { user: typeof auth.$Infer.Session.user }
+}
 const app = new Hono<Vars>()
 
 app.use(
@@ -39,172 +54,241 @@ app.use(
       // Tailwind/Base UI set inline style attributes; charts use inline SVG styles.
       styleSrc: ["'self'", "'unsafe-inline'"],
       // Currency flags in the pickers.
-      imgSrc: ["'self'", 'data:', 'blob:', 'https://flagcdn.com'],
+      imgSrc: ["'self'", "data:", "blob:", "https://flagcdn.com"],
       // The PDF preview is a blob: document in a frame.
-      frameSrc: ["'self'", 'blob:'],
-      fontSrc: ["'self'", 'data:'],
+      frameSrc: ["'self'", "blob:"],
+      fontSrc: ["'self'", "data:"],
       connectSrc: ["'self'"],
       frameAncestors: ["'none'"],
       formAction: ["'self'"],
       baseUri: ["'self'"],
       objectSrc: ["'none'"],
     },
-    referrerPolicy: 'same-origin',
-    permissionsPolicy: { camera: [], microphone: [], geolocation: [], payment: [], usb: [] },
-  }),
+    referrerPolicy: "same-origin",
+    permissionsPolicy: {
+      camera: [],
+      microphone: [],
+      geolocation: [],
+      payment: [],
+      usb: [],
+    },
+  })
 )
-app.use('/api/*', compress())
+app.use("/api/*", compress())
 // Every API body is small JSON; refuse anything large before it's parsed. Statement uploads set their own limit.
-const smallBody = bodyLimit({ maxSize: 64 * 1024, onError: (c) => c.json({ error: 'Request too large' }, 413) })
-app.use('/api/*', (c, next) => (c.req.path === STATEMENT_UPLOAD_PATH ? next() : smallBody(c, next)))
+const smallBody = bodyLimit({
+  maxSize: 64 * 1024,
+  onError: (c) => c.json({ error: "Request too large" }, 413),
+})
+app.use("/api/*", (c, next) =>
+  c.req.path === STATEMENT_UPLOAD_PATH ? next() : smallBody(c, next)
+)
 // Rejects cross-site form posts (JSON requests are already blocked by CORS preflight).
-app.use('/api/*', csrf({ origin: env.appUrl }))
+app.use("/api/*", csrf({ origin: env.appUrl }))
 
 /**
  * Who's calling, for rate limits and the Devices list. Behind a reverse proxy set TRUST_PROXY=true
  * and the proxy's X-Forwarded-For is used; otherwise the socket address. A client-sent copy of the
  * header is always replaced, so it can't be used to dodge the sign-in limits.
  */
-app.use('/api/*', async (c, next) => {
-  const forwarded = env.trustProxy ? c.req.header('x-forwarded-for')?.split(',').at(-1)?.trim() : undefined
-  const ip = forwarded || c.env?.incoming?.socket?.remoteAddress || ''
-  c.req.raw.headers.set(CLIENT_IP_HEADER, ip.replace(/^::ffff:/, ''))
+app.use("/api/*", async (c, next) => {
+  const forwarded = env.trustProxy
+    ? c.req.header("x-forwarded-for")?.split(",").at(-1)?.trim()
+    : undefined
+  const ip = forwarded || c.env?.incoming?.socket?.remoteAddress || ""
+  c.req.raw.headers.set(CLIENT_IP_HEADER, ip.replace(/^::ffff:/, ""))
   await next()
 })
 
 /** Signed in on a temporary password: only the change-password screen works until it's replaced. */
-const mustChangePassword = (user: object) => (user as { mustChangePassword?: boolean }).mustChangePassword === true
-const PASSWORD_CHANGE_REQUIRED = { error: 'Choose a new password to continue.', code: 'PASSWORD_CHANGE_REQUIRED' }
+const mustChangePassword = (user: object) =>
+  (user as { mustChangePassword?: boolean }).mustChangePassword === true
+const PASSWORD_CHANGE_REQUIRED = {
+  error: "Choose a new password to continue.",
+  code: "PASSWORD_CHANGE_REQUIRED",
+}
 
-app.get('/api/config', (c) => c.json({ registrationOpen: registrationOpen() }))
+app.get("/api/config", (c) => c.json({ registrationOpen: registrationOpen() }))
 
 // Single-user by default: once an account exists, sign-up is closed (see ALLOW_REGISTRATION).
-app.post('/api/auth/sign-up/*', async (c, next) => {
-  if (!registrationOpen()) return c.json({ message: 'Registration is closed.' }, 403)
+app.post("/api/auth/sign-up/*", async (c, next) => {
+  if (!registrationOpen())
+    return c.json({ message: "Registration is closed." }, 403)
   await next()
 })
-app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw))
+app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw))
 
-app.use('/api/banks/*', async (c, next) => {
+app.use("/api/banks/*", async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers })
-  if (!session) return c.json({ error: 'Unauthorized' }, 401)
-  if (mustChangePassword(session.user)) return c.json(PASSWORD_CHANGE_REQUIRED, 403)
-  c.header('Cache-Control', 'no-store')
+  if (!session) return c.json({ error: "Unauthorized" }, 401)
+  if (mustChangePassword(session.user))
+    return c.json(PASSWORD_CHANGE_REQUIRED, 403)
+  c.header("Cache-Control", "no-store")
   // Demo mode: show the made-up demo user's data instead of the caller's, read-only.
-  if (c.req.header('x-ledger-demo') === '1') {
-    if (c.req.method !== 'GET') return c.json({ error: 'Demo mode is read-only. Exit demo mode to make changes.' }, 403)
+  if (c.req.header("x-ledger-demo") === "1") {
+    if (c.req.method !== "GET")
+      return c.json(
+        { error: "Demo mode is read-only. Exit demo mode to make changes." },
+        403
+      )
     ensureDemoData()
-    c.set('user', { ...session.user, id: DEMO_USER_ID })
+    c.set("user", { ...session.user, id: DEMO_USER_ID })
   } else {
-    c.set('user', session.user)
+    c.set("user", session.user)
   }
   // "Today" in the caller's time zone, for due dates and deadlines.
-  await inTimeZone(c.req.header('x-timezone'), next)
+  await inTimeZone(c.req.header("x-timezone"), next)
 })
-app.route('/api/banks', banks)
-app.route('/api/banks', finance)
-app.route('/api/banks', work)
-app.route('/api/banks', invoices)
-app.route('/api/banks', sharing)
+app.route("/api/banks", banks)
+app.route("/api/banks", finance)
+app.route("/api/banks", work)
+app.route("/api/banks", invoices)
+app.route("/api/banks", sharing)
 
 // Share links: anyone with the link can see that one invoice (and pay it), no sign-in.
-app.route('/api/public', publicInvoices)
+app.route("/api/public", publicInvoices)
 
 // PayPal's instant updates. Each delivery is checked with PayPal before anything is done with it.
-app.post('/api/webhooks/paypal/:connectionId', async (c) => {
-  const result = await handlePaypalWebhook(c.req.param('connectionId'), c.req.raw.headers, await c.req.text())
-  if (result.status !== 200) console.warn(`PayPal webhook rejected: ${result.message}`)
+app.post("/api/webhooks/paypal/:connectionId", async (c) => {
+  const result = await handlePaypalWebhook(
+    c.req.param("connectionId"),
+    c.req.raw.headers,
+    await c.req.text()
+  )
+  if (result.status !== 200)
+    console.warn(`PayPal webhook rejected: ${result.message}`)
   return c.json({ message: result.message }, result.status)
 })
 
 // Instance settings for admins. User management itself goes through Better Auth's /api/auth/admin/*.
-app.use('/api/admin/*', async (c, next) => {
+app.use("/api/admin/*", async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers })
-  if (!session) return c.json({ error: 'Unauthorized' }, 401)
-  if (session.user.role !== 'admin') return c.json({ error: 'Admins only' }, 403)
-  if (mustChangePassword(session.user)) return c.json(PASSWORD_CHANGE_REQUIRED, 403)
-  c.header('Cache-Control', 'no-store')
-  c.set('user', session.user)
+  if (!session) return c.json({ error: "Unauthorized" }, 401)
+  if (session.user.role !== "admin")
+    return c.json({ error: "Admins only" }, 403)
+  if (mustChangePassword(session.user))
+    return c.json(PASSWORD_CHANGE_REQUIRED, 403)
+  c.header("Cache-Control", "no-store")
+  c.set("user", session.user)
   await next()
 })
-const adminSettings = () => ({ registrationOpen: registrationOpen(), ownerId: getOwnerId() })
-app.get('/api/admin/settings', (c) => c.json(adminSettings()))
-app.put('/api/admin/settings', async (c) => {
-  const body = (await c.req.json().catch(() => ({}))) as { registrationOpen?: unknown }
-  if (typeof body.registrationOpen !== 'boolean') return c.json({ error: 'Invalid request' }, 400)
+const adminSettings = () => ({
+  registrationOpen: registrationOpen(),
+  ownerId: getOwnerId(),
+})
+app.get("/api/admin/settings", (c) => c.json(adminSettings()))
+app.put("/api/admin/settings", async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as {
+    registrationOpen?: unknown
+  }
+  if (typeof body.registrationOpen !== "boolean")
+    return c.json({ error: "Invalid request" }, 400)
   if (body.registrationOpen !== registrationOpen()) {
-    setSetting('registration_open', String(body.registrationOpen))
+    setSetting("registration_open", String(body.registrationOpen))
     const user = c.var.user
     audit({
-      kind: 'admin',
+      kind: "admin",
       ip: c.req.header(CLIENT_IP_HEADER),
       actorId: user.id,
       actorEmail: user.email,
-      action: body.registrationOpen ? 'Opened sign-ups' : 'Closed sign-ups',
+      action: body.registrationOpen ? "Opened sign-ups" : "Closed sign-ups",
     })
   }
   return c.json(adminSettings())
 })
-app.post('/api/admin/demo/reseed', (c) => {
+app.post("/api/admin/demo/reseed", (c) => {
   reseedDemoData()
   const user = c.var.user
-  audit({ kind: 'admin', ip: c.req.header(CLIENT_IP_HEADER), actorId: user.id, actorEmail: user.email, action: 'Reseeded demo data' })
+  audit({
+    kind: "admin",
+    ip: c.req.header(CLIENT_IP_HEADER),
+    actorId: user.id,
+    actorEmail: user.email,
+    action: "Reseeded demo data",
+  })
   return c.json({ ok: true })
 })
-app.get('/api/admin/tasks', (c) => c.json({ tasks: listTasks() }))
-app.post('/api/admin/tasks/:id/run', (c) => {
-  const id = c.req.param('id')
-  if (!hasTask(id)) return c.json({ error: 'Not found' }, 404)
-  if (listTasks().find((t) => t.id === id)?.running) return c.json({ error: 'That task is already running.' }, 409)
+app.get("/api/admin/tasks", (c) => c.json({ tasks: listTasks() }))
+app.post("/api/admin/tasks/:id/run", (c) => {
+  const id = c.req.param("id")
+  if (!hasTask(id)) return c.json({ error: "Not found" }, 404)
+  if (listTasks().find((t) => t.id === id)?.running)
+    return c.json({ error: "That task is already running." }, 409)
   const user = c.var.user
   const label = listTasks().find((t) => t.id === id)?.label ?? id
-  audit({ kind: 'admin', ip: c.req.header(CLIENT_IP_HEADER), actorId: user.id, actorEmail: user.email, action: 'Ran task', detail: label })
+  audit({
+    kind: "admin",
+    ip: c.req.header(CLIENT_IP_HEADER),
+    actorId: user.id,
+    actorEmail: user.email,
+    action: "Ran task",
+    detail: label,
+  })
   // It can take minutes (a browser per bank); the page polls for the result.
-  void runTask(id, 'manual')
+  void runTask(id, "manual")
   return c.json({ tasks: listTasks() }, 202)
 })
-app.get('/api/admin/backups', (c) => c.json({ backups: listBackups() }))
-app.get('/api/admin/backups/:name', (c) => {
-  const name = c.req.param('name')
+app.get("/api/admin/backups", (c) => c.json({ backups: listBackups() }))
+app.get("/api/admin/backups/:name", (c) => {
+  const name = c.req.param("name")
   // Only names the backup task writes, so the path can't leave the backups folder.
-  if (!listBackups().some((b) => b.name === name)) return c.json({ error: 'Not found' }, 404)
+  if (!listBackups().some((b) => b.name === name))
+    return c.json({ error: "Not found" }, 404)
   const user = c.var.user
-  audit({ kind: 'admin', ip: c.req.header(CLIENT_IP_HEADER), actorId: user.id, actorEmail: user.email, action: 'Downloaded backup', detail: name })
+  audit({
+    kind: "admin",
+    ip: c.req.header(CLIENT_IP_HEADER),
+    actorId: user.id,
+    actorEmail: user.email,
+    action: "Downloaded backup",
+    detail: name,
+  })
   const bytes = readFileSync(path.join(BACKUP_DIR, name))
   return c.body(bytes, 200, {
-    'Content-Type': 'application/vnd.sqlite3',
-    'Content-Disposition': `attachment; filename="${name}"`,
+    "Content-Type": "application/vnd.sqlite3",
+    "Content-Disposition": `attachment; filename="${name}"`,
   })
 })
-app.get('/api/admin/audit', (c) => {
-  const kind = c.req.query('kind')
-  return c.json({ entries: recentAudit({ kind: kind === 'admin' || kind === 'auth' ? kind : undefined, limit: 200 }) })
+app.get("/api/admin/audit", (c) => {
+  const kind = c.req.query("kind")
+  return c.json({
+    entries: recentAudit({
+      kind: kind === "admin" || kind === "auth" ? kind : undefined,
+      limit: 200,
+    }),
+  })
 })
-app.all('/api/*', (c) => c.json({ error: 'Not found' }, 404))
+app.all("/api/*", (c) => c.json({ error: "Not found" }, 404))
 
 // In production, serve the built SPA from the same origin.
-const dist = path.resolve('dist')
+const dist = path.resolve("dist")
 if (existsSync(dist)) {
-  app.use('/*', serveStatic({ root: './dist' }))
-  app.get('*', serveStatic({ path: './dist/index.html' }))
+  app.use("/*", serveStatic({ root: "./dist" }))
+  app.get("*", serveStatic({ path: "./dist/index.html" }))
 }
 
 app.onError((err, c) => {
   console.error(err)
-  return c.json({ error: 'Something went wrong.' }, 500)
+  return c.json({ error: "Something went wrong." }, 500)
 })
 
 serve({ fetch: app.fetch, port: env.port }, (info) => {
   console.log(`API listening on http://localhost:${info.port}`)
   // Session cookies are only marked Secure when APP_URL is https.
   const { hostname, protocol } = new URL(env.appUrl)
-  if (protocol !== 'https:' && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-    console.warn(`[security] APP_URL (${env.appUrl}) is not https: sign-in cookies and passwords travel unencrypted.`)
+  if (
+    protocol !== "https:" &&
+    hostname !== "localhost" &&
+    hostname !== "127.0.0.1"
+  ) {
+    console.warn(
+      `[security] APP_URL (${env.appUrl}) is not https: sign-in cookies and passwords travel unencrypted.`
+    )
   }
   startScheduler()
 })
 
 /** Older builds saved screenshots of bank pages to data/debug; they're no longer needed. */
 function removeOldDebugDumps() {
-  rmSync(path.join(DATA_DIR, 'debug'), { recursive: true, force: true })
+  rmSync(path.join(DATA_DIR, "debug"), { recursive: true, force: true })
 }

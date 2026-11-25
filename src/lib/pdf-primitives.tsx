@@ -1,14 +1,14 @@
-import type { ReactNode, ImgHTMLAttributes, AnchorHTMLAttributes } from "react";
+import type { ReactNode, ImgHTMLAttributes, AnchorHTMLAttributes } from "react"
 
-export type Style = Record<string, unknown>;
+export type Style = Record<string, unknown>
 
 export const StyleSheet = {
   create<T extends Record<string, Style>>(styles: T): T {
-    return styles;
+    return styles
   },
-};
+}
 
-type StyleInput = Style | Style[] | false | null | undefined;
+type StyleInput = Style | Style[] | false | null | undefined
 
 /**
  * pdfcn's shared component tokens follow the PDF convention of using points.
@@ -16,10 +16,10 @@ type StyleInput = Style | Style[] | false | null | undefined;
  * 96 DPI. Converting at the primitive boundary keeps the public component API
  * and the generated document's physical measurements aligned with Forme.
  */
-export const PDF_POINT_TO_CSS_PIXEL = 96 / 72;
+export const PDF_POINT_TO_CSS_PIXEL = 96 / 72
 
 export const pointToCssPixel = (value: number): number =>
-  value * PDF_POINT_TO_CSS_PIXEL;
+  value * PDF_POINT_TO_CSS_PIXEL
 
 const POINT_LENGTH_PROPERTIES = new Set([
   "blockSize",
@@ -97,16 +97,16 @@ const POINT_LENGTH_PROPERTIES = new Set([
   "textIndent",
   "top",
   "width",
-]);
+])
 
 interface ViewProps {
-  children?: ReactNode;
-  style?: StyleInput;
-  className?: string;
-  wrap?: boolean;
-  fixed?: boolean;
-  break?: boolean;
-  minPresenceAhead?: number;
+  children?: ReactNode
+  style?: StyleInput
+  className?: string
+  wrap?: boolean
+  fixed?: boolean
+  break?: boolean
+  minPresenceAhead?: number
 }
 
 export const normalizeTakumiStyle = (style: Style): Style => {
@@ -116,32 +116,32 @@ export const normalizeTakumiStyle = (style: Style): Style => {
     paddingHorizontal,
     paddingVertical,
     ...normalized
-  } = style;
+  } = style
 
   if (marginHorizontal !== undefined) {
-    normalized.marginLeft ??= marginHorizontal;
-    normalized.marginRight ??= marginHorizontal;
+    normalized.marginLeft ??= marginHorizontal
+    normalized.marginRight ??= marginHorizontal
   }
   if (marginVertical !== undefined) {
-    normalized.marginBottom ??= marginVertical;
-    normalized.marginTop ??= marginVertical;
+    normalized.marginBottom ??= marginVertical
+    normalized.marginTop ??= marginVertical
   }
   if (paddingHorizontal !== undefined) {
-    normalized.paddingLeft ??= paddingHorizontal;
-    normalized.paddingRight ??= paddingHorizontal;
+    normalized.paddingLeft ??= paddingHorizontal
+    normalized.paddingRight ??= paddingHorizontal
   }
   if (paddingVertical !== undefined) {
-    normalized.paddingBottom ??= paddingVertical;
-    normalized.paddingTop ??= paddingVertical;
+    normalized.paddingBottom ??= paddingVertical
+    normalized.paddingTop ??= paddingVertical
   }
 
-  const borderSides = ["Top", "Right", "Bottom", "Left"] as const;
+  const borderSides = ["Top", "Right", "Bottom", "Left"] as const
   if (normalized.borderWidth !== undefined) {
-    normalized.borderStyle ??= "solid";
+    normalized.borderStyle ??= "solid"
   }
   for (const side of borderSides) {
     if (normalized[`border${side}Width`] !== undefined) {
-      normalized[`border${side}Style`] ??= "solid";
+      normalized[`border${side}Style`] ??= "solid"
     }
   }
 
@@ -152,20 +152,20 @@ export const normalizeTakumiStyle = (style: Style): Style => {
         ? pointToCssPixel(value)
         : value,
     ])
-  );
-};
+  )
+}
 
 export const flatten = (
   style?: StyleInput
 ): Record<string, unknown> | undefined => {
   if (!style) {
-    return undefined;
+    return undefined
   }
   if (Array.isArray(style)) {
-    return normalizeTakumiStyle(Object.assign({}, ...style.filter(Boolean)));
+    return normalizeTakumiStyle(Object.assign({}, ...style.filter(Boolean)))
   }
-  return normalizeTakumiStyle(style);
-};
+  return normalizeTakumiStyle(style)
+}
 
 export const View = ({ children, style, className, ...rest }: ViewProps) => {
   const {
@@ -174,20 +174,20 @@ export const View = ({ children, style, className, ...rest }: ViewProps) => {
     break: br,
     minPresenceAhead: _m,
     ...dom
-  } = rest as ViewProps & Record<string, unknown>;
+  } = rest as ViewProps & Record<string, unknown>
   const merged = {
     display: "flex",
     flexDirection: "column",
     ...flatten(style),
-  };
+  }
   if (br) {
-    Object.assign(merged, { breakBefore: "page" });
+    Object.assign(merged, { breakBefore: "page" })
   }
   if (wrap === false) {
-    Object.assign(merged, { breakInside: "avoid" });
+    Object.assign(merged, { breakInside: "avoid" })
   }
   if (fixed) {
-    Object.assign(merged, { position: "fixed" });
+    Object.assign(merged, { position: "fixed" })
   }
   return (
     <div
@@ -197,17 +197,17 @@ export const View = ({ children, style, className, ...rest }: ViewProps) => {
     >
       {children}
     </div>
-  );
-};
+  )
+}
 
 interface TextProps {
-  children?: ReactNode;
-  style?: StyleInput;
-  className?: string;
-  render?: (info: { pageNumber: number; totalPages: number }) => ReactNode;
-  fixed?: boolean;
-  href?: string;
-  src?: string;
+  children?: ReactNode
+  style?: StyleInput
+  className?: string
+  render?: (info: { pageNumber: number; totalPages: number }) => ReactNode
+  fixed?: boolean
+  href?: string
+  src?: string
 }
 
 export const Text = ({
@@ -219,31 +219,31 @@ export const Text = ({
   src,
   ...rest
 }: TextProps) => {
-  const merged = flatten(style) as React.CSSProperties | undefined;
-  const link = href ?? src;
+  const merged = flatten(style) as React.CSSProperties | undefined
+  const link = href ?? src
   if (link) {
     return (
       <a href={link} className={className} style={merged} {...(rest as object)}>
         {children}
       </a>
-    );
+    )
   }
   return (
     <span className={className} style={merged} {...(rest as object)}>
       {children}
     </span>
-  );
-};
+  )
+}
 
 export const Image = ({
   src,
   style,
   ...rest
 }: {
-  src: string | { uri: string };
-  style?: StyleInput;
+  src: string | { uri: string }
+  style?: StyleInput
 } & Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "style">) => {
-  const resolved = typeof src === "string" ? src : src.uri;
+  const resolved = typeof src === "string" ? src : src.uri
   return (
     // eslint-disable-next-line eslint(nextjs/no-img-element) -- PDF primitive, not Next.js page
     <img
@@ -252,8 +252,8 @@ export const Image = ({
       alt=""
       {...rest}
     />
-  );
-};
+  )
+}
 
 export const Link = ({
   src,
@@ -261,23 +261,23 @@ export const Link = ({
   style,
   ...rest
 }: {
-  src: string;
-  children?: ReactNode;
-  style?: StyleInput;
+  src: string
+  children?: ReactNode
+  style?: StyleInput
 } & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "style">) => (
   <a href={src} style={flatten(style) as React.CSSProperties} {...rest}>
     {children}
   </a>
-);
+)
 
 export const Document = ({
   children,
   title,
   style,
 }: {
-  children?: ReactNode;
-  title?: string;
-  style?: StyleInput;
+  children?: ReactNode
+  title?: string
+  style?: StyleInput
 }) => (
   <div
     data-pdf-document={title}
@@ -291,16 +291,16 @@ export const Document = ({
   >
     {children}
   </div>
-);
+)
 
 export const Page = ({
   children,
   size: _size,
   style,
 }: {
-  children?: ReactNode;
-  size?: string | { width: number; height: number };
-  style?: StyleInput;
+  children?: ReactNode
+  size?: string | { width: number; height: number }
+  style?: StyleInput
 }) => (
   <div
     data-pdf-page
@@ -314,4 +314,4 @@ export const Page = ({
   >
     {children}
   </div>
-);
+)

@@ -1,30 +1,30 @@
-import { StyleSheet } from "@/lib/pdf-primitives";
-import type { PdfcnTheme } from "@/types/pdf-themes";
+import { StyleSheet } from "@/lib/pdf-primitives"
+import type { PdfcnTheme } from "@/types/pdf-themes"
 
 /**
  * Creates all table styles derived from the active theme.
  * @param t - The resolved PdfcnTheme instance.
  */
 export const createTableStyles = (t: PdfcnTheme) => {
-  const { spacing, borderRadius, fontWeights, typography } = t.primitives;
-  const borderColor = t.colors.border;
+  const { spacing, borderRadius, fontWeights, typography } = t.primitives
+  const borderColor = t.colors.border
 
-  const hairline = 0.5;
-  const rule = 1;
-  const thick = 1.5;
+  const hairline = 0.5
+  const rule = 1
+  const thick = 1.5
 
-  const cellPadV = spacing[2] - 2;
-  const cellPadH = spacing[2] + 2;
+  const cellPadV = spacing[2] - 2
+  const cellPadH = spacing[2] + 2
   // eslint-disable-next-line prefer-destructuring
-  const cellPadVCompact = spacing[0.5];
+  const cellPadVCompact = spacing[0.5]
   // eslint-disable-next-line prefer-destructuring
-  const cellPadHCompact = spacing[2];
+  const cellPadHCompact = spacing[2]
 
   const rowDivider = {
     borderBottomColor: borderColor,
     borderBottomStyle: "solid" as const,
     borderBottomWidth: hairline,
-  };
+  }
 
   return StyleSheet.create({
     cell: {
@@ -275,5 +275,5 @@ export const createTableStyles = (t: PdfcnTheme) => {
       borderTopStyle: "solid",
       borderTopWidth: hairline,
     },
-  });
-};
+  })
+}

@@ -1,19 +1,12 @@
-import {
-  usePdfcnTheme,
-  useSafeMemo,
-} from "@/components/pdf/theme-provider";
-import {
-  View,
-  Text as PDFText,
-  StyleSheet,
-} from "@/lib/pdf-primitives";
-import type { Style } from "@/lib/pdf-primitives";
-import { resolveColor } from "@/lib/resolve-color";
-import type { PDFComponentProps } from "@/types/pdf-components";
-import type { PdfcnTheme } from "@/types/pdf-themes";
+import { usePdfcnTheme, useSafeMemo } from "@/components/pdf/theme-provider"
+import { View, Text as PDFText, StyleSheet } from "@/lib/pdf-primitives"
+import type { Style } from "@/lib/pdf-primitives"
+import { resolveColor } from "@/lib/resolve-color"
+import type { PDFComponentProps } from "@/types/pdf-components"
+import type { PdfcnTheme } from "@/types/pdf-themes"
 
-export type KeyValueDirection = "horizontal" | "vertical";
-export type KeyValueSize = "sm" | "md" | "lg";
+export type KeyValueDirection = "horizontal" | "vertical"
+export type KeyValueSize = "sm" | "md" | "lg"
 
 /**
  * A single key-value row with optional per-item color and style overrides.
@@ -21,11 +14,11 @@ export type KeyValueSize = "sm" | "md" | "lg";
  * @see {@link KeyValueEntry}
  */
 export interface KeyValueEntry {
-  key: string;
-  value: string;
-  valueColor?: string;
-  valueStyle?: Style;
-  keyStyle?: Style;
+  key: string
+  value: string
+  valueColor?: string
+  valueStyle?: Style
+  keyStyle?: Style
 }
 
 /**
@@ -34,52 +27,52 @@ export interface KeyValueEntry {
  * @see {@link KeyValueProps}
  */
 export interface KeyValueProps extends Omit<PDFComponentProps, "children"> {
-  items: KeyValueEntry[];
+  items: KeyValueEntry[]
   /**
    * @default 'horizontal'
    */
-  direction?: KeyValueDirection;
+  direction?: KeyValueDirection
   /**
    * @default false
    */
-  divided?: boolean;
+  divided?: boolean
   /**
    * @default 'md'
    */
-  size?: KeyValueSize;
+  size?: KeyValueSize
   /**
    * @default 1
    */
-  labelFlex?: number;
-  labelColor?: string;
-  valueColor?: string;
+  labelFlex?: number
+  labelColor?: string
+  valueColor?: string
   /**
    * @default false
    */
-  boldValue?: boolean;
+  boldValue?: boolean
   /**
    * @default false
    */
-  noWrap?: boolean;
-  dividerColor?: string;
-  dividerThickness?: number;
-  dividerMargin?: number;
+  noWrap?: boolean
+  dividerColor?: string
+  dividerThickness?: number
+  dividerMargin?: number
 }
 
 const createKeyValueStyles = (t: PdfcnTheme) => {
-  const { spacing, fontWeights } = t.primitives;
-  const c = t.colors;
-  const { body } = t.typography;
+  const { spacing, fontWeights } = t.primitives
+  const c = t.colors
+  const { body } = t.typography
   const keyBase = {
     color: c.mutedForeground,
     fontFamily: body.fontFamily,
     fontWeight: fontWeights.medium,
-  };
+  }
   const valueBase = {
     color: c.foreground,
     fontFamily: body.fontFamily,
     fontWeight: fontWeights.regular,
-  };
+  }
   return StyleSheet.create({
     container: { flexDirection: "column" },
     divider: {
@@ -103,8 +96,8 @@ const createKeyValueStyles = (t: PdfcnTheme) => {
     valueLg: { ...valueBase, fontSize: t.primitives.typography.base },
     valueMd: { ...valueBase, fontSize: body.fontSize },
     valueSm: { ...valueBase, fontSize: t.primitives.typography.xs },
-  });
-};
+  })
+}
 
 export const KeyValue = ({
   items,
@@ -121,65 +114,65 @@ export const KeyValue = ({
   dividerMargin,
   style,
 }: KeyValueProps) => {
-  const theme = usePdfcnTheme();
-  const styles = useSafeMemo(() => createKeyValueStyles(theme), [theme]);
+  const theme = usePdfcnTheme()
+  const styles = useSafeMemo(() => createKeyValueStyles(theme), [theme])
   const keyStyleMap = {
     lg: styles.keyLg,
     md: styles.keyMd,
     sm: styles.keySm,
-  } as Record<KeyValueSize, Style>;
+  } as Record<KeyValueSize, Style>
   const valueStyleMap = {
     lg: styles.valueLg,
     md: styles.valueMd,
     sm: styles.valueSm,
-  } as Record<KeyValueSize, Style>;
-  const containerStyles: Style[] = [styles.container];
+  } as Record<KeyValueSize, Style>
+  const containerStyles: Style[] = [styles.container]
   if (style) {
-    containerStyles.push(...[style].flat());
+    containerStyles.push(...[style].flat())
   }
 
   return (
     <View wrap={!noWrap} style={containerStyles}>
       {items.map((item, index) => {
-        const isLast = index === items.length - 1;
-        const keyStyles: Style[] = [keyStyleMap[size]];
+        const isLast = index === items.length - 1
+        const keyStyles: Style[] = [keyStyleMap[size]]
         if (labelColor) {
-          keyStyles.push({ color: resolveColor(labelColor, theme.colors) });
+          keyStyles.push({ color: resolveColor(labelColor, theme.colors) })
         }
         if (item.keyStyle) {
-          keyStyles.push(item.keyStyle);
+          keyStyles.push(item.keyStyle)
         }
-        const valStyles: Style[] = [valueStyleMap[size]];
+        const valStyles: Style[] = [valueStyleMap[size]]
         if (boldValue) {
-          valStyles.push(styles.valueBold);
+          valStyles.push(styles.valueBold)
         }
-        const resolvedValueColor = item.valueColor ?? valueColor;
+        const resolvedValueColor = item.valueColor ?? valueColor
         if (resolvedValueColor) {
           valStyles.push({
             color: resolveColor(resolvedValueColor, theme.colors),
-          });
+          })
         }
         if (item.valueStyle) {
-          valStyles.push(item.valueStyle);
+          valStyles.push(item.valueStyle)
         }
 
         if (direction === "horizontal") {
-          const rowStyles: Style[] = [styles.rowHorizontal];
+          const rowStyles: Style[] = [styles.rowHorizontal]
           if (divided && !isLast) {
-            const dividerStyle: Style = {};
+            const dividerStyle: Style = {}
             if (dividerColor) {
               dividerStyle.borderBottomColor = resolveColor(
                 dividerColor,
                 theme.colors
-              );
+              )
             }
             if (dividerThickness) {
-              dividerStyle.borderBottomWidth = dividerThickness;
+              dividerStyle.borderBottomWidth = dividerThickness
             }
             if (dividerMargin) {
-              dividerStyle.marginBottom = dividerMargin;
+              dividerStyle.marginBottom = dividerMargin
             }
-            rowStyles.push({ ...styles.divider, ...dividerStyle });
+            rowStyles.push({ ...styles.divider, ...dividerStyle })
           }
           return (
             <View key={item.key} style={rowStyles}>
@@ -190,20 +183,20 @@ export const KeyValue = ({
                 {item.value}
               </PDFText>
             </View>
-          );
+          )
         }
 
-        const rowStyles: Style[] = [styles.rowVertical];
+        const rowStyles: Style[] = [styles.rowVertical]
         if (divided && !isLast) {
-          rowStyles.push(styles.divider);
+          rowStyles.push(styles.divider)
         }
         return (
           <View key={item.key} style={rowStyles}>
             <PDFText style={keyStyles}>{item.key}</PDFText>
             <PDFText style={valStyles}>{item.value}</PDFText>
           </View>
-        );
+        )
       })}
     </View>
-  );
-};
+  )
+}

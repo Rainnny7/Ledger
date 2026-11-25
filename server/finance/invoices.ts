@@ -19,44 +19,50 @@ export interface InvoiceItem {
   unitPrice: number
 }
 
-export type InvoiceStatus = 'draft' | 'sent' | 'void'
-export type PayState = 'unpaid' | 'partial' | 'paid'
+export type InvoiceStatus = "draft" | "sent" | "void"
+export type PayState = "unpaid" | "partial" | "paid"
 
 /** Everything a client can be offered. `paypal-checkout` takes card/PayPal through the user's own PayPal REST app. */
 export const PAYMENT_METHOD_KINDS = [
-  'etransfer',
-  'paypal',
-  'paypal-checkout',
-  'crypto',
-  'bank',
-  'wise',
-  'venmo',
-  'cashapp',
-  'zelle',
-  'revolut',
-  'link',
-  'cheque',
-  'cash',
-  'other',
+  "etransfer",
+  "paypal",
+  "paypal-checkout",
+  "crypto",
+  "bank",
+  "wise",
+  "venmo",
+  "cashapp",
+  "zelle",
+  "revolut",
+  "link",
+  "cheque",
+  "cash",
+  "other",
 ] as const
 export type PaymentMethodKind = (typeof PAYMENT_METHOD_KINDS)[number]
 
 export const round2 = (n: number) => Math.round(n * 100) / 100
 
-export function invoiceTotals(inv: { items: InvoiceItem[]; taxRate: number; discount: number }) {
-  const subtotal = round2(inv.items.reduce((s, i) => s + round2(i.quantity * i.unitPrice), 0))
+export function invoiceTotals(inv: {
+  items: InvoiceItem[]
+  taxRate: number
+  discount: number
+}) {
+  const subtotal = round2(
+    inv.items.reduce((s, i) => s + round2(i.quantity * i.unitPrice), 0)
+  )
   const discount = round2(Math.min(Math.max(0, inv.discount), subtotal))
   const tax = round2(((subtotal - discount) * Math.max(0, inv.taxRate)) / 100)
   return { subtotal, discount, tax, total: round2(subtotal - discount + tax) }
 }
 
 export function payState(total: number, paid: number): PayState {
-  if (total - paid <= 0.005 && (paid > 0 || total === 0)) return 'paid'
-  return paid > 0 ? 'partial' : 'unpaid'
+  if (total - paid <= 0.005 && (paid > 0 || total === 0)) return "paid"
+  return paid > 0 ? "partial" : "unpaid"
 }
 
 /** "INV-0007" → "INV-0008"; keeps the padding. Starts at <prefix>0001 when nothing matches. */
-export function nextInvoiceNumber(existing: string[], prefix = 'INV-') {
+export function nextInvoiceNumber(existing: string[], prefix = "INV-") {
   let best = 0
   let width = 0
   for (const n of existing) {
@@ -68,5 +74,5 @@ export function nextInvoiceNumber(existing: string[], prefix = 'INV-') {
       width = m[2].length
     }
   }
-  return `${prefix}${String(best + 1).padStart(width || 4, '0')}`
+  return `${prefix}${String(best + 1).padStart(width || 4, "0")}`
 }

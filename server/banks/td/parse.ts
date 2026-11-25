@@ -3,7 +3,7 @@
  * into structured accounts & transactions. Kept free of Playwright so they can
  * be unit-tested with fixtures.
  */
-import type { AccountType, ScrapedTransaction } from '../types.ts'
+import type { AccountType, ScrapedTransaction } from "../types.ts"
 
 export interface RawTable {
   index: number
@@ -20,19 +20,32 @@ export interface RawFrame {
 }
 
 const MONTHS: Record<string, number> = {
-  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12,
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  sept: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
 }
 
-const AMOUNT_RE = /(?:\(\s*)?-?\s*(?:CAD|USD|C?\$|US\$)?\s*-?\s*\$?\s*\d[\d,]*(?:\.\d{1,2})?\s*(?:CR|DR|-)?(?:\s*\))?/i
+const AMOUNT_RE =
+  /(?:\(\s*)?-?\s*(?:CAD|USD|C?\$|US\$)?\s*-?\s*\$?\s*\d[\d,]*(?:\.\d{1,2})?\s*(?:CR|DR|-)?(?:\s*\))?/i
 
 /** Parse a money string such as "$1,234.56", "-$12.00", "$12.00-", "(12.00)", "45.00 CR". */
 export function parseAmount(raw: string | null | undefined): number | null {
   if (!raw) return null
-  const s = raw.replace(/−/g, '-').replace(/\s+/g, ' ').trim()
+  const s = raw.replace(/−/g, "-").replace(/\s+/g, " ").trim()
   if (!/\d/.test(s)) return null
   const m = s.match(/\d[\d,]*(?:\.\d{1,2})?/)
   if (!m) return null
-  let value = Number(m[0].replace(/,/g, ''))
+  let value = Number(m[0].replace(/,/g, ""))
   if (Number.isNaN(value)) return null
   const negative =
     /^\s*\(.*\)\s*$/.test(s) ||
@@ -50,15 +63,18 @@ export function looksLikeAmount(raw: string): boolean {
   if (!s || s.length > 40) return false
   if (!/\$|\d\.\d{2}\b/.test(s)) return false
   const m = s.match(AMOUNT_RE)
-  return !!m && m[0].replace(/[^\d]/g, '').length > 0
+  return !!m && m[0].replace(/[^\d]/g, "").length > 0
 }
 
-const pad = (n: number) => String(n).padStart(2, '0')
+const pad = (n: number) => String(n).padStart(2, "0")
 
 /** Parse TD date formats: "Nov 21, 2026", "Nov 21", "21 Nov 2026", "2026-11-21", "11/21/2026". */
-export function parseDate(raw: string | null | undefined, today = new Date()): string | null {
+export function parseDate(
+  raw: string | null | undefined,
+  today = new Date()
+): string | null {
   if (!raw) return null
-  const s = raw.replace(/\s+/g, ' ').trim()
+  const s = raw.replace(/\s+/g, " ").trim()
 
   let m = s.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/)
   if (m) return `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`
@@ -70,7 +86,9 @@ export function parseDate(raw: string | null | undefined, today = new Date()): s
   let day: number | undefined
   let year: number | undefined
 
-  m = s.match(/\b([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?(?:\s+(\d{4}))?\b/)
+  m = s.match(
+    /\b([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?(?:\s+(\d{4}))?\b/
+  )
   if (m && MONTHS[m[1].slice(0, 3).toLowerCase()]) {
     month = MONTHS[m[1].slice(0, 3).toLowerCase()]
     day = +m[2]
@@ -94,22 +112,38 @@ export function parseDate(raw: string | null | undefined, today = new Date()): s
   return `${year}-${pad(month)}-${pad(day)}`
 }
 
-export function guessAccountType(name: string, context = ''): AccountType {
+export function guessAccountType(name: string, context = ""): AccountType {
   const s = `${name} ${context}`
-  if (/visa|mastercard|master card|credit card|aeroplan|cash ?back|rewards|first class travel|platinum|infinite/i.test(s)) return 'credit'
-  if (/line of credit|\bloc\b|loan|mortgage|borrowing/i.test(s)) return 'loan'
-  if (/tfsa|rrsp|resp|rrif|invest|direct investing|webbroker|gic\b|mutual fund/i.test(s)) return 'investment'
-  if (/saving|e-?savings|high interest/i.test(s)) return 'savings'
-  if (/chequing|checking|cheq|every ?day|all-inclusive|unlimited|minimum|student|\bbank\w*/i.test(s)) return 'chequing'
-  return 'other'
+  if (
+    /visa|mastercard|master card|credit card|aeroplan|cash ?back|rewards|first class travel|platinum|infinite/i.test(
+      s
+    )
+  )
+    return "credit"
+  if (/line of credit|\bloc\b|loan|mortgage|borrowing/i.test(s)) return "loan"
+  if (
+    /tfsa|rrsp|resp|rrif|invest|direct investing|webbroker|gic\b|mutual fund/i.test(
+      s
+    )
+  )
+    return "investment"
+  if (/saving|e-?savings|high interest/i.test(s)) return "savings"
+  if (
+    /chequing|checking|cheq|every ?day|all-inclusive|unlimited|minimum|student|\bbank\w*/i.test(
+      s
+    )
+  )
+    return "chequing"
+  return "other"
 }
 
 export function extractMaskedNumber(...parts: string[]): string | null {
   for (const p of parts) {
     // A run of digits possibly broken up by spaces, dashes or mask characters, ending in a digit.
     for (const m of p.matchAll(/[\d*•xX](?:[\d*•xX\s-]*\d)?/g)) {
-      const digits = m[0].replace(/\D/g, '')
-      if (digits.length >= 4 && !/[$.,]/.test(m[0]) && /\d{4}/.test(m[0])) return `••••${digits.slice(-4)}`
+      const digits = m[0].replace(/\D/g, "")
+      if (digits.length >= 4 && !/[$.,]/.test(m[0]) && /\d{4}/.test(m[0]))
+        return `••••${digits.slice(-4)}`
     }
   }
   return null
@@ -146,28 +180,42 @@ export function parseAccountSummary(frames: RawFrame[]): SummaryAccount[] {
         const occurrence = linkCounts.get(row.link) ?? 0
         linkCounts.set(row.link, occurrence + 1)
 
-        const amountIdx = row.cells.map((c, i) => (looksLikeAmount(c) ? i : -1)).filter((i) => i >= 0)
+        const amountIdx = row.cells
+          .map((c, i) => (looksLikeAmount(c) ? i : -1))
+          .filter((i) => i >= 0)
         if (amountIdx.length === 0) continue
 
         // Header columns are aligned with cells when counts match; otherwise fall back to position.
         const aligned = table.headers.length === row.cells.length
-        const balance = parseAmount(aligned && balCol >= 0 ? row.cells[balCol] : row.cells[amountIdx[0]])
+        const balance = parseAmount(
+          aligned && balCol >= 0 ? row.cells[balCol] : row.cells[amountIdx[0]]
+        )
         const available = parseAmount(
-          aligned && availCol >= 0 ? row.cells[availCol] : amountIdx.length > 1 ? row.cells[amountIdx[1]] : null,
+          aligned && availCol >= 0
+            ? row.cells[availCol]
+            : amountIdx.length > 1
+              ? row.cells[amountIdx[1]]
+              : null
         )
 
-        const name = row.link.replace(/\s+/g, ' ').trim()
+        const name = row.link.replace(/\s+/g, " ").trim()
         const numberMasked = extractMaskedNumber(row.link, ...row.cells)
-        const externalKey = `${name.replace(/[\d\s*•xX-]+$/, '').trim().toLowerCase()}|${numberMasked ?? ''}`
+        const externalKey = `${name
+          .replace(/[\d\s*•xX-]+$/, "")
+          .trim()
+          .toLowerCase()}|${numberMasked ?? ""}`
         if (seen.has(externalKey)) continue
         seen.add(externalKey)
 
         accounts.push({
-          name: name.replace(/\s*[*•xX]*\d[\d\s-]{3,}$/, '').trim() || name,
+          name: name.replace(/\s*[*•xX]*\d[\d\s-]{3,}$/, "").trim() || name,
           linkText: row.link,
           linkOccurrence: occurrence,
           frameIndex,
-          type: guessAccountType(name, `${table.context} ${row.cells.join(' ')}`),
+          type: guessAccountType(
+            name,
+            `${table.context} ${row.cells.join(" ")}`
+          ),
           numberMasked,
           externalKey,
           balance,
@@ -181,11 +229,17 @@ export function parseAccountSummary(frames: RawFrame[]): SummaryAccount[] {
 
 /** Pull labelled money values (e.g. "Overdraft protection limit $500.00") out of page text. */
 export function findLabelledAmount(text: string, label: RegExp): number | null {
-  const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean)
+  const lines = text
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter(Boolean)
   for (let i = 0; i < lines.length; i++) {
     if (!label.test(lines[i])) continue
-    const rest = lines[i].replace(label, '')
-    if (looksLikeAmount(rest)) return parseAmount(rest.match(/[-($]*\$?\s*\d[\d,]*(?:\.\d{2})?\)?-?/)?.[0])
+    const rest = lines[i].replace(label, "")
+    if (looksLikeAmount(rest))
+      return parseAmount(
+        rest.match(/[-($]*\$?\s*\d[\d,]*(?:\.\d{2})?\)?-?/)?.[0]
+      )
     for (const next of lines.slice(i + 1, i + 3)) {
       if (looksLikeAmount(next)) return parseAmount(next)
     }
@@ -194,7 +248,11 @@ export function findLabelledAmount(text: string, label: RegExp): number | null {
 }
 
 /** Find transaction tables in an account-detail page and normalise their rows. */
-export function parseTransactions(frames: RawFrame[], accountType: AccountType, today = new Date()): ScrapedTransaction[] {
+export function parseTransactions(
+  frames: RawFrame[],
+  accountType: AccountType,
+  today = new Date()
+): ScrapedTransaction[] {
   const out: ScrapedTransaction[] = []
   for (const frame of frames) {
     for (const table of frame.tables) {
@@ -204,10 +262,18 @@ export function parseTransactions(frames: RawFrame[], accountType: AccountType, 
         return tx >= 0 ? tx : findCol(h, /date/i)
       })()
       if (dateCol < 0) continue
-      const descCol = findCol(h, /descr|details|merchant|transaction|payee/i, /date|amount/i)
+      const descCol = findCol(
+        h,
+        /descr|details|merchant|transaction|payee/i,
+        /date|amount/i
+      )
       if (descCol < 0) continue
       const debitCol = findCol(h, /debit|withdraw|money out|purchase|charges/i)
-      const creditCol = findCol(h, /credit|deposit|money in|payment/i, /credit limit/i)
+      const creditCol = findCol(
+        h,
+        /credit|deposit|money in|payment/i,
+        /credit limit/i
+      )
       const amountCol = findCol(h, /amount/i)
       const balanceCol = findCol(h, /balance/i)
       if (debitCol < 0 && creditCol < 0 && amountCol < 0) continue
@@ -218,20 +284,21 @@ export function parseTransactions(frames: RawFrame[], accountType: AccountType, 
         if (row.cells.length < Math.max(dateCol, descCol) + 1) continue
         const date = parseDate(row.cells[dateCol], today)
         if (!date) continue
-        const description = row.cells[descCol].replace(/\s+/g, ' ').trim()
+        const description = row.cells[descCol].replace(/\s+/g, " ").trim()
         if (!description) continue
 
         let amount: number | null = null
         if (debitCol >= 0 || creditCol >= 0) {
           const debit = debitCol >= 0 ? parseAmount(row.cells[debitCol]) : null
-          const credit = creditCol >= 0 ? parseAmount(row.cells[creditCol]) : null
+          const credit =
+            creditCol >= 0 ? parseAmount(row.cells[creditCol]) : null
           if (debit) amount = -Math.abs(debit)
           else if (credit) amount = Math.abs(credit)
         }
         if (amount === null && amountCol >= 0) {
           amount = parseAmount(row.cells[amountCol])
           // Credit card statements list purchases as positive amounts.
-          if (amount !== null && accountType === 'credit') amount = -amount
+          if (amount !== null && accountType === "credit") amount = -amount
         }
         if (amount === null) continue
 
@@ -239,8 +306,9 @@ export function parseTransactions(frames: RawFrame[], accountType: AccountType, 
           date,
           description,
           amount,
-          runningBalance: balanceCol >= 0 ? parseAmount(row.cells[balanceCol]) : null,
-          pending: pending || /pending/i.test(row.cells.join(' ')),
+          runningBalance:
+            balanceCol >= 0 ? parseAmount(row.cells[balanceCol]) : null,
+          pending: pending || /pending/i.test(row.cells.join(" ")),
         })
       }
     }
@@ -263,23 +331,30 @@ export interface AccountDetails {
   limits: AccountLimit[]
 }
 
-const LIMIT_SKIP = /overdraft|credit limit|limited time|limitation|unlimited transactions/i
+const LIMIT_SKIP =
+  /overdraft|credit limit|limited time|limitation|unlimited transactions/i
 
 /**
  * Best-effort read of direct-deposit details and limits from an account's Activity/Manage pages.
  * Labels and values often sit on separate lines, so each label also looks at the next two lines.
  */
-export function parseAccountDetails(text: string, institutionDefault = '004'): AccountDetails {
+export function parseAccountDetails(
+  text: string,
+  institutionDefault = "004"
+): AccountDetails {
   const lines = text
     .split(/\n+/)
-    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .map((l) => l.replace(/\s+/g, " ").trim())
     .filter(Boolean)
-  const flat = lines.join(' \n ')
+  const flat = lines.join(" \n ")
 
   const valueAfter = (label: RegExp, value: RegExp): string | null => {
     for (let i = 0; i < lines.length; i++) {
       if (!label.test(lines[i])) continue
-      for (const cand of [lines[i].replace(label, ''), ...lines.slice(i + 1, i + 3)]) {
+      for (const cand of [
+        lines[i].replace(label, ""),
+        ...lines.slice(i + 1, i + 3),
+      ]) {
         const m = cand.match(value)
         if (m) return m[1] ?? m[0]
       }
@@ -291,25 +366,38 @@ export function parseAccountDetails(text: string, institutionDefault = '004'): A
     flat.match(/currently viewing[^\n]*?\/\s*(\d{5,12})\b/i)?.[1] ??
     valueAfter(/account (number|no\.?|#)/i, /^\D{0,3}(\d{5,12})\b/) ??
     null
-  const transit = valueAfter(/transit( number| no\.?| #)?/i, /^\D{0,3}(\d{5})\b/)
-  const institution = valueAfter(/institution( number| no\.?| #)?/i, /^\D{0,3}(\d{3})\b/) ?? (transit ? institutionDefault : null)
+  const transit = valueAfter(
+    /transit( number| no\.?| #)?/i,
+    /^\D{0,3}(\d{5})\b/
+  )
+  const institution =
+    valueAfter(/institution( number| no\.?| #)?/i, /^\D{0,3}(\d{3})\b/) ??
+    (transit ? institutionDefault : null)
 
   const limits: AccountLimit[] = []
   const seen = new Set<string>()
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    if (!/\blimits?\b/i.test(line) || LIMIT_SKIP.test(line) || line.length > 80) continue
-    const sameLine = line.match(/^(.*?\blimits?\b[^$\d]*?)[:\s]*(\$\s?\d[\d,]*(?:\.\d{2})?)\s*$/i)
+    if (!/\blimits?\b/i.test(line) || LIMIT_SKIP.test(line) || line.length > 80)
+      continue
+    const sameLine = line.match(
+      /^(.*?\blimits?\b[^$\d]*?)[:\s]*(\$\s?\d[\d,]*(?:\.\d{2})?)\s*$/i
+    )
     let label = line
     let raw: string | null = null
     if (sameLine) {
       label = sameLine[1]
       raw = sameLine[2]
     } else {
-      raw = lines.slice(i + 1, i + 3).find((l) => looksLikeAmount(l) || /^(unlimited|no limit)$/i.test(l)) ?? null
+      raw =
+        lines
+          .slice(i + 1, i + 3)
+          .find(
+            (l) => looksLikeAmount(l) || /^(unlimited|no limit)$/i.test(l)
+          ) ?? null
     }
     if (!raw) continue
-    label = label.replace(/[:\s]+$/, '').trim()
+    label = label.replace(/[:\s]+$/, "").trim()
     if (!label || seen.has(label.toLowerCase())) continue
     seen.add(label.toLowerCase())
     const amount = looksLikeAmount(raw) ? parseAmount(raw) : null

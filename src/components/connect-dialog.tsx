@@ -1,23 +1,59 @@
-import { ChevronRight, ExternalLink, FileText, KeyRound, Loader2, LockKeyhole, ShieldCheck, Smartphone } from 'lucide-react'
-import { REGEXP_ONLY_DIGITS } from 'input-otp'
-import { type ReactNode, useEffect, useRef, useState } from 'react'
-import { toast } from 'sonner'
-import { InstitutionBadge, isProviderId, PROVIDERS, type ProviderId } from '@/components/institution'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@/components/ui/input-otp'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { api, type ConnectStep, notifyDataChanged, type SessionView } from '@/lib/api'
+import {
+  ChevronRight,
+  ExternalLink,
+  FileText,
+  KeyRound,
+  Loader2,
+  LockKeyhole,
+  ShieldCheck,
+  Smartphone,
+} from "lucide-react"
+import { REGEXP_ONLY_DIGITS } from "input-otp"
+import { type ReactNode, useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
+import {
+  InstitutionBadge,
+  isProviderId,
+  PROVIDERS,
+  type ProviderId,
+} from "@/components/institution"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import {
+  api,
+  type ConnectStep,
+  notifyDataChanged,
+  type SessionView,
+} from "@/lib/api"
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** Re-sync an existing connection instead of adding a new one. */
-  connection?: { id: string; institution: string; savedCredentials: boolean; usernameMasked: string } | null
+  connection?: {
+    id: string
+    institution: string
+    savedCredentials: boolean
+    usernameMasked: string
+  } | null
   /** Re-read the full history instead of only what's new since the last sync. */
   full?: boolean
   onConnected?: (connectionId: string) => void
@@ -25,19 +61,30 @@ interface Props {
   onUploadStatements?: () => void
 }
 
-type Phase = { type: 'pick' } | { type: 'td-method' } | { type: 'form'; error?: string } | ConnectStep
+type Phase =
+  | { type: "pick" }
+  | { type: "td-method" }
+  | { type: "form"; error?: string }
+  | ConnectStep
 
-export function ConnectDialog({ open, onOpenChange, connection, full = false, onConnected, onUploadStatements }: Props) {
-  const [provider, setProvider] = useState<ProviderId>('td')
-  const [phase, setPhase] = useState<Phase>({ type: 'pick' })
+export function ConnectDialog({
+  open,
+  onOpenChange,
+  connection,
+  full = false,
+  onConnected,
+  onUploadStatements,
+}: Props) {
+  const [provider, setProvider] = useState<ProviderId>("td")
+  const [phase, setPhase] = useState<Phase>({ type: "pick" })
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
   const [remember, setRemember] = useState(false)
-  const [mfaChoice, setMfaChoice] = useState<string>('')
-  const [code, setCode] = useState('')
+  const [mfaChoice, setMfaChoice] = useState<string>("")
+  const [code, setCode] = useState("")
 
   const onConnectedRef = useRef(onConnected)
   onConnectedRef.current = onConnected
@@ -45,16 +92,20 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
   // Reset every time the dialog opens; auto-start re-syncs when credentials are saved.
   useEffect(() => {
     if (!open) return
-    const p = connection && isProviderId(connection.institution) ? connection.institution : 'td'
+    const p =
+      connection && isProviderId(connection.institution)
+        ? connection.institution
+        : "td"
     setProvider(p)
-    setPhase(connection ? { type: 'form' } : { type: 'pick' })
+    setPhase(connection ? { type: "form" } : { type: "pick" })
     setSessionId(null)
-    setPassword('')
-    setCode('')
-    setMfaChoice('')
-    setUsername('')
+    setPassword("")
+    setCode("")
+    setMfaChoice("")
+    setUsername("")
     setRemember(connection?.savedCredentials ?? false)
-    if (connection?.savedCredentials) void start(p, { connectionId: connection.id, full })
+    if (connection?.savedCredentials)
+      void start(p, { connectionId: connection.id, full })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, connection?.id, full])
 
@@ -62,13 +113,14 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
 
   function apply(view: SessionView) {
     setSessionId(view.sessionId)
-    if (view.step.type === 'error') {
-      setPhase({ type: 'form', error: view.step.message })
+    if (view.step.type === "error") {
+      setPhase({ type: "form", error: view.step.message })
       setSessionId(null)
       return
     }
-    if (view.step.type === 'mfa_select') setMfaChoice(view.step.options[0]?.id ?? '')
-    if (view.step.type === 'done') {
+    if (view.step.type === "mfa_select")
+      setMfaChoice(view.step.options[0]?.id ?? "")
+    if (view.step.type === "done") {
       toast.success(`${meta.label} synced`)
       notifyDataChanged()
       onConnectedRef.current?.(view.step.connectionId)
@@ -82,7 +134,7 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
     try {
       apply(await fn())
     } catch (e) {
-      setPhase({ type: 'form', error: (e as Error).message })
+      setPhase({ type: "form", error: (e as Error).message })
       setSessionId(null)
     } finally {
       setBusy(false)
@@ -90,31 +142,44 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
   }
 
   function start(p: ProviderId, body: Parameters<typeof api.connect>[1]) {
-    setPhase({ type: 'syncing', message: `Connecting to ${PROVIDERS[p].label}…` })
+    setPhase({
+      type: "syncing",
+      message: `Connecting to ${PROVIDERS[p].label}…`,
+    })
     return call(() => api.connect(p, body))
   }
 
   // Poll while the server is working (logging in / reading accounts) or waiting on app approval.
-  const polling = phase.type === 'syncing' || phase.type === 'success' || phase.type === 'mfa_push'
+  const polling =
+    phase.type === "syncing" ||
+    phase.type === "success" ||
+    phase.type === "mfa_push"
   useEffect(() => {
     if (!open || !sessionId || !polling || busy) return
-    const t = setTimeout(() => void call(() => api.pollSession(sessionId)), phase.type === 'mfa_push' ? 300 : 1500)
+    const t = setTimeout(
+      () => void call(() => api.pollSession(sessionId)),
+      phase.type === "mfa_push" ? 300 : 1500
+    )
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sessionId, polling, busy, phase])
 
   // Once signed in, the bank is being read — closing now would abort the sync, so lock the dialog.
-  const locked = phase.type === 'syncing' || phase.type === 'success' || (busy && phase.type !== 'form')
+  const locked =
+    phase.type === "syncing" ||
+    phase.type === "success" ||
+    (busy && phase.type !== "form")
 
   function close(next: boolean) {
     if (!next && locked) return
-    if (!next && sessionId && phase.type !== 'done') void api.cancelSession(sessionId).catch(() => {})
+    if (!next && sessionId && phase.type !== "done")
+      void api.cancelSession(sessionId).catch(() => {})
     onOpenChange(next)
   }
 
   const resync = !!connection
-  const picking = phase.type === 'pick'
-  const choosingTd = phase.type === 'td-method'
+  const picking = phase.type === "pick"
+  const choosingTd = phase.type === "td-method"
 
   return (
     <Dialog open={open} onOpenChange={close} disablePointerDismissal={locked}>
@@ -123,14 +188,18 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
           {picking ? (
             <>
               <DialogTitle>Add an account</DialogTitle>
-              <DialogDescription>Choose where your money lives.</DialogDescription>
+              <DialogDescription>
+                Choose where your money lives.
+              </DialogDescription>
             </>
           ) : choosingTd ? (
             <div className="mb-1 flex items-center gap-3">
               <InstitutionBadge institution="td" />
               <div>
                 <DialogTitle>TD Bank</DialogTitle>
-                <DialogDescription>How do you want to bring in your TD accounts?</DialogDescription>
+                <DialogDescription>
+                  How do you want to bring in your TD accounts?
+                </DialogDescription>
               </div>
             </div>
           ) : (
@@ -138,14 +207,18 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
               <InstitutionBadge institution={provider} />
               <div>
                 <DialogTitle>
-                  {resync ? (full ? `Full refresh: ${meta.label}` : `Refresh ${meta.label}`) : `Connect ${meta.label}`}
+                  {resync
+                    ? full
+                      ? `Full refresh: ${meta.label}`
+                      : `Refresh ${meta.label}`
+                    : `Connect ${meta.label}`}
                 </DialogTitle>
                 <DialogDescription>
                   {resync
                     ? `Signing in as ${connection?.usernameMasked}`
-                    : provider === 'paypal'
-                      ? 'Paste the Client ID and Secret of your PayPal REST app.'
-                      : 'Sign in with your EasyWeb username or Access Card.'}
+                    : provider === "paypal"
+                      ? "Paste the Client ID and Secret of your PayPal REST app."
+                      : "Sign in with your EasyWeb username or Access Card."}
                 </DialogDescription>
               </div>
             </div>
@@ -156,18 +229,22 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
           <div className="grid gap-2">
             {(Object.keys(PROVIDERS) as ProviderId[]).map((id, i) => {
               // TD can be signed in to or fed statement files, so it asks which next.
-              const td = id === 'td' && !!onUploadStatements
+              const td = id === "td" && !!onUploadStatements
               return (
                 <ChoiceButton
                   key={id}
                   index={i}
                   icon={<InstitutionBadge institution={id} />}
-                  title={td ? 'TD Bank' : PROVIDERS[id].label}
-                  description={td ? 'Sign in with EasyWeb, or upload PDF statements' : PROVIDERS[id].blurb}
+                  title={td ? "TD Bank" : PROVIDERS[id].label}
+                  description={
+                    td
+                      ? "Sign in with EasyWeb, or upload PDF statements"
+                      : PROVIDERS[id].blurb
+                  }
                   onClick={() => {
                     setProvider(id)
                     setRemember(false)
-                    setPhase(td ? { type: 'td-method' } : { type: 'form' })
+                    setPhase(td ? { type: "td-method" } : { type: "form" })
                   }}
                 />
               )
@@ -179,32 +256,50 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
           <div className="grid gap-2">
             <ChoiceButton
               index={0}
-              icon={<ChoiceIcon><KeyRound className="size-4" /></ChoiceIcon>}
+              icon={
+                <ChoiceIcon>
+                  <KeyRound className="size-4" />
+                </ChoiceIcon>
+              }
               title="Sign in with EasyWeb"
               description="Live balances and up to 18 months of transactions, refreshed automatically"
-              onClick={() => setPhase({ type: 'form' })}
+              onClick={() => setPhase({ type: "form" })}
             />
             <ChoiceButton
               index={1}
-              icon={<ChoiceIcon><FileText className="size-4" /></ChoiceIcon>}
+              icon={
+                <ChoiceIcon>
+                  <FileText className="size-4" />
+                </ChoiceIcon>
+              }
               title="Upload statements"
               description="PDF statements or a .zip from EasyWeb, for history past 18 months. No sign-in needed"
               onClick={() => onUploadStatements?.()}
             />
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setPhase({ type: 'pick' })}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setPhase({ type: "pick" })}
+              >
                 Back
               </Button>
             </DialogFooter>
           </div>
         )}
 
-        {phase.type === 'form' && (
+        {phase.type === "form" && (
           <form
-            className="grid gap-4 animate-in fade-in-0 duration-200"
+            className="grid animate-in gap-4 duration-200 fade-in-0"
             onSubmit={(e) => {
               e.preventDefault()
-              void start(provider, { username, password, remember, connectionId: connection?.id, full })
+              void start(provider, {
+                username,
+                password,
+                remember,
+                connectionId: connection?.id,
+                full,
+              })
             }}
           >
             {phase.error && (
@@ -212,7 +307,11 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
                 <AlertDescription>{phase.error}</AlertDescription>
               </Alert>
             )}
-            {provider === 'paypal' ? <PaypalFields {...{ username, setUsername, password, setPassword }} /> : (
+            {provider === "paypal" ? (
+              <PaypalFields
+                {...{ username, setUsername, password, setPassword }}
+              />
+            ) : (
               <>
                 <div className="grid gap-2">
                   <Label htmlFor="td-username">Username or Access Card</Label>
@@ -237,16 +336,23 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
                   />
                 </div>
                 <label className="flex cursor-pointer items-start gap-2.5 text-sm">
-                  <Checkbox checked={remember} onCheckedChange={(v) => setRemember(v === true)} className="mt-0.5" />
+                  <Checkbox
+                    checked={remember}
+                    onCheckedChange={(v) => setRemember(v === true)}
+                    className="mt-0.5"
+                  />
                   <span>
                     Save credentials for one-click refresh
-                    <span className="block text-xs text-muted-foreground">Encrypted with AES-256-GCM on this server.</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Encrypted with AES-256-GCM on this server.
+                    </span>
                   </span>
                 </label>
                 <p className="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
                   <LockKeyhole className="mt-0.5 size-3.5 shrink-0" />
-                  Your credentials are sent only to your own server, which signs in to easyweb.td.com in a private browser.
-                  TD may ask you to verify with a code.
+                  Your credentials are sent only to your own server, which signs
+                  in to easyweb.td.com in a private browser. TD may ask you to
+                  verify with a code.
                 </p>
               </>
             )}
@@ -255,7 +361,13 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => setPhase(provider === 'td' && onUploadStatements ? { type: 'td-method' } : { type: 'pick' })}
+                  onClick={() =>
+                    setPhase(
+                      provider === "td" && onUploadStatements
+                        ? { type: "td-method" }
+                        : { type: "pick" }
+                    )
+                  }
                 >
                   Back
                 </Button>
@@ -268,19 +380,22 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
           </form>
         )}
 
-        {(phase.type === 'syncing' || phase.type === 'success') && (
-          <div className="flex flex-col items-center gap-3 py-8 text-center animate-in fade-in-0 zoom-in-95">
+        {(phase.type === "syncing" || phase.type === "success") && (
+          <div className="flex animate-in flex-col items-center gap-3 py-8 text-center fade-in-0 zoom-in-95">
             <Loader2 className="size-8 animate-spin text-muted-foreground" />
-            <p className="text-sm font-medium">{phase.type === 'syncing' ? phase.message : 'Signed in…'}</p>
+            <p className="text-sm font-medium">
+              {phase.type === "syncing" ? phase.message : "Signed in…"}
+            </p>
             <p className="max-w-xs text-xs text-muted-foreground">
-              The first sync reads {meta.history} of history and can take a few minutes. Please keep this window open.
+              The first sync reads {meta.history} of history and can take a few
+              minutes. Please keep this window open.
             </p>
           </div>
         )}
 
-        {phase.type === 'mfa_select' && sessionId && (
+        {phase.type === "mfa_select" && sessionId && (
           <form
-            className="grid gap-4 animate-in fade-in-0 duration-200"
+            className="grid animate-in gap-4 duration-200 fade-in-0"
             onSubmit={(e) => {
               e.preventDefault()
               void call(() => api.chooseMfa(sessionId, mfaChoice))
@@ -288,9 +403,15 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
           >
             <div className="flex items-start gap-2 text-sm">
               <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
-              <p>{phase.prompt || 'Your bank wants to verify it’s you. How should they send your security code?'}</p>
+              <p>
+                {phase.prompt ||
+                  "Your bank wants to verify it’s you. How should they send your security code?"}
+              </p>
             </div>
-            <RadioGroup value={mfaChoice} onValueChange={(v) => setMfaChoice(String(v))}>
+            <RadioGroup
+              value={mfaChoice}
+              onValueChange={(v) => setMfaChoice(String(v))}
+            >
               {phase.options.map((o) => (
                 <label
                   key={o.id}
@@ -310,9 +431,9 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
           </form>
         )}
 
-        {phase.type === 'mfa_code' && sessionId && (
+        {phase.type === "mfa_code" && sessionId && (
           <form
-            className="grid gap-4 animate-in fade-in-0 duration-200"
+            className="grid animate-in gap-4 duration-200 fade-in-0"
             onSubmit={(e) => {
               e.preventDefault()
               void call(() => api.submitCode(sessionId, code))
@@ -361,8 +482,8 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
           </form>
         )}
 
-        {phase.type === 'mfa_push' && (
-          <div className="flex flex-col items-center gap-3 py-8 text-center animate-in fade-in-0 zoom-in-95">
+        {phase.type === "mfa_push" && (
+          <div className="flex animate-in flex-col items-center gap-3 py-8 text-center fade-in-0 zoom-in-95">
             <Smartphone className="size-8 animate-pulse text-primary" />
             <p className="text-sm font-medium">{phase.prompt}</p>
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -377,7 +498,9 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
 
 function ChoiceIcon({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">{children}</span>
+    <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+      {children}
+    </span>
   )
 }
 
@@ -400,12 +523,14 @@ function ChoiceButton({
       type="button"
       onClick={onClick}
       style={{ animationDelay: `${index * 60}ms` }}
-      className="group flex items-center gap-3 rounded-lg border p-3 text-left transition-all animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both hover:border-primary/40 hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="group flex animate-in items-center gap-3 rounded-lg border p-3 text-left transition-all fade-in-0 fill-mode-both slide-in-from-bottom-1 hover:border-primary/40 hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       {icon}
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-medium">{title}</span>
-        <span className="block text-xs text-muted-foreground">{description}</span>
+        <span className="block text-xs text-muted-foreground">
+          {description}
+        </span>
       </span>
       <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </button>
@@ -432,7 +557,7 @@ function PaypalFields({
         </summary>
         <ol className="mt-2 ml-4 grid list-decimal gap-1.5 pb-1">
           <li>
-            Sign in at{' '}
+            Sign in at{" "}
             <a
               href="https://developer.paypal.com/dashboard/applications/live"
               target="_blank"
@@ -440,17 +565,19 @@ function PaypalFields({
               className="inline-flex items-center gap-0.5 font-medium text-foreground underline-offset-4 hover:underline"
             >
               developer.paypal.com <ExternalLink className="size-3" />
-            </a>{' '}
+            </a>{" "}
             with your PayPal account and switch to <b>Live</b>.
           </li>
           <li>
-            Create an app (type <b>Merchant</b>), then under its features tick <b>Transaction Search</b> and save.
+            Create an app (type <b>Merchant</b>), then under its features tick{" "}
+            <b>Transaction Search</b> and save.
           </li>
           <li>Copy the app’s Client ID and Secret here.</li>
         </ol>
         <p className="mt-2">
-          Transaction Search needs a PayPal Business account (free to upgrade to). New permissions and new payments can take up
-          to 3 hours to show up.
+          Transaction Search needs a PayPal Business account (free to upgrade
+          to). New permissions and new payments can take up to 3 hours to show
+          up.
         </p>
       </details>
       <div className="grid gap-2">
@@ -480,8 +607,9 @@ function PaypalFields({
       </div>
       <p className="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
         <LockKeyhole className="mt-0.5 size-3.5 shrink-0" />
-        Ledger only reads balances and transactions. The keys are kept encrypted (AES-256-GCM) on your server so it can
-        refresh; remove the connection or delete the app on PayPal to revoke access.
+        Ledger only reads balances and transactions. The keys are kept encrypted
+        (AES-256-GCM) on your server so it can refresh; remove the connection or
+        delete the app on PayPal to revoke access.
       </p>
     </>
   )

@@ -1,9 +1,11 @@
-import { useLayoutEffect, useRef } from 'react'
-import { ForeignMoney } from '@/components/money'
-import { formatMoney, getDisplayCurrency } from '@/lib/format'
-import { cn } from '@/lib/utils'
+import { useLayoutEffect, useRef } from "react"
+import { ForeignMoney } from "@/components/money"
+import { formatMoney, getDisplayCurrency } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
-const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+const reducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
 
 /**
  * A number that counts up to its value when it first appears, and glides to the new one when it
@@ -57,7 +59,7 @@ export function CountUp({
   }, [value, duration])
 
   return (
-    <span className={cn('tabular-nums', className)}>
+    <span className={cn("tabular-nums", className)}>
       <span ref={ref} aria-hidden />
       <span className="sr-only">{format(value)}</span>
     </span>
@@ -78,7 +80,11 @@ export function AnimatedMoney({
 }) {
   return (
     <ForeignMoney value={value} currency={currency} sign={sign}>
-      <CountUp value={value} format={(n) => formatMoney(n, currency, { sign })} className={className} />
+      <CountUp
+        value={value}
+        format={(n) => formatMoney(n, currency, { sign })}
+        className={className}
+      />
     </ForeignMoney>
   )
 }

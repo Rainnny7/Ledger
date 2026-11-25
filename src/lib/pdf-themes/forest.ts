@@ -1,6 +1,6 @@
-import type { PdfcnTheme } from "@/types/pdf-themes";
+import type { PdfcnTheme } from "@/types/pdf-themes"
 
-import { defaultPrimitives } from "./primitives";
+import { defaultPrimitives } from "./primitives"
 
 /**
  * Forest theme preset.
@@ -61,4 +61,4 @@ export const forestTheme: PdfcnTheme = {
       lineHeight: 1.25,
     },
   },
-};
+}

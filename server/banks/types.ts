@@ -1,7 +1,14 @@
-import type { AccountDetails } from './td/parse.ts'
+import type { AccountDetails } from "./td/parse.ts"
 
 /** `wallet`: a stored-value balance such as PayPal; counted with bank accounts. */
-export type AccountType = 'chequing' | 'savings' | 'credit' | 'loan' | 'investment' | 'wallet' | 'other'
+export type AccountType =
+  | "chequing"
+  | "savings"
+  | "credit"
+  | "loan"
+  | "investment"
+  | "wallet"
+  | "other"
 
 export interface ScrapedAccount {
   externalKey: string
@@ -47,15 +54,18 @@ export interface BankClient {
   submitCode(code: string): Promise<LoginStep>
   waitForApproval(): Promise<LoginStep>
   /** `sinceFor(externalKey)`: earliest date worth reading for that account, or null for a full read. */
-  scrapeAccounts(onProgress?: (msg: string) => void, sinceFor?: (externalKey: string) => string | null): Promise<ScrapedAccount[]>
+  scrapeAccounts(
+    onProgress?: (msg: string) => void,
+    sinceFor?: (externalKey: string) => string | null
+  ): Promise<ScrapedAccount[]>
   storageState(): Promise<unknown>
   close(): Promise<void>
 }
 
 /** Where a bank login currently stands; the UI renders one screen per step. */
 export type LoginStep =
-  | { type: 'success' }
-  | { type: 'mfa_select'; prompt: string; options: MfaOption[] }
-  | { type: 'mfa_code'; prompt: string }
-  | { type: 'mfa_push'; prompt: string }
-  | { type: 'error'; message: string }
+  | { type: "success" }
+  | { type: "mfa_select"; prompt: string; options: MfaOption[] }
+  | { type: "mfa_code"; prompt: string }
+  | { type: "mfa_push"; prompt: string }
+  | { type: "error"; message: string }

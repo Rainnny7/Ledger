@@ -1,5 +1,9 @@
-import type { ReactElement, ReactNode } from 'react'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import type { ReactElement, ReactNode } from "react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 /**
  * A styled tooltip around one element: the app's stand-in for the browser's `title` attribute.
@@ -13,10 +17,10 @@ export function Hint({
 }: {
   label: ReactNode
   children: ReactElement
-  side?: 'top' | 'bottom' | 'left' | 'right'
+  side?: "top" | "bottom" | "left" | "right"
   className?: string
 }) {
-  if (label === null || label === undefined || label === '') return children
+  if (label === null || label === undefined || label === "") return children
   return (
     <Tooltip>
       <TooltipTrigger render={children} />

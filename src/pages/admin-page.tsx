@@ -1,8 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery } from "@tanstack/react-query"
 import {
   Ban,
   Crown,
   Dices,
+  GitCommitHorizontal,
   KeyRound,
   Loader2,
   LogOut,
@@ -13,37 +14,57 @@ import {
   Trash2,
   UserCheck,
   UserPlus,
-} from 'lucide-react'
-import { useState } from 'react'
-import { toast } from 'sonner'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+} from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { isStrongPassword, PASSWORD_MAX, PasswordRules } from '@/components/password-rules'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Switch } from '@/components/ui/switch'
-import { authClient, useSession } from '@/lib/auth-client'
-import { setDemoMode } from '@/lib/demo'
-import { queryClient } from '@/lib/queries'
-import { adminFetch, auditKey } from '@/lib/admin'
-import { ActivityCard } from '@/components/admin-activity'
-import { BackupsCard, TasksCard } from '@/components/admin-tasks'
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  isStrongPassword,
+  PASSWORD_MAX,
+  PasswordRules,
+} from "@/components/password-rules"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Hint } from "@/components/hint"
+import { formatRelative, formatTimestamp } from "@/lib/format"
+import { Switch } from "@/components/ui/switch"
+import { authClient, useSession } from "@/lib/auth-client"
+import { setDemoMode } from "@/lib/demo"
+import { queryClient } from "@/lib/queries"
+import { adminFetch, auditKey } from "@/lib/admin"
+import { ActivityCard } from "@/components/admin-activity"
+import { BackupsCard, TasksCard } from "@/components/admin-tasks"
 
 /** The server's built-in demo user; it holds the sample data, not a real account. */
-const DEMO_EMAIL = 'demo@ledger.invalid'
+const DEMO_EMAIL = "demo@ledger.invalid"
 
 interface AdminUser {
   id: string
@@ -56,8 +77,8 @@ interface AdminUser {
   createdAt: Date | string
 }
 
-const usersKey = ['admin', 'users'] as const
-const settingsKey = ['admin', 'settings'] as const
+const usersKey = ["admin", "users"] as const
+const settingsKey = ["admin", "settings"] as const
 
 interface AdminSettings {
   registrationOpen: boolean
@@ -68,9 +89,14 @@ interface AdminSettings {
 export function AdminPage() {
   return (
     <div className="grid gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
-        <p className="text-sm text-muted-foreground">People who can use this Ledger, and who may sign up.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
+          <p className="text-sm text-muted-foreground">
+            People who can use this Ledger, and who may sign up.
+          </p>
+        </div>
+        <BuildInfo />
       </div>
       <div className="grid gap-8 md:grid-cols-2">
         <SignupsCard />
@@ -84,9 +110,53 @@ export function AdminPage() {
   )
 }
 
+/** Which build of the site this is: the commit it came from and when it was built. */
+const REPO_URL = "https://github.com/Rainnny7/Ledger"
+
+function BuildInfo() {
+  const hash = import.meta.env.VITE_BUILD_GIT_HASH
+  const built = import.meta.env.VITE_BUILD_TIME
+  const known = hash !== "unknown"
+  const content = (
+    <>
+      <GitCommitHorizontal className="size-3.5" />
+      <code className="font-mono font-medium text-foreground">{hash}</code>
+      <span aria-hidden>·</span>
+      <time dateTime={built}>{formatTimestamp(built)}</time>
+    </>
+  )
+  const className =
+    "inline-flex h-7 items-center gap-2 rounded-full border bg-card px-3 text-xs text-muted-foreground"
+  return (
+    <Hint
+      label={
+        `Built ${formatTimestamp(built)} (${formatRelative(built)}) from commit ${hash}` +
+        (known ? " · open it on GitHub" : "")
+      }
+    >
+      {known ? (
+        <a
+          href={`${REPO_URL}/commit/${hash}`}
+          target="_blank"
+          rel="noreferrer"
+          className={`${className} transition-colors hover:border-foreground/20 hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none`}
+        >
+          {content}
+        </a>
+      ) : (
+        <span className={`${className} cursor-default`}>{content}</span>
+      )}
+    </Hint>
+  )
+}
+
 // ---------------------------------------------------------------- instance settings
 
-const useAdminSettings = () => useQuery({ queryKey: settingsKey, queryFn: () => adminFetch<AdminSettings>('settings') })
+const useAdminSettings = () =>
+  useQuery({
+    queryKey: settingsKey,
+    queryFn: () => adminFetch<AdminSettings>("settings"),
+  })
 
 function SignupsCard() {
   const settings = useAdminSettings()
@@ -96,10 +166,15 @@ function SignupsCard() {
   async function toggle(next: boolean) {
     setSaving(true)
     try {
-      await adminFetch('settings', { method: 'PUT', body: JSON.stringify({ registrationOpen: next }) })
+      await adminFetch("settings", {
+        method: "PUT",
+        body: JSON.stringify({ registrationOpen: next }),
+      })
       await settings.refetch()
       void queryClient.invalidateQueries({ queryKey: auditKey })
-      toast.success(next ? 'Anyone can now create an account' : 'Sign-ups closed')
+      toast.success(
+        next ? "Anyone can now create an account" : "Sign-ups closed"
+      )
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
@@ -112,10 +187,16 @@ function SignupsCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           Sign-ups
-          {settings.data && (open ? <Badge>Open</Badge> : <Badge variant="secondary">Closed</Badge>)}
+          {settings.data &&
+            (open ? (
+              <Badge>Open</Badge>
+            ) : (
+              <Badge variant="secondary">Closed</Badge>
+            ))}
         </CardTitle>
         <CardDescription>
-          Let anyone with the link create their own account. You can still add people yourself when this is off.
+          Let anyone with the link create their own account. You can still add
+          people yourself when this is off.
         </CardDescription>
         <CardAction>
           {settings.isPending ? (
@@ -145,10 +226,10 @@ function DemoCard() {
   async function reseed() {
     setReseeding(true)
     try {
-      await adminFetch('demo/reseed', { method: 'POST' })
+      await adminFetch("demo/reseed", { method: "POST" })
       // Anything cached from an earlier demo session is stale now.
       void queryClient.invalidateQueries()
-      toast.success('Demo data reseeded')
+      toast.success("Demo data reseeded")
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
@@ -161,12 +242,18 @@ function DemoCard() {
       <CardHeader>
         <CardTitle>Demo mode</CardTitle>
         <CardDescription>
-          Browse the whole app filled with made-up accounts and transactions, handy for showing it off without your real
-          balances on screen.
+          Browse the whole app filled with made-up accounts and transactions,
+          handy for showing it off without your real balances on screen.
         </CardDescription>
         <CardAction className="flex flex-wrap justify-end gap-2">
-          <Button size="sm" variant="ghost" onClick={() => void reseed()} disabled={reseeding}>
-            {reseeding ? <Loader2 className="animate-spin" /> : <Dices />} Reseed
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => void reseed()}
+            disabled={reseeding}
+          >
+            {reseeding ? <Loader2 className="animate-spin" /> : <Dices />}{" "}
+            Reseed
           </Button>
           <Button size="sm" variant="outline" onClick={() => setDemoMode(true)}>
             <MonitorPlay /> Start demo
@@ -180,22 +267,22 @@ function DemoCard() {
 // ---------------------------------------------------------------- users
 
 function initials(u: { name?: string; email?: string }) {
-  return (u.name || u.email || '?')
+  return (u.name || u.email || "?")
     .split(/\s+/)
     .map((p) => p[0])
     .slice(0, 2)
-    .join('')
+    .join("")
     .toUpperCase()
 }
 
-const joined = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
+const joined = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" })
 
 type UserDialog =
-  | { type: 'add' }
-  | { type: 'password'; user: AdminUser }
-  | { type: 'role'; user: AdminUser }
-  | { type: 'delete'; user: AdminUser }
-  | { type: 'ban'; user: AdminUser }
+  | { type: "add" }
+  | { type: "password"; user: AdminUser }
+  | { type: "role"; user: AdminUser }
+  | { type: "delete"; user: AdminUser }
+  | { type: "ban"; user: AdminUser }
 
 function UsersCard() {
   const { data: session } = useSession()
@@ -206,20 +293,24 @@ function UsersCard() {
     queryKey: usersKey,
     queryFn: async () => {
       const { data, error } = await authClient.admin.listUsers({
-        query: { limit: 500, sortBy: 'createdAt', sortDirection: 'asc' },
+        query: { limit: 500, sortBy: "createdAt", sortDirection: "asc" },
       })
-      if (error) throw new Error(error.message ?? 'Could not load users')
+      if (error) throw new Error(error.message ?? "Could not load users")
       return (data.users as AdminUser[]).filter((u) => u.email !== DEMO_EMAIL)
     },
   })
   const [dialog, setDialog] = useState<UserDialog | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
 
-  async function act(user: AdminUser, label: string, run: () => Promise<{ error: { message?: string } | null }>) {
+  async function act(
+    user: AdminUser,
+    label: string,
+    run: () => Promise<{ error: { message?: string } | null }>
+  ) {
     setBusy(user.id)
     const { error } = await run()
     setBusy(null)
-    if (error) toast.error(error.message ?? 'Something went wrong')
+    if (error) toast.error(error.message ?? "Something went wrong")
     else toast.success(label)
     refresh()
   }
@@ -237,11 +328,11 @@ function UsersCard() {
           {users.data && <Badge variant="secondary">{users.data.length}</Badge>}
         </CardTitle>
         <CardDescription>
-          Each person sees only their own banks and data. Admins can also open this page; only the owner can choose who’s an
-          admin.
+          Each person sees only their own banks and data. Admins can also open
+          this page; only the owner can choose who’s an admin.
         </CardDescription>
         <CardAction>
-          <Button size="sm" onClick={() => setDialog({ type: 'add' })}>
+          <Button size="sm" onClick={() => setDialog({ type: "add" })}>
             <UserPlus /> Add user
           </Button>
         </CardAction>
@@ -257,21 +348,25 @@ function UsersCard() {
               </div>
             </div>
           ))}
-        {users.error && <p className="text-sm text-destructive">{users.error.message}</p>}
+        {users.error && (
+          <p className="text-sm text-destructive">{users.error.message}</p>
+        )}
         {users.data?.map((u, i) => {
           const isMe = u.id === session?.user.id
-          const isAdmin = u.role === 'admin'
+          const isAdmin = u.role === "admin"
           const isOwner = u.id === ownerId
           // Nobody else can manage the owner's account.
           const manageable = !isMe && (!isOwner || iAmOwner)
           return (
             <div
               key={u.id}
-              className="flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/60 animate-in fade-in-0 duration-300 fill-mode-both"
+              className="flex animate-in items-center gap-3 rounded-lg px-2 py-2 transition-colors duration-300 fade-in-0 fill-mode-both hover:bg-muted/60"
               style={{ animationDelay: `${Math.min(i, 10) * 30}ms` }}
             >
               <Avatar className="size-8">
-                <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">{initials(u)}</AvatarFallback>
+                <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
+                  {initials(u)}
+                </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
@@ -284,7 +379,9 @@ function UsersCard() {
                   ) : (
                     isAdmin && <Badge>Admin</Badge>
                   )}
-                  {u.mustChangePassword && <Badge variant="outline">Temporary password</Badge>}
+                  {u.mustChangePassword && (
+                    <Badge variant="outline">Temporary password</Badge>
+                  )}
                   {u.banned && <Badge variant="destructive">Banned</Badge>}
                   {u.twoFactorEnabled && (
                     <Badge variant="secondary">
@@ -296,41 +393,68 @@ function UsersCard() {
                   {u.email} · joined {joined.format(new Date(u.createdAt))}
                 </div>
               </div>
-              {busy === u.id && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+              {busy === u.id && (
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
+              )}
               {manageable && (
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    render={<Button variant="ghost" size="icon" aria-label={`Manage ${u.name || u.email}`} disabled={busy === u.id} />}
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Manage ${u.name || u.email}`}
+                        disabled={busy === u.id}
+                      />
+                    }
                   >
                     <MoreHorizontal />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-52">
                     {iAmOwner && (
-                      <DropdownMenuItem onClick={() => setDialog({ type: 'role', user: u })}>
-                        {isAdmin ? <ShieldMinus /> : <ShieldCheck />} {isAdmin ? 'Remove admin' : 'Make admin'}
+                      <DropdownMenuItem
+                        onClick={() => setDialog({ type: "role", user: u })}
+                      >
+                        {isAdmin ? <ShieldMinus /> : <ShieldCheck />}{" "}
+                        {isAdmin ? "Remove admin" : "Make admin"}
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem onClick={() => setDialog({ type: 'password', user: u })}>
+                    <DropdownMenuItem
+                      onClick={() => setDialog({ type: "password", user: u })}
+                    >
                       <KeyRound /> Set temporary password
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() =>
-                        void act(u, 'Signed out everywhere', () => authClient.admin.revokeUserSessions({ userId: u.id }))
+                        void act(u, "Signed out everywhere", () =>
+                          authClient.admin.revokeUserSessions({ userId: u.id })
+                        )
                       }
                     >
                       <LogOut /> Sign out everywhere
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {u.banned ? (
-                      <DropdownMenuItem onClick={() => void act(u, 'Access restored', () => authClient.admin.unbanUser({ userId: u.id }))}>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          void act(u, "Access restored", () =>
+                            authClient.admin.unbanUser({ userId: u.id })
+                          )
+                        }
+                      >
                         <UserCheck /> Restore access
                       </DropdownMenuItem>
                     ) : (
-                      <DropdownMenuItem onClick={() => setDialog({ type: 'ban', user: u })}>
+                      <DropdownMenuItem
+                        onClick={() => setDialog({ type: "ban", user: u })}
+                      >
                         <Ban /> Block sign-in
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem variant="destructive" onClick={() => setDialog({ type: 'delete', user: u })}>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => setDialog({ type: "delete", user: u })}
+                    >
                       <Trash2 /> Delete user
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -341,30 +465,50 @@ function UsersCard() {
         })}
       </CardContent>
 
-      <AddUserDialog open={dialog?.type === 'add'} canAddAdmins={iAmOwner} onClose={() => setDialog(null)} onAdded={refresh} />
-      <SetPasswordDialog user={dialog?.type === 'password' ? dialog.user : null} onClose={() => setDialog(null)} onDone={refresh} />
-      <ConfirmDialog
-        user={dialog?.type === 'role' ? dialog.user : null}
+      <AddUserDialog
+        open={dialog?.type === "add"}
+        canAddAdmins={iAmOwner}
         onClose={() => setDialog(null)}
-        destructive={dialog?.type === 'role' && dialog.user.role === 'admin'}
-        title={dialog?.type === 'role' && dialog.user.role === 'admin' ? 'Remove their admin access?' : 'Make this person an admin?'}
+        onAdded={refresh}
+      />
+      <SetPasswordDialog
+        user={dialog?.type === "password" ? dialog.user : null}
+        onClose={() => setDialog(null)}
+        onDone={refresh}
+      />
+      <ConfirmDialog
+        user={dialog?.type === "role" ? dialog.user : null}
+        onClose={() => setDialog(null)}
+        destructive={dialog?.type === "role" && dialog.user.role === "admin"}
+        title={
+          dialog?.type === "role" && dialog.user.role === "admin"
+            ? "Remove their admin access?"
+            : "Make this person an admin?"
+        }
         description={(u) =>
-          u.role === 'admin'
+          u.role === "admin"
             ? `${u.name || u.email} goes back to a regular account and loses access to this page.`
             : `${u.name || u.email} will be able to add, block and delete users, set temporary passwords, and open or close sign-ups. They can’t touch your account or change who’s an admin.`
         }
-        action={dialog?.type === 'role' && dialog.user.role === 'admin' ? 'Remove admin' : 'Make admin'}
+        action={
+          dialog?.type === "role" && dialog.user.role === "admin"
+            ? "Remove admin"
+            : "Make admin"
+        }
         run={async (u) => {
-          const admin = u.role === 'admin'
-          const { error } = await authClient.admin.setRole({ userId: u.id, role: admin ? 'user' : 'admin' })
-          if (error) return error.message ?? 'Could not change their role'
-          toast.success(admin ? 'No longer an admin' : 'Now an admin')
+          const admin = u.role === "admin"
+          const { error } = await authClient.admin.setRole({
+            userId: u.id,
+            role: admin ? "user" : "admin",
+          })
+          if (error) return error.message ?? "Could not change their role"
+          toast.success(admin ? "No longer an admin" : "Now an admin")
           refresh()
           return null
         }}
       />
       <ConfirmDialog
-        user={dialog?.type === 'ban' ? dialog.user : null}
+        user={dialog?.type === "ban" ? dialog.user : null}
         onClose={() => setDialog(null)}
         title="Block this person from signing in?"
         description={(u) =>
@@ -373,14 +517,14 @@ function UsersCard() {
         action="Block sign-in"
         run={async (u) => {
           const { error } = await authClient.admin.banUser({ userId: u.id })
-          if (error) return error.message ?? 'Could not block this user'
-          toast.success('Sign-in blocked')
+          if (error) return error.message ?? "Could not block this user"
+          toast.success("Sign-in blocked")
           refresh()
           return null
         }}
       />
       <ConfirmDialog
-        user={dialog?.type === 'delete' ? dialog.user : null}
+        user={dialog?.type === "delete" ? dialog.user : null}
         onClose={() => setDialog(null)}
         title="Delete this user and their data?"
         description={(u) =>
@@ -390,8 +534,8 @@ function UsersCard() {
         confirmText={(u) => u.email}
         run={async (u) => {
           const { error } = await authClient.admin.removeUser({ userId: u.id })
-          if (error) return error.message ?? 'Could not delete this user'
-          toast.success('User deleted')
+          if (error) return error.message ?? "Could not delete this user"
+          toast.success("User deleted")
           refresh()
           return null
         }}
@@ -405,11 +549,17 @@ function UsersCard() {
  * Drawn until it meets the password rules (a symbol and a digit usually turn up in a draw or two).
  */
 function randomPassword() {
-  const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!#$%&*+-=?@'
+  const alphabet =
+    "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!#$%&*+-=?@"
   for (;;) {
     // Bytes past the last whole multiple of the alphabet's length are dropped, so every character is equally likely.
-    const bytes = Array.from(crypto.getRandomValues(new Uint8Array(32))).filter((b) => b < 256 - (256 % alphabet.length))
-    const pw = bytes.slice(0, 14).map((b) => alphabet[b % alphabet.length]).join('')
+    const bytes = Array.from(crypto.getRandomValues(new Uint8Array(32))).filter(
+      (b) => b < 256 - (256 % alphabet.length)
+    )
+    const pw = bytes
+      .slice(0, 14)
+      .map((b) => alphabet[b % alphabet.length])
+      .join("")
     if (pw.length === 14 && isStrongPassword(pw)) return pw
   }
 }
@@ -442,13 +592,18 @@ function TemporaryPasswordField({
           autoFocus={autoFocus}
           required
         />
-        <Button type="button" variant="outline" onClick={() => onChange(randomPassword())}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onChange(randomPassword())}
+        >
           <Dices /> Generate
         </Button>
       </div>
       <PasswordRules id={`${id}-rules`} password={value} />
       <p className="text-xs text-muted-foreground">
-        They have to choose their own password the next time they sign in, and this one stops working then.
+        They have to choose their own password the next time they sign in, and
+        this one stops working then.
       </p>
     </div>
   )
@@ -474,18 +629,18 @@ function AddUserDialog({
   onClose: () => void
   onAdded: () => void
 }) {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [makeAdmin, setMakeAdmin] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   function close() {
     onClose()
-    setName('')
-    setEmail('')
-    setPassword('')
+    setName("")
+    setEmail("")
+    setPassword("")
     setMakeAdmin(false)
     setError(null)
   }
@@ -498,13 +653,15 @@ function AddUserDialog({
       name: name.trim(),
       email: email.trim(),
       password,
-      role: makeAdmin && canAddAdmins ? 'admin' : 'user',
+      role: makeAdmin && canAddAdmins ? "admin" : "user",
     })
     setBusy(false)
-    if (error) return setError(error.message ?? 'Could not add this user')
+    if (error) return setError(error.message ?? "Could not add this user")
     const copied = await copyPassword(password)
     toast.success(`Added ${name.trim() || email.trim()}`, {
-      description: copied ? 'Temporary password copied. Send it to them privately.' : 'Send them the temporary password privately.',
+      description: copied
+        ? "Temporary password copied. Send it to them privately."
+        : "Send them the temporary password privately.",
     })
     onAdded()
     close()
@@ -516,8 +673,8 @@ function AddUserDialog({
         <DialogHeader>
           <DialogTitle>Add a user</DialogTitle>
           <DialogDescription>
-            Works even while sign-ups are closed. Give them the temporary password; they choose their own the first time they sign
-            in.
+            Works even while sign-ups are closed. Give them the temporary
+            password; they choose their own the first time they sign in.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4">
@@ -528,7 +685,14 @@ function AddUserDialog({
           )}
           <div className="grid gap-2">
             <Label htmlFor="new-user-name">Name</Label>
-            <Input id="new-user-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" autoFocus required />
+            <Input
+              id="new-user-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="off"
+              autoFocus
+              required
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="new-user-email">Email</Label>
@@ -541,10 +705,17 @@ function AddUserDialog({
               required
             />
           </div>
-          <TemporaryPasswordField id="new-user-password" value={password} onChange={setPassword} />
+          <TemporaryPasswordField
+            id="new-user-password"
+            value={password}
+            onChange={setPassword}
+          />
           {canAddAdmins && (
             <Label className="flex items-center gap-2 font-normal">
-              <Checkbox checked={makeAdmin} onCheckedChange={(v) => setMakeAdmin(v === true)} />
+              <Checkbox
+                checked={makeAdmin}
+                onCheckedChange={(v) => setMakeAdmin(v === true)}
+              />
               Make them an admin too
             </Label>
           )}
@@ -552,7 +723,15 @@ function AddUserDialog({
             <Button type="button" variant="outline" onClick={close}>
               Cancel
             </Button>
-            <Button type="submit" disabled={busy || !name.trim() || !email.trim() || !isStrongPassword(password)}>
+            <Button
+              type="submit"
+              disabled={
+                busy ||
+                !name.trim() ||
+                !email.trim() ||
+                !isStrongPassword(password)
+              }
+            >
               {busy && <Loader2 className="animate-spin" />} Add user
             </Button>
           </DialogFooter>
@@ -562,14 +741,22 @@ function AddUserDialog({
   )
 }
 
-function SetPasswordDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose: () => void; onDone: () => void }) {
-  const [password, setPassword] = useState('')
+function SetPasswordDialog({
+  user,
+  onClose,
+  onDone,
+}: {
+  user: AdminUser | null
+  onClose: () => void
+  onDone: () => void
+}) {
+  const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   function close() {
     onClose()
-    setPassword('')
+    setPassword("")
     setError(null)
   }
 
@@ -579,12 +766,17 @@ function SetPasswordDialog({ user, onClose, onDone }: { user: AdminUser | null; 
     setBusy(true)
     setError(null)
     // The server also signs them out everywhere and makes them pick a new password at next sign-in.
-    const { error } = await authClient.admin.setUserPassword({ userId: user.id, newPassword: password })
+    const { error } = await authClient.admin.setUserPassword({
+      userId: user.id,
+      newPassword: password,
+    })
     setBusy(false)
-    if (error) return setError(error.message ?? 'Could not set the password')
+    if (error) return setError(error.message ?? "Could not set the password")
     const copied = await copyPassword(password)
-    toast.success('Temporary password set', {
-      description: copied ? 'Copied to your clipboard. Send it to them privately.' : 'Send it to them privately.',
+    toast.success("Temporary password set", {
+      description: copied
+        ? "Copied to your clipboard. Send it to them privately."
+        : "Send it to them privately.",
     })
     onDone()
     close()
@@ -596,8 +788,9 @@ function SetPasswordDialog({ user, onClose, onDone }: { user: AdminUser | null; 
         <DialogHeader>
           <DialogTitle>Set a temporary password</DialogTitle>
           <DialogDescription>
-            For {user?.name || user?.email}, if they’re locked out. They’re signed out on every device, sign in once with this
-            password, and then have to choose a new one that only they know.
+            For {user?.name || user?.email}, if they’re locked out. They’re
+            signed out on every device, sign in once with this password, and
+            then have to choose a new one that only they know.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4">
@@ -606,13 +799,22 @@ function SetPasswordDialog({ user, onClose, onDone }: { user: AdminUser | null; 
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <TemporaryPasswordField id="set-password" value={password} onChange={setPassword} autoFocus />
+          <TemporaryPasswordField
+            id="set-password"
+            value={password}
+            onChange={setPassword}
+            autoFocus
+          />
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
               Cancel
             </Button>
-            <Button type="submit" disabled={busy || !isStrongPassword(password)}>
-              {busy && <Loader2 className="animate-spin" />} Set temporary password
+            <Button
+              type="submit"
+              disabled={busy || !isStrongPassword(password)}
+            >
+              {busy && <Loader2 className="animate-spin" />} Set temporary
+              password
             </Button>
           </DialogFooter>
         </form>
@@ -644,14 +846,15 @@ function ConfirmDialog({
 }) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [typed, setTyped] = useState('')
+  const [typed, setTyped] = useState("")
   const expected = user && confirmText ? confirmText(user) : null
-  const confirmed = expected === null || typed.trim().toLowerCase() === expected.toLowerCase()
+  const confirmed =
+    expected === null || typed.trim().toLowerCase() === expected.toLowerCase()
 
   function close() {
     onClose()
     setError(null)
-    setTyped('')
+    setTyped("")
   }
 
   return (
@@ -670,7 +873,8 @@ function ConfirmDialog({
           <div className="grid gap-2">
             <Label htmlFor="confirm-text" className="font-normal">
               <span>
-                Type <span className="font-mono font-medium">{expected}</span> to confirm
+                Type <span className="font-mono font-medium">{expected}</span>{" "}
+                to confirm
               </span>
             </Label>
             <Input
@@ -688,7 +892,7 @@ function ConfirmDialog({
             Cancel
           </Button>
           <Button
-            variant={destructive ? 'destructive' : 'default'}
+            variant={destructive ? "destructive" : "default"}
             disabled={busy || !confirmed}
             onClick={async () => {
               if (!user) return

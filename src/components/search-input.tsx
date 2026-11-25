@@ -1,7 +1,7 @@
-import { Search } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
+import { Search } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 
 /**
  * A search box that keeps what you type to itself and only reports it once you pause, so a long
@@ -43,7 +43,7 @@ export function SearchInput({
   }
 
   return (
-    <div className={cn('relative min-w-48 flex-1', className)}>
+    <div className={cn("relative min-w-48 flex-1", className)}>
       <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         placeholder={placeholder}
@@ -54,11 +54,11 @@ export function SearchInput({
           setDraft(next)
           clearTimeout(timer.current)
           // Emptying the box shows everything again straight away.
-          if (next === '') commit(next)
+          if (next === "") commit(next)
           else timer.current = setTimeout(() => commit(next), delay)
         }}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') commit(draft)
+          if (e.key === "Enter") commit(draft)
         }}
       />
     </div>

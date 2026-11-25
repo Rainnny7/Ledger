@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useEffectEvent } from 'react'
-import { useSearchParams } from 'react-router'
+import { useCallback, useEffect, useEffectEvent } from "react"
+import { useSearchParams } from "react-router"
 
 /**
  * A filter kept in the page's address (`?category=groceries`), so it survives a reload, the back
@@ -9,10 +9,17 @@ import { useSearchParams } from 'react-router'
 /** Search params changed earlier in the current tick, not yet in the address. */
 let pending: URLSearchParams | null = null
 
-export function useUrlState<T extends string>(key: string, fallback: T, allowed?: readonly T[]) {
+export function useUrlState<T extends string>(
+  key: string,
+  fallback: T,
+  allowed?: readonly T[]
+) {
   const [params, setParams] = useSearchParams()
   const raw = params.get(key)
-  const value = raw !== null && (!allowed || allowed.includes(raw as T)) ? (raw as T) : fallback
+  const value =
+    raw !== null && (!allowed || allowed.includes(raw as T))
+      ? (raw as T)
+      : fallback
   const set = useCallback(
     (next: T) => {
       // React Router builds each update from the URL as it is now, so two setters called in one
@@ -23,12 +30,15 @@ export function useUrlState<T extends string>(key: string, fallback: T, allowed?
         pending = out
         queueMicrotask(() => (pending = null))
       }
-      if (next === fallback || next === '') out.delete(key)
+      if (next === fallback || next === "") out.delete(key)
       else out.set(key, next)
       // Typing in a search box shouldn't fill the back button with every keystroke.
-      setParams(new URLSearchParams(out), { replace: true, preventScrollReset: true })
+      setParams(new URLSearchParams(out), {
+        replace: true,
+        preventScrollReset: true,
+      })
     },
-    [key, fallback, setParams],
+    [key, fallback, setParams]
   )
   return [value, set] as const
 }
@@ -38,7 +48,11 @@ export function useUrlState<T extends string>(key: string, fallback: T, allowed?
  * value once the page is `ready`, then drops it from the URL so a reload or the back button
  * doesn't open the dialog again.
  */
-export function useIntent(key: string, run: (value: string) => void, ready = true) {
+export function useIntent(
+  key: string,
+  run: (value: string) => void,
+  ready = true
+) {
   const [params, setParams] = useSearchParams()
   const value = params.get(key)
   const fire = useEffectEvent((v: string) => run(v))
@@ -50,7 +64,7 @@ export function useIntent(key: string, run: (value: string) => void, ready = tru
         p.delete(key)
         return p
       },
-      { replace: true, preventScrollReset: true },
+      { replace: true, preventScrollReset: true }
     )
   }, [key, value, ready, setParams])
 }

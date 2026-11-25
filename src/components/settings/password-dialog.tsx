@@ -1,10 +1,17 @@
-import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Loader2 } from "lucide-react"
+import { useState } from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 /** Asks for the account password before a sensitive change. */
 
@@ -32,15 +39,15 @@ export function PasswordDialog({
   /** Returns an error message, or null on success. */
   run: (password: string) => Promise<string | null>
 }) {
-  const [password, setPassword] = useState('')
-  const [word, setWord] = useState('')
+  const [password, setPassword] = useState("")
+  const [word, setWord] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   function close() {
     onClose()
-    setPassword('')
-    setWord('')
+    setPassword("")
+    setWord("")
     setError(null)
   }
 
@@ -50,7 +57,7 @@ export function PasswordDialog({
     setError(null)
     const err = await run(password)
     setBusy(false)
-    setPassword('')
+    setPassword("")
     if (err) setError(err)
     else if (!keepOpen) close()
   }
@@ -70,8 +77,16 @@ export function PasswordDialog({
           )}
           {confirmWord && (
             <div className="grid gap-2">
-              <Label htmlFor="confirm-word">Type {confirmWord} to confirm</Label>
-              <Input id="confirm-word" value={word} onChange={(e) => setWord(e.target.value)} autoComplete="off" required />
+              <Label htmlFor="confirm-word">
+                Type {confirmWord} to confirm
+              </Label>
+              <Input
+                id="confirm-word"
+                value={word}
+                onChange={(e) => setWord(e.target.value)}
+                autoComplete="off"
+                required
+              />
             </div>
           )}
           <div className="grid gap-2">
@@ -92,8 +107,10 @@ export function PasswordDialog({
             </Button>
             <Button
               type="submit"
-              variant={destructive ? 'destructive' : 'default'}
-              disabled={busy || !password || (!!confirmWord && word !== confirmWord)}
+              variant={destructive ? "destructive" : "default"}
+              disabled={
+                busy || !password || (!!confirmWord && word !== confirmWord)
+              }
             >
               {busy && <Loader2 className="animate-spin" />} {action}
             </Button>

@@ -1,14 +1,30 @@
-import { useState } from 'react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { currencyFlagUrl, currencyName, currencyOptions } from '@/lib/currency'
-import { cn } from '@/lib/utils'
+import { useState } from "react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { currencyFlagUrl, currencyName, currencyOptions } from "@/lib/currency"
+import { cn } from "@/lib/utils"
 
 /** A small flag for a currency; an empty chip of the same size when there's none or it fails to load. */
-export function CurrencyFlag({ code, className }: { code: string; className?: string }) {
+export function CurrencyFlag({
+  code,
+  className,
+}: {
+  code: string
+  className?: string
+}) {
   const url = currencyFlagUrl(code)
   const [failed, setFailed] = useState<string | null>(null)
-  const box = cn('inline-block h-3.5 w-5 shrink-0 self-center rounded-[3px] ring-1 ring-foreground/10', className)
-  if (!url || failed === url) return <span aria-hidden className={cn(box, 'bg-muted')} />
+  const box = cn(
+    "inline-block h-3.5 w-5 shrink-0 self-center rounded-[3px] ring-1 ring-foreground/10",
+    className
+  )
+  if (!url || failed === url)
+    return <span aria-hidden className={cn(box, "bg-muted")} />
   return (
     <img
       src={url}
@@ -18,7 +34,7 @@ export function CurrencyFlag({ code, className }: { code: string; className?: st
       decoding="async"
       referrerPolicy="no-referrer"
       onError={() => setFailed(url)}
-      className={cn(box, 'object-cover')}
+      className={cn(box, "object-cover")}
     />
   )
 }
@@ -39,8 +55,13 @@ export function CurrencySelect({
 }) {
   const options = currencyOptions(value)
   return (
-    <Select items={options.map((c) => ({ value: c, label: c }))} value={value} onValueChange={(v) => v && onChange(v)} disabled={disabled}>
-      <SelectTrigger id={id} className={cn('w-full', className)}>
+    <Select
+      items={options.map((c) => ({ value: c, label: c }))}
+      value={value}
+      onValueChange={(v) => v && onChange(v)}
+      disabled={disabled}
+    >
+      <SelectTrigger id={id} className={cn("w-full", className)}>
         <SelectValue>
           {(v: string | null) =>
             v ? (

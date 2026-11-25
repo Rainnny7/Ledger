@@ -1,15 +1,26 @@
-import { KeyRound, Loader2 } from 'lucide-react'
-import { useState } from 'react'
-import { toast } from 'sonner'
-import { Brand } from '@/components/brand'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { authClient, signOut, useSession } from '@/lib/auth-client'
-import { usePageTitle } from '@/lib/page-title'
-import { isStrongPassword, PASSWORD_MAX, PasswordRules } from '@/components/password-rules'
+import { KeyRound, Loader2 } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { Brand } from "@/components/brand"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { authClient, signOut, useSession } from "@/lib/auth-client"
+import { usePageTitle } from "@/lib/page-title"
+import {
+  isStrongPassword,
+  PASSWORD_MAX,
+  PasswordRules,
+} from "@/components/password-rules"
 
 /**
  * Shown instead of the app while the account is on a temporary password an admin set. The person
@@ -18,30 +29,42 @@ import { isStrongPassword, PASSWORD_MAX, PasswordRules } from '@/components/pass
  */
 export function ChangeTemporaryPasswordPage() {
   const { data, refetch } = useSession()
-  const [current, setCurrent] = useState('')
-  const [next, setNext] = useState('')
-  const [confirm, setConfirm] = useState('')
+  const [current, setCurrent] = useState("")
+  const [next, setNext] = useState("")
+  const [confirm, setConfirm] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  usePageTitle('Choose a password')
+  usePageTitle("Choose a password")
 
   const mismatch = confirm.length > 0 && next !== confirm
   const sameAsOld = next.length > 0 && next === current
-  const valid = current.length > 0 && isStrongPassword(next) && next === confirm && !sameAsOld
+  const valid =
+    current.length > 0 &&
+    isStrongPassword(next) &&
+    next === confirm &&
+    !sameAsOld
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!valid) return
     setBusy(true)
     setError(null)
-    const { error } = await authClient.changePassword({ currentPassword: current, newPassword: next, revokeOtherSessions: true })
+    const { error } = await authClient.changePassword({
+      currentPassword: current,
+      newPassword: next,
+      revokeOtherSessions: true,
+    })
     if (error) {
       setBusy(false)
-      setError(error.code === 'INVALID_PASSWORD' ? 'That temporary password is wrong.' : (error.message ?? 'Could not change your password'))
+      setError(
+        error.code === "INVALID_PASSWORD"
+          ? "That temporary password is wrong."
+          : (error.message ?? "Could not change your password")
+      )
       return
     }
     await refetch()
-    toast.success('Password changed. Welcome to Ledger!')
+    toast.success("Password changed. Welcome to Ledger!")
   }
 
   return (
@@ -58,14 +81,24 @@ export function ChangeTemporaryPasswordPage() {
           </div>
           <CardTitle>Choose your own password</CardTitle>
           <CardDescription>
-            {data?.user.email ? <span className="font-medium text-foreground">{data.user.email}</span> : 'Your account'} is signed in with a
-            temporary password from an admin. Replace it with one only you know to continue.
+            {data?.user.email ? (
+              <span className="font-medium text-foreground">
+                {data.user.email}
+              </span>
+            ) : (
+              "Your account"
+            )}{" "}
+            is signed in with a temporary password from an admin. Replace it
+            with one only you know to continue.
           </CardDescription>
         </CardHeader>
         <form onSubmit={submit}>
           <CardContent className="grid gap-4">
             {error && (
-              <Alert variant="destructive" className="animate-in fade-in-0 duration-200">
+              <Alert
+                variant="destructive"
+                className="animate-in duration-200 fade-in-0"
+              >
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
@@ -95,9 +128,15 @@ export function ChangeTemporaryPasswordPage() {
                 required
               />
               {sameAsOld ? (
-                <p className="text-xs text-destructive">Pick something different from the temporary password.</p>
+                <p className="text-xs text-destructive">
+                  Pick something different from the temporary password.
+                </p>
               ) : (
-                <PasswordRules id="new-password-rules" password={next} className="sm:grid-cols-1" />
+                <PasswordRules
+                  id="new-password-rules"
+                  password={next}
+                  className="sm:grid-cols-1"
+                />
               )}
             </div>
             <div className="grid gap-2">
@@ -111,7 +150,11 @@ export function ChangeTemporaryPasswordPage() {
                 aria-invalid={mismatch || undefined}
                 required
               />
-              {mismatch && <p className="text-xs text-destructive animate-in fade-in-0 duration-200">Passwords don’t match.</p>}
+              {mismatch && (
+                <p className="animate-in text-xs text-destructive duration-200 fade-in-0">
+                  Passwords don’t match.
+                </p>
+              )}
             </div>
           </CardContent>
           <CardFooter className="mt-6 flex-col gap-2">
@@ -119,7 +162,12 @@ export function ChangeTemporaryPasswordPage() {
               {busy && <Loader2 className="animate-spin" />}
               Set password and continue
             </Button>
-            <Button type="button" variant="ghost" className="w-full" onClick={() => void signOut()}>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={() => void signOut()}
+            >
               Sign out
             </Button>
           </CardFooter>

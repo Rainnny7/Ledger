@@ -1,16 +1,13 @@
-import {
-  usePdfcnTheme,
-  useSafeMemo,
-} from "@/components/pdf/theme-provider";
-import { View, StyleSheet } from "@/lib/pdf-primitives";
-import type { Style } from "@/lib/pdf-primitives";
-import { resolveColor } from "@/lib/resolve-color";
-import type { PDFComponentProps } from "@/types/pdf-components";
-import type { PdfcnTheme } from "@/types/pdf-themes";
+import { usePdfcnTheme, useSafeMemo } from "@/components/pdf/theme-provider"
+import { View, StyleSheet } from "@/lib/pdf-primitives"
+import type { Style } from "@/lib/pdf-primitives"
+import { resolveColor } from "@/lib/resolve-color"
+import type { PDFComponentProps } from "@/types/pdf-components"
+import type { PdfcnTheme } from "@/types/pdf-themes"
 
-export type SectionSpacing = "none" | "sm" | "md" | "lg" | "xl";
-export type SectionPadding = "none" | "sm" | "md" | "lg";
-export type SectionVariant = "default" | "callout" | "highlight" | "card";
+export type SectionSpacing = "none" | "sm" | "md" | "lg" | "xl"
+export type SectionPadding = "none" | "sm" | "md" | "lg"
+export type SectionVariant = "default" | "callout" | "highlight" | "card"
 
 /**
  * Layout container with spacing, padding, and visual style variants.
@@ -21,26 +18,26 @@ export interface SectionProps extends PDFComponentProps {
   /**
    * @default 'md'
    */
-  spacing?: SectionSpacing;
-  padding?: SectionPadding;
-  background?: string;
+  spacing?: SectionSpacing
+  padding?: SectionPadding
+  background?: string
   /**
    * @default false
    */
-  border?: boolean;
+  border?: boolean
   /**
    * @default 'default'
    */
-  variant?: SectionVariant;
-  accentColor?: string;
+  variant?: SectionVariant
+  accentColor?: string
   /**
    * @default false
    */
-  noWrap?: boolean;
+  noWrap?: boolean
 }
 
 const createSectionStyles = (t: PdfcnTheme) => {
-  const { spacing, borderRadius } = t.primitives;
+  const { spacing, borderRadius } = t.primitives
   return StyleSheet.create({
     base: { flexDirection: "column" },
     border: {
@@ -79,8 +76,8 @@ const createSectionStyles = (t: PdfcnTheme) => {
     spacingNone: { marginVertical: spacing[0] },
     spacingSm: { marginVertical: spacing[4] },
     spacingXl: { marginVertical: spacing[12] },
-  });
-};
+  })
+}
 
 export const Section = ({
   spacing = "md",
@@ -92,50 +89,50 @@ export const Section = ({
   children,
   style,
 }: SectionProps) => {
-  const theme = usePdfcnTheme();
-  const styles = useSafeMemo(() => createSectionStyles(theme), [theme]);
+  const theme = usePdfcnTheme()
+  const styles = useSafeMemo(() => createSectionStyles(theme), [theme])
   const spacingMap = {
     lg: styles.spacingLg,
     md: styles.spacingMd,
     none: styles.spacingNone,
     sm: styles.spacingSm,
     xl: styles.spacingXl,
-  };
+  }
   const paddingMap = {
     lg: styles.paddingLg,
     md: styles.paddingMd,
     none: styles.paddingNone,
     sm: styles.paddingSm,
-  };
+  }
   const variantMap: Record<SectionVariant, Style | null> = {
     callout: styles.callout,
     card: styles.card,
     default: null,
     highlight: styles.highlight,
-  };
-  const styleArray: Style[] = [styles.base, spacingMap[spacing]];
-  const variantStyle = variantMap[variant];
+  }
+  const styleArray: Style[] = [styles.base, spacingMap[spacing]]
+  const variantStyle = variantMap[variant]
   if (variantStyle) {
-    styleArray.push(variantStyle);
+    styleArray.push(variantStyle)
   }
   if (accentColor && (variant === "callout" || variant === "highlight")) {
     styleArray.push({
       borderLeftColor: resolveColor(accentColor, theme.colors),
-    });
+    })
   }
   if (padding && padding in paddingMap) {
-    styleArray.push(paddingMap[padding]);
+    styleArray.push(paddingMap[padding])
   }
   if (border && variant === "default") {
-    styleArray.push(styles.border);
+    styleArray.push(styles.border)
   }
   if (background) {
     styleArray.push({
       backgroundColor: resolveColor(background, theme.colors),
-    });
+    })
   }
   if (style) {
-    styleArray.push(...[style].flat());
+    styleArray.push(...[style].flat())
   }
-  return <View style={styleArray}>{children}</View>;
-};
+  return <View style={styleArray}>{children}</View>
+}

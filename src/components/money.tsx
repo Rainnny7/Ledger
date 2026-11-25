@@ -1,10 +1,21 @@
-import type { ReactNode } from 'react'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { currencyName, useConverter } from '@/lib/currency'
-import { formatDate, formatMoney, formatTimestamp, getDisplayCurrency } from '@/lib/format'
-import { cn } from '@/lib/utils'
+import type { ReactNode } from "react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { currencyName, useConverter } from "@/lib/currency"
+import {
+  formatDate,
+  formatMoney,
+  formatTimestamp,
+  getDisplayCurrency,
+} from "@/lib/format"
+import { cn } from "@/lib/utils"
 
-const rateFormat = new Intl.NumberFormat('en-CA', { maximumSignificantDigits: 5 })
+const rateFormat = new Intl.NumberFormat("en-CA", {
+  maximumSignificantDigits: 5,
+})
 
 /**
  * Wraps a figure in a foreign currency so hovering it shows what it comes to in the person's own
@@ -24,8 +35,17 @@ export function ForeignMoney({
   children: ReactNode
 }) {
   const c = useConverter()
-  if (value === null || value === undefined || !currency || currency === c.home) {
-    return className ? <span className={className}>{children}</span> : <>{children}</>
+  if (
+    value === null ||
+    value === undefined ||
+    !currency ||
+    currency === c.home
+  ) {
+    return className ? (
+      <span className={className}>{children}</span>
+    ) : (
+      <>{children}</>
+    )
   }
   const converted = c.to(value, currency)
   const rate = c.to(1, currency)
@@ -35,17 +55,23 @@ export function ForeignMoney({
         render={
           <span
             className={cn(
-              'cursor-help underline decoration-muted-foreground/40 decoration-dotted underline-offset-4',
-              className,
+              "cursor-help underline decoration-muted-foreground/40 decoration-dotted underline-offset-4",
+              className
             )}
           />
         }
       >
         {children}
       </TooltipTrigger>
-      <TooltipContent className="grid min-w-48 gap-1.5 py-2 tabular-nums" side="top">
+      <TooltipContent
+        className="grid min-w-48 gap-1.5 py-2 tabular-nums"
+        side="top"
+      >
         {converted === null || rate === null ? (
-          <span>No exchange rate for {currency} yet, so this can’t be shown in {c.home}.</span>
+          <span>
+            No exchange rate for {currency} yet, so this can’t be shown in{" "}
+            {c.home}.
+          </span>
         ) : (
           <>
             <span className="flex items-baseline justify-between gap-4">
@@ -69,9 +95,9 @@ export function ForeignMoney({
             </span>
             {c.fx?.date && (
               <span className="max-w-56 text-[11px] text-muted-foreground">
-                {c.fx.source === 'live' && c.fx.fetchedAt
+                {c.fx.source === "live" && c.fx.fetchedAt
                   ? `Mid-market rate as of ${formatTimestamp(c.fx.fetchedAt)}.`
-                  : `European Central Bank reference rate for ${formatDate(c.fx.date)}.`}{' '}
+                  : `European Central Bank reference rate for ${formatDate(c.fx.date)}.`}{" "}
                 Your bank’s rate usually includes a markup of a few percent.
               </span>
             )}
@@ -96,9 +122,13 @@ export function Money({
 }) {
   const cur = currency || getDisplayCurrency()
   return (
-    <ForeignMoney value={value} currency={cur} sign={sign} className={className}>
+    <ForeignMoney
+      value={value}
+      currency={cur}
+      sign={sign}
+      className={className}
+    >
       {formatMoney(value, cur, { sign })}
     </ForeignMoney>
   )
 }
-

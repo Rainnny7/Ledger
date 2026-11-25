@@ -1,9 +1,9 @@
-import path from 'node:path'
-import { DatabaseSync } from 'node:sqlite'
-import { DATA_DIR } from './env.ts'
+import path from "node:path"
+import { DatabaseSync } from "node:sqlite"
+import { DATA_DIR } from "./env.ts"
 
-export const db = new DatabaseSync(path.join(DATA_DIR, 'app.db'))
-db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;')
+export const db = new DatabaseSync(path.join(DATA_DIR, "app.db"))
+db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")
 
 /** App tables (Better Auth manages its own user/session/account/verification tables). */
 export function migrateAppTables() {
@@ -303,36 +303,45 @@ export function migrateAppTables() {
     );
   `)
 
-  addColumn('bank_transaction', 'category_override', 'TEXT')
-  addColumn('bank_transaction', 'note', 'TEXT')
+  addColumn("bank_transaction", "category_override", "TEXT")
+  addColumn("bank_transaction", "note", "TEXT")
   // Business or personal, for the tax report (null → untagged, or whatever a merchant rule says).
-  addColumn('bank_transaction', 'tax_tag', 'TEXT')
+  addColumn("bank_transaction", "tax_tag", "TEXT")
   // Earliest date a full history read has reached (null → do a full backfill next sync).
-  addColumn('bank_account', 'history_from', 'TEXT')
+  addColumn("bank_account", "history_from", "TEXT")
   // Direct deposit numbers + limits (encrypted JSON: they include the full account number).
-  addColumn('bank_account', 'details_enc', 'TEXT')
-  addColumn('bank_account', 'details_updated_at', 'TEXT')
+  addColumn("bank_account", "details_enc", "TEXT")
+  addColumn("bank_account", "details_updated_at", "TEXT")
   // PayPal: the webhook registered on the user's REST app for instant updates.
-  addColumn('bank_connection', 'webhook_id', 'TEXT')
-  addColumn('bank_connection', 'webhook_at', 'TEXT')
+  addColumn("bank_connection", "webhook_id", "TEXT")
+  addColumn("bank_connection", "webhook_at", "TEXT")
   // A PayPal capture id on bill payments too, so checkout payments are only counted once.
-  addColumn('work_payment', 'external_id', 'TEXT')
+  addColumn("work_payment", "external_id", "TEXT")
   // Paid in one currency, arrived in another (e.g. billed in USD, deposited as CAD).
-  addColumn('work_payment', 'received_amount', 'REAL')
-  addColumn('work_payment', 'received_currency', 'TEXT')
-  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_work_payment_external ON work_payment(external_id) WHERE external_id IS NOT NULL`)
+  addColumn("work_payment", "received_amount", "REAL")
+  addColumn("work_payment", "received_currency", "TEXT")
+  db.exec(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_work_payment_external ON work_payment(external_id) WHERE external_id IS NOT NULL`
+  )
 }
 
 export function getSetting(key: string): string | null {
-  const row = db.prepare(`SELECT value FROM app_setting WHERE key = ?`).get(key) as { value: string } | undefined
+  const row = db
+    .prepare(`SELECT value FROM app_setting WHERE key = ?`)
+    .get(key) as { value: string } | undefined
   return row?.value ?? null
 }
 
 export function setSetting(key: string, value: string) {
-  db.prepare(`INSERT INTO app_setting (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value`).run(key, value)
+  db.prepare(
+    `INSERT INTO app_setting (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value`
+  ).run(key, value)
 }
 
 function addColumn(table: string, column: string, type: string) {
-  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]
-  if (!cols.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`)
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as {
+    name: string
+  }[]
+  if (!cols.some((c) => c.name === column))
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`)
 }

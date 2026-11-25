@@ -6,7 +6,7 @@
  * words (runs that touch), then each word is placed in a column by its x position under the
  * "Description / Withdrawals / Deposits / Date / Balance" header.
  */
-import type { ScrapedTransaction } from '../types.ts'
+import type { ScrapedTransaction } from "../types.ts"
 
 /** One run of text from a PDF page, positioned in PDF points (y grows upwards). */
 export interface TextItem {
@@ -42,7 +42,20 @@ interface Line {
   text: string
 }
 
-const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+const MONTHS = [
+  "JAN",
+  "FEB",
+  "MAR",
+  "APR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AUG",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DEC",
+]
 const AMOUNT = /^[\d,]+\.\d{2}(OD)?$/
 const DAY = /^([A-Z]{3})(\d{1,2})$/
 /** Runs closer than this (in points) are parts of one word. */
@@ -51,7 +64,9 @@ const WORD_GAP = 1.5
 export class NotATdStatement extends Error {}
 
 function toLines(items: TextItem[]): Line[] {
-  const sorted = items.filter((i) => i.str.trim()).sort((a, b) => b.y - a.y || a.x - b.x)
+  const sorted = items
+    .filter((i) => i.str.trim())
+    .sort((a, b) => b.y - a.y || a.x - b.x)
   const rows: TextItem[][] = []
   for (const item of sorted) {
     const row = rows.at(-1)
@@ -72,26 +87,33 @@ function toLines(items: TextItem[]): Line[] {
     }
     for (const w of words) w.text = w.text.trim()
     const kept = words.filter((w) => w.text)
-    return { y: row[0].y, words: kept, text: kept.map((w) => w.text).join(' ') }
+    return { y: row[0].y, words: kept, text: kept.map((w) => w.text).join(" ") }
   })
 }
 
 const money = (s: string) => {
-  const v = Number(s.replace(/,|OD$/g, ''))
-  return Math.round((s.endsWith('OD') ? -v : v) * 100) / 100
+  const v = Number(s.replace(/,|OD$/g, ""))
+  return Math.round((s.endsWith("OD") ? -v : v) * 100) / 100
 }
 
-const pad = (n: number) => String(n).padStart(2, '0')
+const pad = (n: number) => String(n).padStart(2, "0")
 
 export function parseTdStatement(pages: TextItem[][]): TdStatement {
   const pageLines = pages.map(toLines)
   const all = pageLines.flat()
-  const text = all.map((l) => l.text).join('\n')
+  const text = all.map((l) => l.text).join("\n")
 
   const number = text.match(/\b(\d{4}-\d{7})\b/)?.[1]
-  const period = text.match(/\b([A-Z]{3})\s*(\d{1,2})\/(\d{2})\s*-\s*([A-Z]{3})\s*(\d{1,2})\/(\d{2})\b/)
-  if (!number || !period || !MONTHS.includes(period[1]) || !MONTHS.includes(period[4])) {
-    throw new NotATdStatement('Not a TD bank account statement')
+  const period = text.match(
+    /\b([A-Z]{3})\s*(\d{1,2})\/(\d{2})\s*-\s*([A-Z]{3})\s*(\d{1,2})\/(\d{2})\b/
+  )
+  if (
+    !number ||
+    !period ||
+    !MONTHS.includes(period[1]) ||
+    !MONTHS.includes(period[4])
+  ) {
+    throw new NotATdStatement("Not a TD bank account statement")
   }
   const fromMonth = MONTHS.indexOf(period[1]) + 1
   const fromYear = 2000 + Number(period[3])
@@ -106,18 +128,26 @@ export function parseTdStatement(pages: TextItem[][]): TdStatement {
     return `${y}-${pad(m)}-${pad(Number(day))}`
   }
 
-  let accountType = ''
-  const typeHeader = all.findIndex((l) => /Account Type/.test(l.text) && /Statement From/.test(l.text))
+  let accountType = ""
+  const typeHeader = all.findIndex(
+    (l) => /Account Type/.test(l.text) && /Statement From/.test(l.text)
+  )
   if (typeHeader >= 0) {
     const words = all[typeHeader].words
-    const left = words.find((w, i) => w.text === 'Account' && words[i + 1]?.text === 'Type')?.x ?? 0
-    const right = words.find((w) => w.text === 'Statement' && w.x > left)?.x ?? Infinity
+    const left =
+      words.find(
+        (w, i) => w.text === "Account" && words[i + 1]?.text === "Type"
+      )?.x ?? 0
+    const right =
+      words.find((w) => w.text === "Statement" && w.x > left)?.x ?? Infinity
     const parts: string[] = []
     for (const line of all.slice(typeHeader + 1, typeHeader + 5)) {
-      if (line.text.startsWith('Description')) break
-      for (const w of line.words) if (w.x >= left - 20 && w.right < right && !/\d/.test(w.text)) parts.push(w.text)
+      if (line.text.startsWith("Description")) break
+      for (const w of line.words)
+        if (w.x >= left - 20 && w.right < right && !/\d/.test(w.text))
+          parts.push(w.text)
     }
-    accountType = parts.join(' ')
+    accountType = parts.join(" ")
   }
 
   let openingBalance: number | null = null
@@ -126,14 +156,17 @@ export function parseTdStatement(pages: TextItem[][]): TdStatement {
   let foundTable = false
 
   for (const lines of pageLines) {
-    const headerAt = lines.findIndex((l) => /^Description Withdrawals Deposits Date Balance$/.test(l.text))
+    const headerAt = lines.findIndex((l) =>
+      /^Description Withdrawals Deposits Date Balance$/.test(l.text)
+    )
     if (headerAt < 0) continue
     foundTable = true
-    const col = (name: string) => lines[headerAt].words.find((w) => w.text === name)!
-    const withdrawals = col('Withdrawals')
-    const deposits = col('Deposits')
-    const date = col('Date')
-    const balance = col('Balance')
+    const col = (name: string) =>
+      lines[headerAt].words.find((w) => w.text === name)!
+    const withdrawals = col("Withdrawals")
+    const deposits = col("Deposits")
+    const date = col("Date")
+    const balance = col("Balance")
 
     for (const line of lines.slice(headerAt + 1)) {
       let day: string | null = null
@@ -143,16 +176,19 @@ export function parseTdStatement(pages: TextItem[][]): TdStatement {
       const desc: string[] = []
       for (const w of line.words) {
         const d = w.text.match(DAY)
-        if (d && MONTHS.includes(d[1]) && w.x >= date.x - 20 && w.x < balance.x) day = dateOf(d[1], d[2])
+        if (d && MONTHS.includes(d[1]) && w.x >= date.x - 20 && w.x < balance.x)
+          day = dateOf(d[1], d[2])
         else if (AMOUNT.test(w.text) && w.x > date.right) bal = money(w.text)
-        else if (AMOUNT.test(w.text) && w.right > deposits.x) inn = money(w.text)
-        else if (AMOUNT.test(w.text) && w.right > withdrawals.x - 40) out = money(w.text)
+        else if (AMOUNT.test(w.text) && w.right > deposits.x)
+          inn = money(w.text)
+        else if (AMOUNT.test(w.text) && w.right > withdrawals.x - 40)
+          out = money(w.text)
         else if (w.right < withdrawals.x) desc.push(w.text)
       }
       // The totals row (amounts, no description) ends the table.
       if (!day && !desc.length && (out !== null || inn !== null)) break
       if (!day) continue
-      const description = desc.join(' ')
+      const description = desc.join(" ")
       if (/^STARTING BALANCE$/.test(description)) openingBalance = bal
       else if (/^CLOSING BALANCE$/.test(description)) closingBalance = bal
       else if (description && (out !== null || inn !== null)) {
@@ -166,10 +202,15 @@ export function parseTdStatement(pages: TextItem[][]): TdStatement {
       }
     }
   }
-  if (!foundTable) throw new NotATdStatement('No transaction table found (only TD chequing and savings statements are supported)')
+  if (!foundTable)
+    throw new NotATdStatement(
+      "No transaction table found (only TD chequing and savings statements are supported)"
+    )
 
   // Older statements have no CLOSING BALANCE row; the last day's balance is the same thing.
-  closingBalance ??= transactions.findLast((t) => t.runningBalance !== null)?.runningBalance ?? null
+  closingBalance ??=
+    transactions.findLast((t) => t.runningBalance !== null)?.runningBalance ??
+    null
 
   // Every printed balance (one per day) has to follow from the rows above it.
   let mismatch: number | null = null
@@ -183,7 +224,21 @@ export function parseTdStatement(pages: TextItem[][]): TdStatement {
         break
       }
     }
-    if (mismatch === null && closingBalance !== null && off(closingBalance) !== 0) mismatch = off(closingBalance)
+    if (
+      mismatch === null &&
+      closingBalance !== null &&
+      off(closingBalance) !== 0
+    )
+      mismatch = off(closingBalance)
   }
-  return { accountNumber: number, accountType, from, to, openingBalance, closingBalance, transactions, mismatch }
+  return {
+    accountNumber: number,
+    accountType,
+    from,
+    to,
+    openingBalance,
+    closingBalance,
+    transactions,
+    mismatch,
+  }
 }

@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef } from "react"
 
 /** What every lucide-animated icon exposes through its ref. */
 export interface AnimatedIconHandle {
@@ -6,7 +6,9 @@ export interface AnimatedIconHandle {
   stopAnimation: () => void
 }
 
-const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+const reducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
 
 /**
  * Lets a bigger target (a nav link, a menu item, a button) play its icon's animation on hover or
@@ -25,7 +27,7 @@ export function useAnimatedIcon<T extends HTMLElement = HTMLElement>() {
         onMouseEnter: start,
         onMouseLeave: stop,
         onFocus: (e: React.FocusEvent<T>) => {
-          if (e.currentTarget.matches(':focus-visible')) start()
+          if (e.currentTarget.matches(":focus-visible")) start()
         },
         onBlur: stop,
       },

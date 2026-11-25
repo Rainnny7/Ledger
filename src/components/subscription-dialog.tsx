@@ -1,28 +1,57 @@
-import { DatePicker } from '@/components/date-picker'
-import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
-import { toast } from 'sonner'
-import { CurrencySelect } from '@/components/currency-select'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
-import { Textarea } from '@/components/ui/textarea'
-import { type Account, api, type Category, type Cycle, type CycleUnit, type Subscription, type SubscriptionInput } from '@/lib/api'
-import { CATEGORY_LIST, CATEGORY_META } from '@/lib/categories'
-import { CYCLE_UNITS, customCycle, PRESET_CYCLES, parseCustomCycle } from '@/lib/cycles'
-import { Money } from '@/components/money'
-import { formatLongDate, getDisplayCurrency, isoDate } from '@/lib/format'
+import { DatePicker } from "@/components/date-picker"
+import { Loader2 } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { CurrencySelect } from "@/components/currency-select"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  type Account,
+  api,
+  type Category,
+  type Cycle,
+  type CycleUnit,
+  type Subscription,
+  type SubscriptionInput,
+} from "@/lib/api"
+import { CATEGORY_LIST, CATEGORY_META } from "@/lib/categories"
+import {
+  CYCLE_UNITS,
+  customCycle,
+  PRESET_CYCLES,
+  parseCustomCycle,
+} from "@/lib/cycles"
+import { Money } from "@/components/money"
+import { formatLongDate, getDisplayCurrency, isoDate } from "@/lib/format"
 
 export type SubscriptionDraft = Partial<SubscriptionInput> & { id?: string }
 
-const CUSTOM = 'custom'
-const cycleItems = [...PRESET_CYCLES, { value: CUSTOM, label: 'Custom…' }]
+const CUSTOM = "custom"
+const cycleItems = [...PRESET_CYCLES, { value: CUSTOM, label: "Custom…" }]
 const unitItems = CYCLE_UNITS.map((u) => ({ value: u.value, label: u.label }))
-const categoryItems = CATEGORY_LIST.map((c) => ({ value: c, label: CATEGORY_META[c].label }))
-const NO_ACCOUNT = 'none'
+const categoryItems = CATEGORY_LIST.map((c) => ({
+  value: c,
+  label: CATEGORY_META[c].label,
+}))
+const NO_ACCOUNT = "none"
 
 interface Props {
   /** null = closed. A draft with an `id` edits that subscription. */
@@ -34,19 +63,25 @@ interface Props {
   onSaved?: () => void
 }
 
-export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved }: Props) {
-  const [name, setName] = useState('')
-  const [amount, setAmount] = useState('')
+export function SubscriptionDialog({
+  draft,
+  existing,
+  accounts,
+  onClose,
+  onSaved,
+}: Props) {
+  const [name, setName] = useState("")
+  const [amount, setAmount] = useState("")
   const [currency, setCurrency] = useState(getDisplayCurrency)
-  const [cycle, setCycle] = useState<Cycle>('monthly')
+  const [cycle, setCycle] = useState<Cycle>("monthly")
   const [custom, setCustom] = useState(false)
-  const [every, setEvery] = useState('4')
-  const [unit, setUnit] = useState<CycleUnit>('years')
+  const [every, setEvery] = useState("4")
+  const [unit, setUnit] = useState<CycleUnit>("years")
   const [date, setDate] = useState(isoDate())
-  const [category, setCategory] = useState<Category>('subscriptions')
+  const [category, setCategory] = useState<Category>("subscriptions")
   const [accountId, setAccountId] = useState<string>(NO_ACCOUNT)
-  const theirs = !!existing && existing.access !== 'owner'
-  const [notes, setNotes] = useState('')
+  const theirs = !!existing && existing.access !== "owner"
+  const [notes, setNotes] = useState("")
   const [saving, setSaving] = useState(false)
 
   // Fill the form when a new draft opens (during render, so it never shows stale values first).
@@ -56,33 +91,47 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
     if (draft) fill(draft)
   }
   function fill(draft: NonNullable<typeof filledFrom>) {
-    setName(draft.name ?? '')
-    setAmount(draft.amount ? String(draft.amount) : '')
-    setCurrency(draft.currency ?? accounts.find((a) => a.id === draft.accountId)?.currency ?? getDisplayCurrency())
-    const c = draft.cycle ?? 'monthly'
+    setName(draft.name ?? "")
+    setAmount(draft.amount ? String(draft.amount) : "")
+    setCurrency(
+      draft.currency ??
+        accounts.find((a) => a.id === draft.accountId)?.currency ??
+        getDisplayCurrency()
+    )
+    const c = draft.cycle ?? "monthly"
     const parsed = parseCustomCycle(c)
     setCycle(c)
     setCustom(!!parsed)
     setEvery(String(parsed?.every ?? 4))
-    setUnit(parsed?.unit ?? 'years')
+    setUnit(parsed?.unit ?? "years")
     setDate(draft.anchorDate ?? isoDate())
-    setCategory(draft.category ?? 'subscriptions')
+    setCategory(draft.category ?? "subscriptions")
     setAccountId(draft.accountId ?? NO_ACCOUNT)
-    setNotes(draft.notes ?? '')
+    setNotes(draft.notes ?? "")
   }
 
   const accountItems = [
-    { value: NO_ACCOUNT, label: 'Not linked' },
-    ...accounts.map((a) => ({ value: a.id, label: `${a.name}${a.numberMasked ? ` · ${a.numberMasked}` : ''}` })),
+    { value: NO_ACCOUNT, label: "Not linked" },
+    ...accounts.map((a) => ({
+      value: a.id,
+      label: `${a.name}${a.numberMasked ? ` · ${a.numberMasked}` : ""}`,
+    })),
   ]
   const editing = !!draft?.id
   const value = Number(amount)
   const unitMax = CYCLE_UNITS.find((u) => u.value === unit)?.max ?? 10
   const everyN = Number(every)
-  const customValid = Number.isInteger(everyN) && everyN >= 1 && everyN <= unitMax
-  const effectiveCycle: Cycle = custom ? customCycle(customValid ? everyN : 1, unit) : cycle
+  const customValid =
+    Number.isInteger(everyN) && everyN >= 1 && everyN <= unitMax
+  const effectiveCycle: Cycle = custom
+    ? customCycle(customValid ? everyN : 1, unit)
+    : cycle
   const valid =
-    name.trim().length > 0 && Number.isFinite(value) && value > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date) && (!custom || customValid)
+    name.trim().length > 0 &&
+    Number.isFinite(value) &&
+    value > 0 &&
+    /^\d{4}-\d{2}-\d{2}$/.test(date) &&
+    (!custom || customValid)
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -107,7 +156,7 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
     try {
       if (draft.id) await api.updateSubscription(draft.id, body)
       else await api.createSubscription(body)
-      toast.success(editing ? 'Subscription updated' : `Tracking ${body.name}`)
+      toast.success(editing ? "Subscription updated" : `Tracking ${body.name}`)
       onSaved?.()
       onClose()
     } catch (err) {
@@ -121,18 +170,27 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
     <Dialog open={!!draft} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90svh] overflow-x-hidden overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{editing ? 'Edit subscription' : 'Track a subscription'}</DialogTitle>
+          <DialogTitle>
+            {editing ? "Edit subscription" : "Track a subscription"}
+          </DialogTitle>
           <DialogDescription>
             {draft?.merchantKey
-              ? 'Payments from your accounts that match this merchant are linked automatically.'
-              : 'Add any recurring payment — streaming, phone, gym, rent.'}
+              ? "Payments from your accounts that match this merchant are linked automatically."
+              : "Add any recurring payment — streaming, phone, gym, rent."}
           </DialogDescription>
         </DialogHeader>
 
         <form className="grid gap-4" onSubmit={(e) => void save(e)}>
           <div className="grid min-w-0 gap-2">
             <Label htmlFor="sub-name">Name</Label>
-            <Input id="sub-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Netflix" required autoFocus />
+            <Input
+              id="sub-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Netflix"
+              required
+              autoFocus
+            />
           </div>
           <div className="grid grid-cols-[minmax(0,1fr)_6.5rem_minmax(0,1fr)] gap-3">
             <div className="grid min-w-0 gap-2">
@@ -141,14 +199,20 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
                 id="sub-amount"
                 inputMode="decimal"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))}
+                onChange={(e) =>
+                  setAmount(e.target.value.replace(/[^\d.]/g, ""))
+                }
                 placeholder="18.99"
                 required
               />
             </div>
             <div className="grid min-w-0 gap-2">
               <Label htmlFor="sub-currency">Currency</Label>
-              <CurrencySelect id="sub-currency" value={currency} onChange={setCurrency} />
+              <CurrencySelect
+                id="sub-currency"
+                value={currency}
+                onChange={setCurrency}
+              />
             </div>
             <div className="grid min-w-0 gap-2">
               <Label>Billed</Label>
@@ -178,17 +242,23 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
             </div>
           </div>
           {custom && (
-            <div className="grid min-w-0 gap-2 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+            <div className="grid min-w-0 animate-in gap-2 duration-200 fade-in-0 slide-in-from-top-1">
               <Label htmlFor="sub-every">Repeats every</Label>
               <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3">
                 <Input
                   id="sub-every"
                   inputMode="numeric"
                   value={every}
-                  onChange={(e) => setEvery(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                  onChange={(e) =>
+                    setEvery(e.target.value.replace(/\D/g, "").slice(0, 3))
+                  }
                   aria-invalid={!customValid}
                 />
-                <Select items={unitItems} value={unit} onValueChange={(v) => v && setUnit(v as CycleUnit)}>
+                <Select
+                  items={unitItems}
+                  value={unit}
+                  onValueChange={(v) => v && setUnit(v as CycleUnit)}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -201,18 +271,29 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
                   </SelectContent>
                 </Select>
               </div>
-              {!customValid && <p className="text-xs text-destructive">Enter a whole number from 1 to {unitMax}.</p>}
+              {!customValid && (
+                <p className="text-xs text-destructive">
+                  Enter a whole number from 1 to {unitMax}.
+                </p>
+              )}
             </div>
           )}
           <div className="grid min-w-0 gap-2">
             <Label htmlFor="sub-date">Billing date</Label>
             <DatePicker id="sub-date" value={date} onChange={setDate} />
-            <p className="text-xs text-muted-foreground">Any past or upcoming charge date — the next one is worked out for you.</p>
+            <p className="text-xs text-muted-foreground">
+              Any past or upcoming charge date — the next one is worked out for
+              you.
+            </p>
           </div>
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
             <div className="grid min-w-0 gap-2">
               <Label>Category</Label>
-              <Select items={categoryItems} value={category} onValueChange={(v) => v && setCategory(v as Category)}>
+              <Select
+                items={categoryItems}
+                value={category}
+                onValueChange={(v) => v && setCategory(v as Category)}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -231,31 +312,45 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
             {theirs ? (
               <div className="grid min-w-0 gap-2">
                 <Label>Paid from</Label>
-                <p className="flex h-8 items-center truncate text-sm text-muted-foreground">{existing.owner?.name || 'The owner'}’s account</p>
+                <p className="flex h-8 items-center truncate text-sm text-muted-foreground">
+                  {existing.owner?.name || "The owner"}’s account
+                </p>
               </div>
             ) : (
-            <div className="grid min-w-0 gap-2">
-              <Label>Paid from</Label>
-              <Select items={accountItems} value={accountId} onValueChange={(v) => {
-                  setAccountId(v ?? NO_ACCOUNT)
-                  // A plan charged to a USD card is billed in USD.
-                  const linked = accounts.find((a) => a.id === v)
-                  if (linked) setCurrency(linked.currency)
-                }}>
-                <SelectTrigger className="w-full">
-                  <SelectValue>
-                    {(v: string) => <span className="truncate">{accountItems.find((a) => a.value === v)?.label}</span>}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {accountItems.map((a) => (
-                    <SelectItem key={a.value} value={a.value} className="max-w-[min(24rem,85vw)]">
-                      <span className="truncate">{a.label}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="grid min-w-0 gap-2">
+                <Label>Paid from</Label>
+                <Select
+                  items={accountItems}
+                  value={accountId}
+                  onValueChange={(v) => {
+                    setAccountId(v ?? NO_ACCOUNT)
+                    // A plan charged to a USD card is billed in USD.
+                    const linked = accounts.find((a) => a.id === v)
+                    if (linked) setCurrency(linked.currency)
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue>
+                      {(v: string) => (
+                        <span className="truncate">
+                          {accountItems.find((a) => a.value === v)?.label}
+                        </span>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accountItems.map((a) => (
+                      <SelectItem
+                        key={a.value}
+                        value={a.value}
+                        className="max-w-[min(24rem,85vw)]"
+                      >
+                        <span className="truncate">{a.label}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
           </div>
           <div className="grid min-w-0 gap-2">
@@ -276,12 +371,23 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
                 <h3 className="text-sm font-medium">Payment history</h3>
                 <ul className="grid max-h-48 gap-0.5 overflow-y-auto text-sm">
                   {existing.payments.map((p) => (
-                    <li key={p.id} className="flex justify-between rounded-md px-2 py-1 odd:bg-muted/50">
+                    <li
+                      key={p.id}
+                      className="flex justify-between rounded-md px-2 py-1 odd:bg-muted/50"
+                    >
                       <span className="text-muted-foreground">
                         {formatLongDate(p.date)}
-                        {p.linked && <span className="ml-1.5 text-xs">· counted by hand</span>}
+                        {p.linked && (
+                          <span className="ml-1.5 text-xs">
+                            · counted by hand
+                          </span>
+                        )}
                       </span>
-                      <Money value={Math.abs(p.amount)} currency={existing.currency} className="tabular-nums" />
+                      <Money
+                        value={Math.abs(p.amount)}
+                        currency={existing.currency}
+                        className="tabular-nums"
+                      />
                     </li>
                   ))}
                 </ul>
@@ -295,7 +401,7 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
             </Button>
             <Button type="submit" disabled={!valid || saving}>
               {saving && <Loader2 className="animate-spin" />}
-              {editing ? 'Save' : 'Track subscription'}
+              {editing ? "Save" : "Track subscription"}
             </Button>
           </DialogFooter>
         </form>

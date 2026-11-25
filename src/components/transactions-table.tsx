@@ -1,16 +1,29 @@
-import { TransactionMenuItems, WithContextMenu } from '@/components/app-context-menu'
-import { Hint } from '@/components/hint'
-import { Money } from '@/components/money'
-import { shownRunningBalance, useIncludeOverdraft } from '@/components/account-figures'
-import { BriefcaseBusiness, StickyNote } from 'lucide-react'
-import { Fragment, useMemo } from 'react'
-import { CategoryBadge, CategoryIcon } from '@/components/tx-bits'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import type { Account, Transaction } from '@/lib/api'
-import { formatDayHeading, formatLongDate } from '@/lib/format'
-import { cn } from '@/lib/utils'
+import {
+  TransactionMenuItems,
+  WithContextMenu,
+} from "@/components/app-context-menu"
+import { Hint } from "@/components/hint"
+import { Money } from "@/components/money"
+import {
+  shownRunningBalance,
+  useIncludeOverdraft,
+} from "@/components/account-figures"
+import { BriefcaseBusiness, StickyNote } from "lucide-react"
+import { Fragment, useMemo } from "react"
+import { CategoryBadge, CategoryIcon } from "@/components/tx-bits"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import type { Account, Transaction } from "@/lib/api"
+import { formatDayHeading, formatLongDate } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
 interface Props {
   transactions: Transaction[]
@@ -19,13 +32,26 @@ interface Props {
   showBalance?: boolean
   showAccount?: boolean
   /** Turns on a checkbox per row for picking several at once. */
-  selection?: { ids: ReadonlySet<string>; toggle: (t: Transaction, range: boolean) => void }
+  selection?: {
+    ids: ReadonlySet<string>
+    toggle: (t: Transaction, range: boolean) => void
+  }
 }
 
 /** Transactions grouped under a heading per day (newest first, as given). */
-export function TransactionsTable({ transactions, accounts, onSelect, showBalance, showAccount, selection }: Props) {
+export function TransactionsTable({
+  transactions,
+  accounts,
+  onSelect,
+  showBalance,
+  showAccount,
+  selection,
+}: Props) {
   const includeOverdraft = useIncludeOverdraft()
-  const byId = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts])
+  const byId = useMemo(
+    () => new Map(accounts.map((a) => [a.id, a])),
+    [accounts]
+  )
   const days = useMemo(() => {
     const out: { date: string; items: Transaction[] }[] = []
     for (const t of transactions) {
@@ -52,7 +78,10 @@ export function TransactionsTable({ transactions, accounts, onSelect, showBalanc
         {days.map(({ date, items }) => (
           <Fragment key={date}>
             <TableRow className="border-b-0 bg-muted/40 hover:bg-muted/40">
-              <TableCell colSpan={cols} className="px-4 py-1.5 text-xs font-medium text-muted-foreground">
+              <TableCell
+                colSpan={cols}
+                className="px-4 py-1.5 text-xs font-medium text-muted-foreground"
+              >
                 <Hint label={formatLongDate(date)} side="right">
                   <time dateTime={date} className="cursor-default">
                     {formatDayHeading(date)}
@@ -65,73 +94,108 @@ export function TransactionsTable({ transactions, accounts, onSelect, showBalanc
               return (
                 <WithContextMenu
                   key={t.id}
-                  menu={<TransactionMenuItems transaction={t} currency={account?.currency} onOpen={() => onSelect(t)} />}
+                  menu={
+                    <TransactionMenuItems
+                      transaction={t}
+                      currency={account?.currency}
+                      onOpen={() => onSelect(t)}
+                    />
+                  }
                 >
-                <TableRow
-                  tabIndex={0}
-                  data-state={selection?.ids.has(t.id) ? 'selected' : undefined}
-                  className="cursor-pointer"
-                  onClick={() => onSelect(t)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      onSelect(t)
+                  <TableRow
+                    tabIndex={0}
+                    data-state={
+                      selection?.ids.has(t.id) ? "selected" : undefined
                     }
-                  }}
-                >
-                  {selection && (
-                    <TableCell className="w-0 pr-0 pl-4" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        aria-label={`Select ${t.merchant}`}
-                        checked={selection.ids.has(t.id)}
-                        onClick={(e) => {
-                          e.preventDefault()
-                          selection.toggle(t, e.shiftKey)
-                        }}
-                      />
-                    </TableCell>
-                  )}
-                  <TableCell className="w-full max-w-0 pl-4">
-                    <div className="flex items-center gap-3">
-                      <CategoryIcon category={t.category} className="hidden sm:flex" />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="truncate font-medium">{t.merchant}</span>
-                          {t.pending && (
-                            <Badge variant="outline" className="shrink-0">
-                              Pending
-                            </Badge>
-                          )}
-                          {t.taxTag === 'business' && (
-                            <BriefcaseBusiness className="size-3.5 shrink-0 text-primary" aria-label="Business" />
-                          )}
-                          {t.note && <StickyNote className="size-3.5 shrink-0 text-muted-foreground" aria-label="Has note" />}
-                        </div>
-                        <div className="truncate text-xs text-muted-foreground">
-                          {showAccount && account ? `${account.name} · ` : ''}
-                          {t.note || t.description}
+                    className="cursor-pointer"
+                    onClick={() => onSelect(t)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        onSelect(t)
+                      }
+                    }}
+                  >
+                    {selection && (
+                      <TableCell
+                        className="w-0 pr-0 pl-4"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Checkbox
+                          aria-label={`Select ${t.merchant}`}
+                          checked={selection.ids.has(t.id)}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            selection.toggle(t, e.shiftKey)
+                          }}
+                        />
+                      </TableCell>
+                    )}
+                    <TableCell className="w-full max-w-0 pl-4">
+                      <div className="flex items-center gap-3">
+                        <CategoryIcon
+                          category={t.category}
+                          className="hidden sm:flex"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate font-medium">
+                              {t.merchant}
+                            </span>
+                            {t.pending && (
+                              <Badge variant="outline" className="shrink-0">
+                                Pending
+                              </Badge>
+                            )}
+                            {t.taxTag === "business" && (
+                              <BriefcaseBusiness
+                                className="size-3.5 shrink-0 text-primary"
+                                aria-label="Business"
+                              />
+                            )}
+                            {t.note && (
+                              <StickyNote
+                                className="size-3.5 shrink-0 text-muted-foreground"
+                                aria-label="Has note"
+                              />
+                            )}
+                          </div>
+                          <div className="truncate text-xs text-muted-foreground">
+                            {showAccount && account ? `${account.name} · ` : ""}
+                            {t.note || t.description}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <CategoryBadge category={t.category} />
-                  </TableCell>
-                  <TableCell
-                    className={cn(
-                      'text-right font-medium tabular-nums',
-                      !showBalance && 'pr-4',
-                      t.amount > 0 && 'text-emerald-600 dark:text-emerald-400',
-                    )}
-                  >
-                    <Money value={t.amount} currency={account?.currency} sign />
-                  </TableCell>
-                  {showBalance && (
-                    <TableCell className="hidden pr-4 text-right text-muted-foreground tabular-nums sm:table-cell">
-                      <Money value={shownRunningBalance(t, account, includeOverdraft)} currency={account?.currency} />
                     </TableCell>
-                  )}
-                </TableRow>
+                    <TableCell className="hidden md:table-cell">
+                      <CategoryBadge category={t.category} />
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        "text-right font-medium tabular-nums",
+                        !showBalance && "pr-4",
+                        t.amount > 0 && "text-emerald-600 dark:text-emerald-400"
+                      )}
+                    >
+                      <Money
+                        value={t.amount}
+                        currency={account?.currency}
+                        sign
+                      />
+                    </TableCell>
+                    {showBalance && (
+                      <TableCell className="hidden pr-4 text-right text-muted-foreground tabular-nums sm:table-cell">
+                        <Money
+                          value={shownRunningBalance(
+                            t,
+                            account,
+                            includeOverdraft
+                          )}
+                          currency={account?.currency}
+                        />
+                      </TableCell>
+                    )}
+                  </TableRow>
                 </WithContextMenu>
               )
             })}

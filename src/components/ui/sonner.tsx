@@ -2,7 +2,13 @@
 
 import { useAppTheme } from "@/lib/theme"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { CheckIcon, InfoIcon, TriangleAlertIcon, XIcon, Loader2Icon } from "lucide-react"
+import {
+  CheckIcon,
+  InfoIcon,
+  TriangleAlertIcon,
+  XIcon,
+  Loader2Icon,
+} from "lucide-react"
 
 /*
  * Toasts sit at the bottom of the screen and look like the rest of the app: a popover-coloured
@@ -25,7 +31,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
         info: <InfoIcon className="size-3.5" strokeWidth={2.5} />,
         warning: <TriangleAlertIcon className="size-3.5" strokeWidth={2.5} />,
         error: <XIcon className="size-3.5" strokeWidth={2.75} />,
-        loading: <Loader2Icon className="size-3.5 animate-spin" strokeWidth={2.5} />,
+        loading: (
+          <Loader2Icon className="size-3.5 animate-spin" strokeWidth={2.5} />
+        ),
       }}
       style={
         {

@@ -4,22 +4,22 @@
  * One scheduler tick a minute checks which tasks are due. A task never runs twice at once, and
  * its last run (when, how long, what happened) is kept in app_setting so it survives restarts.
  */
-import { mkdirSync, readdirSync, rmSync, statSync } from 'node:fs'
-import path from 'node:path'
-import { db, getSetting, setSetting } from './db.ts'
-import { DATA_DIR } from './env.ts'
-import { DEMO_USER_ID } from './demo.ts'
-import { syncInBackground } from './banks/sessions.ts'
-import { refreshRates } from './fx.ts'
+import { mkdirSync, readdirSync, rmSync, statSync } from "node:fs"
+import path from "node:path"
+import { db, getSetting, setSetting } from "./db.ts"
+import { DATA_DIR } from "./env.ts"
+import { DEMO_USER_ID } from "./demo.ts"
+import { syncInBackground } from "./banks/sessions.ts"
+import { refreshRates } from "./fx.ts"
 
 export interface TaskRun {
   startedAt: string
   finishedAt: string | null
   durationMs: number | null
-  status: 'running' | 'ok' | 'error'
+  status: "running" | "ok" | "error"
   /** One line on what it did: "Refreshed 2 of 3 connections". */
   summary: string | null
-  trigger: 'schedule' | 'manual'
+  trigger: "schedule" | "manual"
 }
 
 interface Task {
@@ -42,53 +42,72 @@ async function refreshBanks(): Promise<string> {
     .prepare(
       `SELECT id, last_synced_at AS lastSyncedAt FROM bank_connection
         WHERE credentials_enc IS NOT NULL AND last_error IS NULL AND user_id != ?
-        ORDER BY last_synced_at`,
+        ORDER BY last_synced_at`
     )
     .all(DEMO_USER_ID) as { id: string; lastSyncedAt: string | null }[]
 
-  const counts = { synced: 0, fresh: 0, waiting: 0, needsSignIn: 0, failed: 0, skipped: 0 }
+  const counts = {
+    synced: 0,
+    fresh: 0,
+    waiting: 0,
+    needsSignIn: 0,
+    failed: 0,
+    skipped: 0,
+  }
   for (const row of rows) {
-    const synced = row.lastSyncedAt ? Date.parse(`${row.lastSyncedAt.replace(' ', 'T')}Z`) : 0
+    const synced = row.lastSyncedAt
+      ? Date.parse(`${row.lastSyncedAt.replace(" ", "T")}Z`)
+      : 0
     if (Date.now() - synced < FRESH_FOR_MS) {
       counts.fresh++
       continue
     }
     // The bank wanted a code last time. Trying again would only prompt the user's phone, so wait
     // until they've signed in themselves (which moves last_synced_at on).
-    if (getSetting(needsSignInKey(row.id)) === (row.lastSyncedAt ?? '')) {
+    if (getSetting(needsSignInKey(row.id)) === (row.lastSyncedAt ?? "")) {
       counts.waiting++
       continue
     }
     // One at a time: each holds a whole browser open.
     const { result, message } = await syncInBackground(row.id)
-    if (result === 'needs-sign-in') {
-      setSetting(needsSignInKey(row.id), row.lastSyncedAt ?? '')
+    if (result === "needs-sign-in") {
+      setSetting(needsSignInKey(row.id), row.lastSyncedAt ?? "")
       counts.needsSignIn++
-    } else if (result === 'synced') counts.synced++
-    else if (result === 'failed') counts.failed++
+    } else if (result === "synced") counts.synced++
+    else if (result === "failed") counts.failed++
     else counts.skipped++
-    if (message) console.log(`[tasks] bank refresh ${row.id}: ${result} (${message})`)
+    if (message)
+      console.log(`[tasks] bank refresh ${row.id}: ${result} (${message})`)
   }
-  db.prepare(`DELETE FROM app_setting WHERE key LIKE 'bg_needs_sign_in:%' AND substr(key, 18) NOT IN (SELECT id FROM bank_connection)`).run()
+  db.prepare(
+    `DELETE FROM app_setting WHERE key LIKE 'bg_needs_sign_in:%' AND substr(key, 18) NOT IN (SELECT id FROM bank_connection)`
+  ).run()
 
-  if (rows.length === 0) return 'No connections with saved sign-in details'
+  if (rows.length === 0) return "No connections with saved sign-in details"
   const parts = [`Refreshed ${counts.synced} of ${rows.length}`]
   if (counts.fresh) parts.push(`${counts.fresh} already up to date`)
-  if (counts.needsSignIn + counts.waiting) parts.push(`${counts.needsSignIn + counts.waiting} need a two-factor sign-in`)
+  if (counts.needsSignIn + counts.waiting)
+    parts.push(
+      `${counts.needsSignIn + counts.waiting} need a two-factor sign-in`
+    )
   if (counts.failed) parts.push(`${counts.failed} failed`)
   if (counts.skipped) parts.push(`${counts.skipped} skipped`)
-  return parts.join(' · ')
+  return parts.join(" · ")
 }
 
 async function tidyUp(): Promise<string> {
   const now = new Date().toISOString()
   // Better Auth stores dates as ISO strings; expired sessions and codes are never used again.
-  const sessions = db.prepare(`DELETE FROM session WHERE expiresAt < ?`).run(now).changes
-  const codes = db.prepare(`DELETE FROM verification WHERE expiresAt < ?`).run(now).changes
-  return `Removed ${Number(sessions)} expired session${sessions === 1 ? '' : 's'} and ${Number(codes)} expired code${codes === 1 ? '' : 's'}`
+  const sessions = db
+    .prepare(`DELETE FROM session WHERE expiresAt < ?`)
+    .run(now).changes
+  const codes = db
+    .prepare(`DELETE FROM verification WHERE expiresAt < ?`)
+    .run(now).changes
+  return `Removed ${Number(sessions)} expired session${sessions === 1 ? "" : "s"} and ${Number(codes)} expired code${codes === 1 ? "" : "s"}`
 }
 
-export const BACKUP_DIR = path.join(DATA_DIR, 'backups')
+export const BACKUP_DIR = path.join(DATA_DIR, "backups")
 /** How many daily copies to keep. */
 const BACKUPS_KEPT = Number(process.env.BACKUPS_KEPT ?? 14)
 
@@ -113,44 +132,44 @@ export function listBackups() {
  */
 async function backUp(): Promise<string> {
   mkdirSync(BACKUP_DIR, { recursive: true })
-  const name = `ledger-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.db`
+  const name = `ledger-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.db`
   const file = path.join(BACKUP_DIR, name)
-  db.prepare('VACUUM INTO ?').run(file)
+  db.prepare("VACUUM INTO ?").run(file)
   const old = listBackups().slice(Math.max(1, BACKUPS_KEPT))
   for (const b of old) rmSync(path.join(BACKUP_DIR, b.name), { force: true })
   const mb = (statSync(file).size / 1024 / 1024).toFixed(1)
-  return `Saved ${name} (${mb} MB)${old.length ? ` · removed ${old.length} older` : ''}`
+  return `Saved ${name} (${mb} MB)${old.length ? ` · removed ${old.length} older` : ""}`
 }
 
 const TASKS: Task[] = [
   {
-    id: 'bank-refresh',
-    label: 'Refresh bank accounts',
+    id: "bank-refresh",
+    label: "Refresh bank accounts",
     description:
-      'Signs in with saved details and reads what’s new, one connection at a time. Skips anything synced in the last 4 hours, connections showing an error, and banks waiting on a two-factor code.',
+      "Signs in with saved details and reads what’s new, one connection at a time. Skips anything synced in the last 4 hours, connections showing an error, and banks waiting on a two-factor code.",
     intervalMs: 6 * HOUR,
     run: refreshBanks,
   },
   {
-    id: 'fx-rates',
-    label: 'Update exchange rates',
+    id: "fx-rates",
+    label: "Update exchange rates",
     description:
-      'Fetches live mid-market exchange rates (from Coinbase) used to show amounts in each person’s own currency. If those can’t be reached it uses the European Central Bank’s daily reference rates instead, and if both fail the last good rates stay in use.',
+      "Fetches live mid-market exchange rates (from Coinbase) used to show amounts in each person’s own currency. If those can’t be reached it uses the European Central Bank’s daily reference rates instead, and if both fail the last good rates stay in use.",
     intervalMs: HOUR,
     run: refreshRates,
   },
   {
-    id: 'backup',
-    label: 'Back up database',
+    id: "backup",
+    label: "Back up database",
     description:
-      'Saves a copy of the whole database to data/backups, keeping the most recent 14 (BACKUPS_KEPT). Download one from Admin → Tasks. Restoring needs the same APP_SECRET, since saved bank details stay encrypted.',
+      "Saves a copy of the whole database to data/backups, keeping the most recent 14 (BACKUPS_KEPT). Download one from Admin → Tasks. Restoring needs the same APP_SECRET, since saved bank details stay encrypted.",
     intervalMs: 24 * HOUR,
     run: backUp,
   },
   {
-    id: 'tidy-up',
-    label: 'Tidy up',
-    description: 'Removes expired sign-in sessions and one-time codes.',
+    id: "tidy-up",
+    label: "Tidy up",
+    description: "Removes expired sign-in sessions and one-time codes.",
     intervalMs: 24 * HOUR,
     run: tidyUp,
   },
@@ -180,7 +199,9 @@ export function listTasks() {
       intervalMs: t.intervalMs,
       running: running.has(t.id),
       lastRun: last,
-      nextRunAt: base ? new Date(Date.parse(base) + t.intervalMs).toISOString() : null,
+      nextRunAt: base
+        ? new Date(Date.parse(base) + t.intervalMs).toISOString()
+        : null,
     }
   })
 }
@@ -189,39 +210,83 @@ export function listTasks() {
  * When the background refresh will next pick up a connection, or null when it won't on its own (no
  * saved sign-in, an error to fix, or the bank waiting on a two-factor code).
  */
-export function nextAutoSyncAt(c: { id: string; lastSyncedAt: string | null; savedCredentials: boolean; lastError: string | null }) {
-  if (!c.savedCredentials || c.lastError) return null
-  if (getSetting(needsSignInKey(c.id)) === (c.lastSyncedAt ?? '')) return null
-  const task = TASKS.find((t) => t.id === 'bank-refresh')!
+export function nextAutoSyncAt(c: {
+  id: string
+  lastSyncedAt: string | null
+  savedCredentials: boolean
+  lastError: string | null
+}) {
+  if (!c.savedCredentials || c.lastError || waitingOnSignIn(c)) return null
+  const task = TASKS.find((t) => t.id === "bank-refresh")!
   const last = lastRun(task.id)
   const base = last ? Date.parse(last.finishedAt ?? last.startedAt) : Date.now()
   let next = Math.max(Date.now(), base + task.intervalMs)
   // A run skips anything synced in the last few hours, so it's the first run after that window.
-  const synced = c.lastSyncedAt ? Date.parse(`${c.lastSyncedAt.replace(' ', 'T')}Z`) : 0
+  const synced = c.lastSyncedAt
+    ? Date.parse(`${c.lastSyncedAt.replace(" ", "T")}Z`)
+    : 0
   while (next - synced < FRESH_FOR_MS) next += task.intervalMs
   return new Date(next).toISOString()
+}
+
+/** The background refresh hit a two-factor prompt and is holding off until the user signs in themselves. */
+export function waitingOnSignIn(c: {
+  id: string
+  lastSyncedAt: string | null
+  savedCredentials: boolean
+  lastError: string | null
+}) {
+  return (
+    c.savedCredentials &&
+    !c.lastError &&
+    getSetting(needsSignInKey(c.id)) === (c.lastSyncedAt ?? "")
+  )
 }
 
 export const hasTask = (id: string) => TASKS.some((t) => t.id === id)
 
 /** Starts a task unless it's already running. Resolves when it finishes. */
-export async function runTask(id: string, trigger: TaskRun['trigger']): Promise<boolean> {
+export async function runTask(
+  id: string,
+  trigger: TaskRun["trigger"]
+): Promise<boolean> {
   const task = TASKS.find((t) => t.id === id)
   if (!task || running.has(id)) return false
   running.add(id)
   const started = Date.now()
   const startedAt = new Date(started).toISOString()
   const save = (r: Partial<TaskRun>) =>
-    setSetting(stateKey(id), JSON.stringify({ startedAt, finishedAt: null, durationMs: null, status: 'running', summary: null, trigger, ...r }))
+    setSetting(
+      stateKey(id),
+      JSON.stringify({
+        startedAt,
+        finishedAt: null,
+        durationMs: null,
+        status: "running",
+        summary: null,
+        trigger,
+        ...r,
+      })
+    )
   save({})
   console.log(`[tasks] ${task.label}: started (${trigger})`)
   try {
     const summary = await task.run()
-    save({ status: 'ok', summary, finishedAt: new Date().toISOString(), durationMs: Date.now() - started })
+    save({
+      status: "ok",
+      summary,
+      finishedAt: new Date().toISOString(),
+      durationMs: Date.now() - started,
+    })
     console.log(`[tasks] ${task.label}: ${summary}`)
   } catch (err) {
-    const summary = (err as Error).message || 'Failed'
-    save({ status: 'error', summary, finishedAt: new Date().toISOString(), durationMs: Date.now() - started })
+    const summary = (err as Error).message || "Failed"
+    save({
+      status: "error",
+      summary,
+      finishedAt: new Date().toISOString(),
+      durationMs: Date.now() - started,
+    })
     console.error(`[tasks] ${task.label} failed:`, err)
   } finally {
     running.delete(id)
@@ -237,15 +302,22 @@ export function startScheduler() {
   // A run cut short by a restart shows as interrupted instead of running forever.
   for (const t of TASKS) {
     const last = lastRun(t.id)
-    if (last?.status === 'running') {
-      setSetting(stateKey(t.id), JSON.stringify({ ...last, status: 'error', summary: 'Interrupted by a restart' }))
+    if (last?.status === "running") {
+      setSetting(
+        stateKey(t.id),
+        JSON.stringify({
+          ...last,
+          status: "error",
+          summary: "Interrupted by a restart",
+        })
+      )
     }
   }
   const tick = () => {
     for (const t of TASKS) {
       const last = lastRun(t.id)
       const base = last ? Date.parse(last.finishedAt ?? last.startedAt) : 0
-      if (Date.now() - base >= t.intervalMs) void runTask(t.id, 'schedule')
+      if (Date.now() - base >= t.intervalMs) void runTask(t.id, "schedule")
     }
   }
   setTimeout(() => {

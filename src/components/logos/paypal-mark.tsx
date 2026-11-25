@@ -1,7 +1,12 @@
 /** PayPal's two-tone "P" monogram (2014 brand colours), for labelling PayPal connections. */
 export function PaypalMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 25.6 30.2" className={className} aria-hidden focusable="false">
+    <svg
+      viewBox="0 0 25.6 30.2"
+      className={className}
+      aria-hidden
+      focusable="false"
+    >
       <path
         fill="#003087"
         d="M7.266 29.154l.523-3.322-1.165-.027H1.061L4.927 1.292a.316.316 0 0 1 .314-.268h9.38c3.114 0 5.263.648 6.385 1.927.526.6.861 1.227 1.023 1.917.17.724.173 1.589.007 2.644l-.012.077v.676l.526.298a3.69 3.69 0 0 1 1.065.812c.45.513.741 1.165.864 1.938.127.795.085 1.741-.123 2.812-.24 1.232-.628 2.305-1.152 3.183a6.547 6.547 0 0 1-1.825 2c-.696.494-1.523.869-2.458 1.109-.906.236-1.939.355-3.072.355h-.73c-.522 0-1.029.188-1.427.525a2.21 2.21 0 0 0-.744 1.328l-.055.299-.924 5.855-.042.215c-.011.068-.03.102-.058.125a.155.155 0 0 1-.096.035H7.266z"
