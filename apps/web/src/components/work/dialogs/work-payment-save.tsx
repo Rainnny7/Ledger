@@ -5,6 +5,7 @@ import { formatMoney } from "@/lib/format"
 import { copyText, paymentLine } from "@/lib/work"
 import { Copy } from "lucide-react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 
 /** React/UI entry: `saveWorkPayment`. */
 export async function saveWorkPayment(opts: {
@@ -60,7 +61,7 @@ export async function saveWorkPayment(opts: {
 									? toast.success("Copied", {
 											description: line,
 										})
-									: toast.error("Couldn’t copy")
+									: toastError("Couldn’t copy")
 							),
 					}
 				: undefined,

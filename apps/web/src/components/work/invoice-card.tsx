@@ -5,6 +5,7 @@ import { Hint } from "@/components/common/hint"
 import { Copy, ExternalLink, Link2, MoreHorizontal, X } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { accentStyle } from "@/components/goals/goal-meta"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,9 +29,9 @@ import type { JobActions } from "@/components/work/job-actions"
 import { BillMenu } from "@/components/work/bill-menu"
 import { copyForChat } from "@/components/work/copy-toast"
 
-const fail = (error: unknown) => toast.error((error as Error).message)
+const fail = (error: unknown) => toastError((error as Error).message)
 const readOnly = () =>
-	toast.error("Demo mode is read-only. Exit demo mode to make changes.")
+	toastError("Demo mode is read-only. Exit demo mode to make changes.")
 
 async function removePayment(id: string) {
 	if (demoMode) {

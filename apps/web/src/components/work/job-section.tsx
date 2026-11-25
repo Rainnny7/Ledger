@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { tintStyle } from "@/components/goals/goal-meta"
 import { ShareBadge } from "@/components/sharing/share-bits"
 import { shortName } from "@/lib/sharing"
@@ -42,9 +43,9 @@ import type { JobActions } from "@/components/work/job-actions"
 import { InvoiceCard } from "@/components/work/invoice-card"
 import { JobMenu } from "@/components/work/job-menu"
 
-const fail = (error: unknown) => toast.error((error as Error).message)
+const fail = (error: unknown) => toastError((error as Error).message)
 const readOnly = () =>
-	toast.error("Demo mode is read-only. Exit demo mode to make changes.")
+	toastError("Demo mode is read-only. Exit demo mode to make changes.")
 
 async function removeEntry(id: string) {
 	if (demoMode) {

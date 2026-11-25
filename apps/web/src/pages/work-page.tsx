@@ -3,6 +3,7 @@ import { ChevronDown, Plus, Users } from "lucide-react"
 import { AnimatedMoney } from "@/components/common/count-up"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { ShareDialog } from "@/components/sharing/share-bits"
 import { leaveShared, splitShared } from "@/lib/sharing"
 import { Button } from "@/components/ui/button"
@@ -33,10 +34,11 @@ import {
 import { useConverter } from "@/lib/currency"
 import { useWork } from "@/lib/queries"
 import { useIntent } from "@/lib/url-state"
+import { QueryError } from "@/components/ui/query-error"
 import { cn } from "cn"
 import { formatDuration } from "@/lib/work"
 
-const fail = (error: unknown) => toast.error((error as Error).message)
+const fail = (error: unknown) => toastError((error as Error).message)
 
 async function removeJob(job: WorkJob) {
 	const bills = job.invoices.length
@@ -69,7 +71,7 @@ async function setJobArchived(job: WorkJob, value: boolean) {
 
 /** Freelance jobs: log hours, bill clients, record payments, and share with partners. */
 export function WorkPage() {
-	const { data, loading, error } = useWork()
+	const { data, loading, error, reload } = useWork()
 	const [jobDialog, setJobDialog] = useState<{ job: WorkJob | null } | null>(
 		null
 	)
@@ -165,8 +167,11 @@ export function WorkPage() {
 				)}
 			</div>
 
-			{error && (
-				<p className="text-sm text-destructive">{error.message}</p>
+			{error && !data && (
+				<QueryError
+					message={error.message}
+					onRetry={() => void reload()}
+				/>
 			)}
 
 			<Bones

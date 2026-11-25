@@ -1,4 +1,5 @@
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { copyText } from "@/lib/work"
 
 /** React/UI entry: `copyForChat`. */
@@ -8,6 +9,6 @@ export async function copyForChat(text: string, what: string) {
 			description: text.length > 120 ? `${text.slice(0, 120)}…` : text,
 		})
 	} else {
-		toast.error("Couldn’t copy to the clipboard")
+		toastError("Couldn’t copy to the clipboard")
 	}
 }
