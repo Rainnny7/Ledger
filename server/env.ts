@@ -22,6 +22,11 @@ function loadSecret(): string {
 export const env = {
   port: Number(process.env.PORT ?? 3001),
   appUrl: process.env.APP_URL ?? 'http://localhost:5173',
+  /**
+   * The address other people reach Ledger on: invoice share links, PayPal's return page and its
+   * webhooks. Defaults to APP_URL. PayPal only delivers webhooks to a public https:// address.
+   */
+  publicUrl: (process.env.PUBLIC_URL ?? process.env.APP_URL ?? 'http://localhost:5173').replace(/\/+$/, ''),
   secret: loadSecret(),
   /** Set TD_HEADLESS=false to watch the browser while it logs into EasyWeb. */
   tdHeadless: process.env.TD_HEADLESS !== 'false',

@@ -6,6 +6,8 @@ import { db } from '../db.ts'
 import type { AccountDetails } from '../banks/td/parse.ts'
 import { loadTransactions } from './finance.ts'
 import { cancel, chooseMfa, getSession, isProvider, poll, startLogin, submitCode } from '../banks/sessions.ts'
+import { deleteWebhook, PaypalApiError, registerWebhook } from '../banks/paypal/api.ts'
+import { env } from '../env.ts'
 
 type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
 
@@ -70,7 +72,7 @@ banks.get('/connections', (c) => {
     .prepare(
       `SELECT id, institution, label, username_masked AS usernameMasked, status,
               last_synced_at AS lastSyncedAt, last_error AS lastError, created_at AS createdAt,
-              credentials_enc IS NOT NULL AS savedCredentials
+              credentials_enc IS NOT NULL AS savedCredentials, webhook_id IS NOT NULL AS instantUpdates, webhook_at AS lastEventAt
          FROM bank_connection WHERE user_id = ? ORDER BY created_at`,
     )
     .all(c.var.user.id)
@@ -85,7 +87,10 @@ banks.get('/connections', (c) => {
     )
     .all(c.var.user.id)
   return c.json({
-    connections: connections.map((x) => ({ ...x, savedCredentials: Boolean((x as { savedCredentials: number }).savedCredentials) })),
+    connections: connections.map((x) => {
+      const r = x as { savedCredentials: number; instantUpdates: number }
+      return { ...x, savedCredentials: Boolean(r.savedCredentials), instantUpdates: Boolean(r.instantUpdates) }
+    }),
     accounts,
   })
 })
@@ -128,7 +133,12 @@ banks.get('/accounts/:id/details', (c) => {
   return c.json({ details, updatedAt: details ? row.updatedAt : null })
 })
 
-banks.delete('/connections/:id', (c) => {
+banks.delete('/connections/:id', async (c) => {
+  // Take the webhook off the PayPal app as well, so PayPal stops calling a connection that's gone.
+  const hook = db
+    .prepare(`SELECT webhook_id AS webhookId FROM bank_connection WHERE id = ? AND user_id = ? AND webhook_id IS NOT NULL`)
+    .get(c.req.param('id'), c.var.user.id) as { webhookId: string } | undefined
+  if (hook) await deleteWebhook(c.req.param('id'), hook.webhookId).catch((e) => console.error('PayPal webhook removal failed', e))
   const r = db.prepare(`DELETE FROM bank_connection WHERE id = ? AND user_id = ?`).run(c.req.param('id'), c.var.user.id)
   return r.changes ? c.json({ ok: true }) : c.json({ error: 'Not found' }, 404)
 })
@@ -139,5 +149,55 @@ banks.post('/connections/:id/forget-credentials', (c) => {
     c.req.param('id'),
     c.var.user.id,
   )
+  return c.json({ ok: true })
+})
+
+// ---------------------------------------------------------------- PayPal instant updates (webhooks)
+
+/** Where PayPal delivers this connection's events. */
+export const webhookUrl = (connectionId: string) => `${env.publicUrl}/api/webhooks/paypal/${connectionId}`
+
+banks.post('/connections/:id/instant-updates', async (c) => {
+  const id = c.req.param('id')
+  const row = db
+    .prepare(`SELECT institution, credentials_enc AS creds FROM bank_connection WHERE id = ? AND user_id = ?`)
+    .get(id, c.var.user.id) as { institution: string; creds: string | null } | undefined
+  if (!row || row.institution !== 'paypal') return c.json({ error: 'Not found' }, 404)
+  const url = webhookUrl(id)
+  const host = new URL(url).hostname
+  if (!url.startsWith('https://') || host === 'localhost' || /^(127\.|10\.|192\.168\.|\[?::1)/.test(host)) {
+    return c.json(
+      {
+        error:
+          'PayPal can only send updates to a public https:// address. Put Ledger behind one (a domain, or a tunnel such as Cloudflare Tunnel) and set PUBLIC_URL to it.',
+      },
+      400,
+    )
+  }
+  try {
+    const webhookId = await registerWebhook(id, url)
+    db.prepare(`UPDATE bank_connection SET webhook_id = ? WHERE id = ?`).run(webhookId, id)
+    return c.json({ ok: true, url })
+  } catch (e) {
+    console.error('PayPal webhook registration failed', e)
+    const msg = e instanceof PaypalApiError ? e.message : 'Could not reach PayPal.'
+    return c.json({ error: `PayPal did not accept the webhook: ${msg}` }, 502)
+  }
+})
+
+banks.delete('/connections/:id/instant-updates', async (c) => {
+  const id = c.req.param('id')
+  const row = db.prepare(`SELECT webhook_id AS webhookId FROM bank_connection WHERE id = ? AND user_id = ?`).get(id, c.var.user.id) as
+    | { webhookId: string | null }
+    | undefined
+  if (!row) return c.json({ error: 'Not found' }, 404)
+  if (row.webhookId) {
+    try {
+      await deleteWebhook(id, row.webhookId)
+    } catch (e) {
+      console.error('PayPal webhook removal failed', e)
+    }
+  }
+  db.prepare(`UPDATE bank_connection SET webhook_id = NULL WHERE id = ?`).run(id)
   return c.json({ ok: true })
 })

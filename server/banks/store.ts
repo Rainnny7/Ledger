@@ -122,3 +122,34 @@ export function historyPlan(connectionId: string | null, full = false): (externa
     return d.toISOString().slice(0, 10)
   }
 }
+
+/**
+ * Adds one PayPal transaction the moment a webhook reports it, ahead of Transaction Search (which
+ * lags by up to ~3 hours). It uses the same `id|<transaction id>` fingerprint the sync does, so
+ * the sync later just refreshes the row. Returns the transaction's id, or null when the
+ * connection has no balance in that currency yet (the next sync will create it).
+ */
+export function recordPaypalTransaction(
+  connectionId: string,
+  t: { id: string; date: string; description: string; amount: number; currency: string },
+): string | null {
+  const account = db
+    .prepare(`SELECT id FROM bank_account WHERE connection_id = ? AND external_key = ?`)
+    .get(connectionId, `paypal:${t.currency}`) as { id: string } | undefined
+  if (!account) return null
+  const fingerprint = `id|${t.id}`
+  const r = db
+    .prepare(
+      `INSERT INTO bank_transaction (id, account_id, fingerprint, date, description, amount, pending)
+       VALUES (?, ?, ?, ?, ?, ?, 0) ON CONFLICT (account_id, fingerprint) DO NOTHING`,
+    )
+    .run(randomUUID(), account.id, fingerprint, t.date, t.description, t.amount)
+  // Move the balance too, so it's right until the next sync reads the real one.
+  if (Number(r.changes) > 0) {
+    db.prepare(`UPDATE bank_account SET balance = COALESCE(balance, 0) + ?, updated_at = datetime('now') WHERE id = ?`).run(t.amount, account.id)
+  }
+  const row = db.prepare(`SELECT id FROM bank_transaction WHERE account_id = ? AND fingerprint = ?`).get(account.id, fingerprint) as
+    | { id: string }
+    | undefined
+  return row?.id ?? null
+}
