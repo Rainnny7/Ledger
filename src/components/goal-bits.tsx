@@ -17,9 +17,10 @@ import {
   ShieldCheck,
   Target,
 } from 'lucide-react'
-import { createElement, type CSSProperties } from 'react'
+import { createElement, type CSSProperties, type ReactNode } from 'react'
+import { Money } from '@/components/money'
 import type { Goal, GoalStatus } from '@/lib/api'
-import { formatDate, formatMoney, formatRelativeDate } from '@/lib/format'
+import { formatDate, formatRelativeDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 export const GOAL_ICONS: Record<string, { icon: LucideIcon; label: string }> = {
@@ -137,15 +138,19 @@ export function GoalStatusPill({ status, className }: { status: GoalStatus; clas
 }
 
 /** One encouraging line: what it takes, or when you'll get there. */
-export function goalNudge(g: Goal): string {
-  const money = (n: number) => formatMoney(n, g.currency)
+export function goalNudge(g: Goal): ReactNode {
+  const money = (n: number) => <Money value={n} currency={g.currency} />
   const verb = g.kind === 'payoff' ? 'pay' : 'save'
   if (g.status === 'done') return g.kind === 'payoff' ? 'Paid off — nice work!' : 'Goal reached — nice work!'
   if (g.status === 'overdue') return 'The target date has passed'
   if (g.neededPerWeek !== null && g.neededPerMonth !== null && g.targetDate) {
     const Verb = verb[0].toUpperCase() + verb.slice(1)
-    const per = g.daysLeft !== null && g.daysLeft < 45 ? `${money(g.neededPerWeek)}/week` : `${money(g.neededPerMonth)}/month`
-    return `${Verb} ${per} to reach it by ${formatDate(g.targetDate)}`
+    const per = g.daysLeft !== null && g.daysLeft < 45 ? <>{money(g.neededPerWeek)}/week</> : <>{money(g.neededPerMonth)}/month</>
+    return (
+      <>
+        {Verb} {per} to reach it by {formatDate(g.targetDate)}
+      </>
+    )
   }
   if (g.projectedDate) return `At your pace you’ll get there ${formatRelativeDate(g.projectedDate)}`
   return g.saved > 0 ? 'Keep logging payments as you make them' : 'Log your first payment to get started'
