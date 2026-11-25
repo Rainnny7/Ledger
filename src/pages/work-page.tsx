@@ -56,7 +56,7 @@ import { formatDate, formatMoney, formatMonth, formatRelativeDate, formatShortDa
 import { useConverter } from '@/lib/currency'
 import { useWork } from '@/lib/queries'
 import { cn } from '@/lib/utils'
-import { copyText, formatDuration, formatHours, invoiceText, paymentLine, scheduleLabel } from '@/lib/work'
+import { copyText, formatDuration, formatHours, invoiceText, payEveryLabel, paymentLine } from '@/lib/work'
 
 const fail = (err: unknown) => toast.error((err as Error).message)
 const readOnly = () => toast.error('Demo mode is read-only. Exit demo mode to make changes.')
@@ -249,7 +249,6 @@ interface JobActions {
 function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
   const [showPaid, setShowPaid] = useState(false)
   const money = (n: number) => formatMoney(n, j.currency)
-  const schedule = scheduleLabel(j, money)
   const openBills = j.invoices.filter((i) => i.status !== 'paid')
   const paidBills = j.invoices.filter((i) => i.status === 'paid')
   const owner = j.access === 'owner'
@@ -308,7 +307,12 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
           </CardTitle>
           <CardDescription className="truncate">
             <Money value={j.rate} currency={j.currency} />/hr
-            {schedule && ` · paid ${schedule}`}
+            {j.payAmount && j.payEveryDays ? (
+              <>
+                {' · paid '}
+                <Money value={j.payAmount} currency={j.currency} /> {payEveryLabel(j.payEveryDays)}
+              </>
+            ) : null}
           </CardDescription>
         </div>
         {!demoMode && (

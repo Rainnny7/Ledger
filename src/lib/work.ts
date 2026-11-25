@@ -1,4 +1,4 @@
-import type { WorkInvoice, WorkJob, WorkPayment } from '@/lib/api'
+import type { WorkInvoice, WorkPayment } from '@/lib/api'
 
 /**
  * Hours typed the way people write them: "63", "43.6", "3:30", "120h 30m", "2h", "45m", "1 hr 15 min".
@@ -60,11 +60,10 @@ export const EVERY_PRESETS = [
   { days: 30, label: 'Monthly' },
 ] as const
 
-export function scheduleLabel(job: Pick<WorkJob, 'payAmount' | 'payEveryDays' | 'currency'>, money: (n: number) => string) {
-  if (!job.payAmount || !job.payEveryDays) return null
-  const preset = EVERY_PRESETS.find((p) => p.days === job.payEveryDays)
-  const every = preset ? preset.label.toLowerCase() : `every ${job.payEveryDays} days`
-  return `${money(job.payAmount)} ${every}`
+/** "weekly", "every 2 weeks", "every 10 days" — how often a job pays. */
+export function payEveryLabel(days: number) {
+  const preset = EVERY_PRESETS.find((p) => p.days === days)
+  return preset ? preset.label.toLowerCase() : `every ${days} days`
 }
 
 export async function copyText(text: string) {
