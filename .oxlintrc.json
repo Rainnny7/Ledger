@@ -47,6 +47,6 @@
 		".turbo",
 		".output",
 		"routeTree.gen.ts",
-		"src/bones"
+		"apps/web/src/bones"
 	]
 }

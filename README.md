@@ -66,6 +66,16 @@ Ledger currently connects to **TD EasyWeb** and **PayPal**.
   </tr>
 </table>
 
+## Layout
+
+```
+apps/web         React + Vite front end
+apps/api         Elysia API (Bun, SQLite)
+packages/shared  code both sides import (@ledger/shared)
+```
+
+Tests live in a `tests/` folder in each package.
+
 ## Getting started
 
 You'll need [Bun](https://bun.sh) 1.3+ (the API runs on Bun and uses `bun:sqlite`).
@@ -121,12 +131,12 @@ All optional. See [`.env.example`](.env.example). For deployment details see [SE
 | `APP_URL`            | `http://localhost:5173`                                   | Public URL of the app (Better Auth trusted origin)                                                |
 | `PUBLIC_URL`         | `APP_URL`                                                 | Address used for invoice share links and PayPal webhooks (must be public `https://` for webhooks) |
 | `APP_SECRET`         | generated in `DATA_DIR/.secret`                           | Signs sessions and encrypts saved credentials (32+ characters if you set it)                      |
-| `DATA_DIR`           | `./data`                                                  | Where the database and backups live                                                               |
+| `DATA_DIR`           | repo `data/`                                              | Where the database and backups live                                                               |
 | `TD_HEADLESS`        | `true`                                                    | `false` to watch the browser sign in                                                              |
 | `TD_BROWSER_CHANNEL` |                                                           | e.g. `chrome` to use your installed Chrome                                                        |
 | `ALLOW_REGISTRATION` | `false`                                                   | Whether sign-ups start open after the first account                                               |
 | `TRUST_PROXY`        | `false`                                                   | `true` behind a reverse proxy, so rate limits see the real client IP                              |
-| `FX_LIVE_URL`        | `https://api.coinbase.com/v2/exchange-rates?currency=USD` | Where live exchange rates are fetched from (Coinbase-compatible; empty to turn off)               |
+| `FX_LIVE_URL`        | `https://api.coinbase.com/v2/exchange-rates?currency=USD` | Where live exchange rates are fetched from (Coinbase-compatible; `off` to turn off)               |
 | `FX_RATES_URL`       | `https://api.frankfurter.dev/v1/latest`                   | Fallback daily ECB rates (Frankfurter-compatible)                                                 |
 | `PAYPAL_ENV`         | `live`                                                    | `sandbox` to test against PayPal's sandbox                                                        |
 | `UPDATE_REPO`        | `rainnny7/ledger`                                         | GitHub `owner/repo` checked for newer releases (private repos fail quietly)                       |
@@ -140,7 +150,7 @@ All optional. See [`.env.example`](.env.example). For deployment details see [SE
 React, Vite, Tailwind CSS and shadcn/ui on the front end. Elysia, Better Auth, SQLite and Playwright on the server.
 
 ```bash
-bun test server     # tests
+bun run test       # tests
 bun run typecheck
 bun run lint
 ```

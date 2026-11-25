@@ -8,7 +8,7 @@
 	"trailingComma": "es5",
 	"printWidth": 80,
 	"sortTailwindcss": {
-		"stylesheet": "./src/index.css",
+		"stylesheet": "./apps/web/src/index.css",
 		"functions": ["cn", "cva"]
 	},
 	"ignorePatterns": [
@@ -23,6 +23,6 @@
 		"routeTree.gen.ts",
 		"data",
 		"bun.lock",
-		"src/bones"
+		"apps/web/src/bones"
 	]
 }
