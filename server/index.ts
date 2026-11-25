@@ -9,18 +9,16 @@ import { csrf } from "hono/csrf"
 import { secureHeaders } from "hono/secure-headers"
 import type { HttpBindings } from "@hono/node-server"
 import { audit, getOwnerId, migrateAdminTables, recentAudit } from "./admin.ts"
-import {
-  auth,
-  CLIENT_IP_HEADER,
-  migrateAuthTables,
-  registrationOpen,
-} from "./auth.ts"
+import { auth, migrateAuthTables, registrationOpen } from "./auth/index.ts"
+import { CLIENT_IP_HEADER } from "./auth/hooks.ts"
 import { migrateAppTables, setSetting } from "./db.ts"
-import { DEMO_USER_ID, ensureDemoData, reseedDemoData } from "./demo.ts"
+import { personaOf, userIdOf } from "./demo/personas.ts"
+import { ensureDemoData, reseedDemoData } from "./demo/seed.ts"
 import { DATA_DIR, env } from "./env.ts"
 import { banks, STATEMENT_UPLOAD_PATH } from "./routes/banks.ts"
-import { finance } from "./routes/finance.ts"
-import { invoices, publicInvoices } from "./routes/invoices.ts"
+import { finance } from "./routes/finance/index.ts"
+import { invoices } from "./routes/invoices/index.ts"
+import { publicInvoices } from "./routes/invoices/public.ts"
 import { handlePaypalWebhook } from "./banks/paypal/webhooks.ts"
 import { sharing } from "./routes/sharing.ts"
 import { work } from "./routes/work.ts"
@@ -33,6 +31,7 @@ import {
   runTask,
   startScheduler,
 } from "./tasks.ts"
+import { getUpdateInfo } from "./updates.ts"
 
 await migrateAuthTables()
 migrateAppTables()
@@ -125,14 +124,17 @@ app.use("/api/banks/*", async (c, next) => {
     return c.json(PASSWORD_CHANGE_REQUIRED, 403)
   c.header("Cache-Control", "no-store")
   // Demo mode: show the made-up demo user's data instead of the caller's, read-only.
-  if (c.req.header("x-ledger-demo") === "1") {
+  const demo = c.req.header("x-ledger-demo")
+  if (demo) {
     if (c.req.method !== "GET")
       return c.json(
         { error: "Demo mode is read-only. Exit demo mode to make changes." },
         403
       )
-    ensureDemoData()
-    c.set("user", { ...session.user, id: DEMO_USER_ID })
+    // "1" is the original switch; anything else names a persona (unknown ones fall back to the default).
+    const persona = personaOf(demo)
+    ensureDemoData(persona.id)
+    c.set("user", { ...session.user, id: userIdOf(persona) })
   } else {
     c.set("user", session.user)
   }
@@ -176,6 +178,7 @@ const adminSettings = () => ({
   registrationOpen: registrationOpen(),
   ownerId: getOwnerId(),
 })
+app.get("/api/admin/update", async (c) => c.json(await getUpdateInfo()))
 app.get("/api/admin/settings", (c) => c.json(adminSettings()))
 app.put("/api/admin/settings", async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as {
@@ -225,10 +228,33 @@ app.post("/api/admin/tasks/:id/run", (c) => {
     detail: label,
   })
   // It can take minutes (a browser per bank); the page polls for the result.
-  void runTask(id, "manual")
+  void runTask(id, "manual", { by: user.name || user.email })
   return c.json({ tasks: listTasks() }, 202)
 })
 app.get("/api/admin/backups", (c) => c.json({ backups: listBackups() }))
+/** Back up now, with an optional note on why. Quick (one VACUUM INTO), so it waits for the copy. */
+app.post("/api/admin/backups", async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { note?: unknown }
+  const note =
+    typeof body.note === "string" ? body.note.trim().slice(0, 200) : ""
+  const user = c.var.user
+  const run = await runTask("backup", "manual", {
+    by: user.name || user.email,
+    note,
+  })
+  if (!run) return c.json({ error: "A backup is already being made." }, 409)
+  if (run.status === "error")
+    return c.json({ error: run.summary ?? "The backup failed." }, 500)
+  audit({
+    kind: "admin",
+    ip: c.req.header(CLIENT_IP_HEADER),
+    actorId: user.id,
+    actorEmail: user.email,
+    action: "Backed up database",
+    detail: note || undefined,
+  })
+  return c.json({ backups: listBackups(), summary: run.summary })
+})
 app.get("/api/admin/backups/:name", (c) => {
   const name = c.req.param("name")
   // Only names the backup task writes, so the path can't leave the backups folder.

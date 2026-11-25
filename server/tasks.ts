@@ -8,7 +8,6 @@ import { mkdirSync, readdirSync, rmSync, statSync } from "node:fs"
 import path from "node:path"
 import { db, getSetting, setSetting } from "./db.ts"
 import { DATA_DIR } from "./env.ts"
-import { DEMO_USER_ID } from "./demo.ts"
 import { syncInBackground } from "./banks/sessions.ts"
 import { refreshRates } from "./fx.ts"
 
@@ -22,12 +21,19 @@ export interface TaskRun {
   trigger: "schedule" | "manual"
 }
 
+/** Who started a run by hand, and why (both optional). */
+export interface RunContext {
+  trigger: TaskRun["trigger"]
+  by?: string
+  note?: string
+}
+
 interface Task {
   id: string
   label: string
   description: string
   intervalMs: number
-  run: () => Promise<string>
+  run: (ctx: RunContext) => Promise<string>
 }
 
 const HOUR = 60 * 60 * 1000
@@ -41,10 +47,10 @@ async function refreshBanks(): Promise<string> {
   const rows = db
     .prepare(
       `SELECT id, last_synced_at AS lastSyncedAt FROM bank_connection
-        WHERE credentials_enc IS NOT NULL AND last_error IS NULL AND user_id != ?
+        WHERE credentials_enc IS NOT NULL AND last_error IS NULL AND user_id NOT LIKE 'ledger-demo%'
         ORDER BY last_synced_at`
     )
-    .all(DEMO_USER_ID) as { id: string; lastSyncedAt: string | null }[]
+    .all() as { id: string; lastSyncedAt: string | null }[]
 
   const counts = {
     synced: 0,
@@ -111,6 +117,28 @@ export const BACKUP_DIR = path.join(DATA_DIR, "backups")
 /** How many daily copies to keep. */
 const BACKUPS_KEPT = Number(process.env.BACKUPS_KEPT ?? 14)
 
+/**
+ * Why a copy was made: the daily schedule, "Run now" on the backup task, or the Back up now
+ * button (which can carry a note, like "Before upgrading"). Kept beside the file in app_setting.
+ */
+export interface BackupReason {
+  kind: "schedule" | "task" | "manual"
+  by?: string
+  note?: string
+}
+
+const reasonKey = (name: string) => `backup_reason:${name}`
+
+function backupReason(name: string): BackupReason | null {
+  const raw = getSetting(reasonKey(name))
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as BackupReason
+  } catch {
+    return null
+  }
+}
+
 /** Backups on disk, newest first. */
 export function listBackups() {
   try {
@@ -118,7 +146,13 @@ export function listBackups() {
       .filter((f) => /^ledger-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.db$/.test(f))
       .map((name) => {
         const st = statSync(path.join(BACKUP_DIR, name))
-        return { name, size: st.size, createdAt: st.mtime.toISOString() }
+        return {
+          name,
+          size: st.size,
+          createdAt: st.mtime.toISOString(),
+          /** Null for copies made before reasons were recorded. */
+          reason: backupReason(name),
+        }
       })
       .sort((a, b) => b.name.localeCompare(a.name))
   } catch {
@@ -130,13 +164,26 @@ export function listBackups() {
  * A consistent copy of the whole database (VACUUM INTO is safe while the app is writing). Saved
  * bank details stay encrypted in it, so restoring needs the same APP_SECRET / data/.secret.
  */
-async function backUp(): Promise<string> {
+async function backUp(ctx: RunContext): Promise<string> {
   mkdirSync(BACKUP_DIR, { recursive: true })
   const name = `ledger-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.db`
   const file = path.join(BACKUP_DIR, name)
+  // Recorded before the copy so the copy itself knows why it was made too.
+  const reason: BackupReason =
+    ctx.trigger === "schedule"
+      ? { kind: "schedule" }
+      : {
+          kind: ctx.note === undefined ? "task" : "manual",
+          by: ctx.by,
+          note: ctx.note || undefined,
+        }
+  setSetting(reasonKey(name), JSON.stringify(reason))
   db.prepare("VACUUM INTO ?").run(file)
   const old = listBackups().slice(Math.max(1, BACKUPS_KEPT))
-  for (const b of old) rmSync(path.join(BACKUP_DIR, b.name), { force: true })
+  for (const b of old) {
+    rmSync(path.join(BACKUP_DIR, b.name), { force: true })
+    db.prepare("DELETE FROM app_setting WHERE key = ?").run(reasonKey(b.name))
+  }
   const mb = (statSync(file).size / 1024 / 1024).toFixed(1)
   return `Saved ${name} (${mb} MB)${old.length ? ` · removed ${old.length} older` : ""}`
 }
@@ -245,34 +292,38 @@ export function waitingOnSignIn(c: {
 
 export const hasTask = (id: string) => TASKS.some((t) => t.id === id)
 
-/** Starts a task unless it's already running. Resolves when it finishes. */
+/**
+ * Starts a task unless it's already running (then it's null). Resolves with how the run went once
+ * it finishes.
+ */
 export async function runTask(
   id: string,
-  trigger: TaskRun["trigger"]
-): Promise<boolean> {
+  trigger: TaskRun["trigger"],
+  extra: Omit<RunContext, "trigger"> = {}
+): Promise<TaskRun | null> {
   const task = TASKS.find((t) => t.id === id)
-  if (!task || running.has(id)) return false
+  if (!task || running.has(id)) return null
   running.add(id)
   const started = Date.now()
   const startedAt = new Date(started).toISOString()
-  const save = (r: Partial<TaskRun>) =>
-    setSetting(
-      stateKey(id),
-      JSON.stringify({
-        startedAt,
-        finishedAt: null,
-        durationMs: null,
-        status: "running",
-        summary: null,
-        trigger,
-        ...r,
-      })
-    )
-  save({})
+  const save = (r: Partial<TaskRun>) => {
+    const run: TaskRun = {
+      startedAt,
+      finishedAt: null,
+      durationMs: null,
+      status: "running",
+      summary: null,
+      trigger,
+      ...r,
+    }
+    setSetting(stateKey(id), JSON.stringify(run))
+    return run
+  }
+  let result = save({})
   console.log(`[tasks] ${task.label}: started (${trigger})`)
   try {
-    const summary = await task.run()
-    save({
+    const summary = await task.run({ trigger, ...extra })
+    result = save({
       status: "ok",
       summary,
       finishedAt: new Date().toISOString(),
@@ -281,7 +332,7 @@ export async function runTask(
     console.log(`[tasks] ${task.label}: ${summary}`)
   } catch (err) {
     const summary = (err as Error).message || "Failed"
-    save({
+    result = save({
       status: "error",
       summary,
       finishedAt: new Date().toISOString(),
@@ -291,7 +342,7 @@ export async function runTask(
   } finally {
     running.delete(id)
   }
-  return true
+  return result
 }
 
 let timer: NodeJS.Timeout | null = null

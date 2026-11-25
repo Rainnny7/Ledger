@@ -1,15 +1,14 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
+import { classify, stripNoise } from "./categorize.ts"
 import {
   addCycle,
-  classify,
   detectRecurring,
   isCycle,
   monthlyEquivalent,
   nextDue,
-  stripNoise,
   type TxLike,
-} from "./categorize.ts"
+} from "./recurring.ts"
 
 test("stripNoise removes TD suffixes, processor prefixes and store numbers", () => {
   assert.equal(stripNoise("UBER CANADA/UBE _V"), "UBER CANADA")

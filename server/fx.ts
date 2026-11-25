@@ -154,7 +154,8 @@ async function fetchRates(): Promise<Fetched> {
       throw new Error(
         liveError
           ? `live rates: ${liveError}; ECB rates: ${message(err)}`
-          : message(err)
+          : message(err),
+        { cause: err }
       )
     }
   }

@@ -1,11 +1,11 @@
 import { Hono } from "hono"
 import { bodyLimit } from "hono/body-limit"
 import { z } from "zod"
-import type { auth } from "../auth.ts"
+import type { auth } from "../auth/index.ts"
 import { decrypt } from "../crypto.ts"
 import { db } from "../db.ts"
 import type { AccountDetails } from "../banks/td/parse.ts"
-import { loadTransactions } from "./finance.ts"
+import { loadTransactions } from "./finance/transactions.ts"
 import {
   cancel,
   chooseMfa,
@@ -22,7 +22,7 @@ import {
 } from "../banks/paypal/api.ts"
 import { importStatements } from "../banks/statements.ts"
 import { env } from "../env.ts"
-import { DEMO_USER_ID } from "../demo.ts"
+import { isDemoUserId } from "../demo/personas.ts"
 import { nextAutoSyncAt, waitingOnSignIn } from "../tasks.ts"
 
 type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
@@ -173,12 +173,11 @@ banks.get("/connections", (c) => {
         ...x,
         savedCredentials,
         instantUpdates: Boolean(r.instantUpdates),
-        nextSyncAt:
-          c.var.user.id === DEMO_USER_ID
-            ? null
-            : nextAutoSyncAt({ ...r, savedCredentials }),
+        nextSyncAt: isDemoUserId(c.var.user.id)
+          ? null
+          : nextAutoSyncAt({ ...r, savedCredentials }),
         needsSignIn:
-          c.var.user.id !== DEMO_USER_ID &&
+          !isDemoUserId(c.var.user.id) &&
           waitingOnSignIn({ ...r, savedCredentials }),
       }
     }),

@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto"
 import { Hono } from "hono"
 import { z } from "zod"
-import type { auth } from "../auth.ts"
+import type { auth } from "../auth/index.ts"
 import { db } from "../db.ts"
-import { DEMO_EMAIL } from "../demo.ts"
+import { isDemoEmail } from "../demo/personas.ts"
 import { access, isShareKind, PERMISSIONS, type ShareRow } from "../sharing.ts"
 
 type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
@@ -48,7 +48,7 @@ sharing.post("/contacts", async (c) => {
     return c.json({ error: "Enter a valid email address." }, 400)
   if (body.data.email === c.var.user.email.toLowerCase())
     return c.json({ error: "That’s your own email." }, 400)
-  if (body.data.email === DEMO_EMAIL)
+  if (isDemoEmail(body.data.email))
     return c.json({ error: "Enter a valid email address." }, 400)
   return c.json({
     contact: saveContact(c.var.user.id, body.data.email, body.data.name),
@@ -118,12 +118,11 @@ sharing.post("/shares/:kind/:itemId", async (c) => {
   const to = body.data.email
   if (to === c.var.user.email.toLowerCase())
     return c.json({ error: "That’s your own email." }, 400)
-  const recipient =
-    to === DEMO_EMAIL
-      ? undefined
-      : (db.prepare(`SELECT id FROM user WHERE lower(email) = ?`).get(to) as
-          | { id: string }
-          | undefined)
+  const recipient = isDemoEmail(to)
+    ? undefined
+    : (db.prepare(`SELECT id FROM user WHERE lower(email) = ?`).get(to) as
+        | { id: string }
+        | undefined)
   // Shares go to an account, never a bare address: a pending invite would hand the item to whoever
   // signed up with that email first.
   if (!recipient)

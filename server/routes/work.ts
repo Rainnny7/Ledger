@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto"
 import { Hono } from "hono"
 import { z } from "zod"
 import { currencyCode, isoDate } from "../validation.ts"
-import type { auth } from "../auth.ts"
+import type { auth } from "../auth/index.ts"
 import { db } from "../db.ts"
 import { todayIso } from "../today.ts"
 import {

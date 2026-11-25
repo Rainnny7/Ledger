@@ -177,6 +177,8 @@ export async function importStatements(
   const parsed: { file: UploadedFile; statement: TdStatement }[] = []
   const seen = new Set<string>()
 
+  // One file at a time, in name order: each PDF is held open in memory while it's read, and the
+  // first copy of a duplicate statement is the one kept.
   for (const file of pdfs.sort((a, b) => a.name.localeCompare(b.name))) {
     try {
       const statement = parseTdStatement(await pdfText(file.bytes))

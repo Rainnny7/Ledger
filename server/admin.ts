@@ -8,7 +8,6 @@
  */
 import { randomUUID } from "node:crypto"
 import { db, getSetting, setSetting } from "./db.ts"
-import { DEMO_USER_ID } from "./demo.ts"
 
 export function migrateAdminTables() {
   db.exec(`
@@ -47,13 +46,14 @@ export function getOwnerId(): string | null {
   if (saved && db.prepare(`SELECT 1 FROM user WHERE id = ?`).get(saved))
     return saved
   const pick = (sql: string) =>
-    (db.prepare(sql).get(DEMO_USER_ID) as { id: string } | undefined)?.id ??
-    null
+    (db.prepare(sql).get() as { id: string } | undefined)?.id ?? null
   let id = pick(
-    `SELECT id FROM user WHERE id != ? AND role = 'admin' ORDER BY createdAt LIMIT 1`
+    `SELECT id FROM user WHERE id NOT LIKE 'ledger-demo%' AND role = 'admin' ORDER BY createdAt LIMIT 1`
   )
   if (!id) {
-    id = pick(`SELECT id FROM user WHERE id != ? ORDER BY createdAt LIMIT 1`)
+    id = pick(
+      `SELECT id FROM user WHERE id NOT LIKE 'ledger-demo%' ORDER BY createdAt LIMIT 1`
+    )
     if (id) db.prepare(`UPDATE user SET role = 'admin' WHERE id = ?`).run(id)
   }
   if (id) setSetting("owner_user_id", id)
