@@ -1,6 +1,7 @@
 import { TransactionSheet } from "@/components/transactions/transaction-sheet"
 import { TransactionsPageCard } from "@/components/transactions/transactions-page-card"
 import { useTransactionsPage } from "@/components/transactions/use-transactions-page"
+import { QueryError } from "@/components/ui/query-error"
 import { FileSpreadsheet } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 
@@ -27,10 +28,11 @@ export function TransactionsPage() {
 				</p>
 			</div>
 
-			{model.txq.error && (
-				<p className="text-sm text-destructive">
-					{model.txq.error.message}
-				</p>
+			{model.txq.error && !model.txq.data && (
+				<QueryError
+					message={model.txq.error.message}
+					onRetry={() => void model.txq.reload()}
+				/>
 			)}
 
 			<TransactionsPageCard model={model} />

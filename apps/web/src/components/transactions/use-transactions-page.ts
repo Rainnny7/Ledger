@@ -18,7 +18,7 @@ import { formatShortDate } from "@/lib/format"
 import { useOverview, useTransactions } from "@/lib/queries"
 import { useIntent } from "@/lib/url-state"
 import { useMemo, useRef, useState } from "react"
-import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 
 /** React/UI entry: `useTransactionsPage`. */
 export function useTransactionsPage() {
@@ -189,7 +189,7 @@ export function useTransactionsPage() {
 				setPicked(new Set())
 			}
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setApplying(false)
 		}
@@ -201,7 +201,7 @@ export function useTransactionsPage() {
 			await bulkRetag([...picked], value)
 			setPicked(new Set())
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setApplying(false)
 		}

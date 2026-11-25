@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import type { Category, TaxTag, Transaction } from "@/lib/api"
 import { CATEGORY_META, TAX_TAG_META } from "@/lib/categories"
 import { api } from "@/lib/api"
@@ -101,7 +102,7 @@ export function useTransactionForm(
 						: "Saved"
 			)
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setSaving(false)
 		}

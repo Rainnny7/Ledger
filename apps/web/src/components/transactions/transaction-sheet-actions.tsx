@@ -4,6 +4,7 @@ import type { PaymentDraft } from "@/components/goals/goal-form"
 import { Check, Loader2, Plus, Repeat, Target, Unlink } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import {
 	DropdownMenu,
@@ -61,7 +62,7 @@ export function TransactionSheetActions({
 					: "No longer counted toward a subscription"
 			)
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setLinking(false)
 		}

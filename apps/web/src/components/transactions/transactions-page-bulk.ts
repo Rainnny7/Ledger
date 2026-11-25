@@ -3,11 +3,12 @@ import { api, type Category, type TaxTag } from "@/lib/api"
 import { CATEGORY_META, TAX_TAG_META } from "@/lib/categories"
 import { demoMode } from "@/lib/demo"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 
 /** React/UI entry: `bulkRecategorize`. */
 export async function bulkRecategorize(ids: string[], value: string) {
 	if (demoMode) {
-		return toast.error(
+		return toastError(
 			"Demo mode is read-only. Exit demo mode to make changes."
 		)
 	}
@@ -35,7 +36,7 @@ export async function bulkRecategorize(ids: string[], value: string) {
 /** React/UI entry: `bulkRetag`. */
 export async function bulkRetag(ids: string[], value: string) {
 	if (demoMode) {
-		return toast.error(
+		return toastError(
 			"Demo mode is read-only. Exit demo mode to make changes."
 		)
 	}
