@@ -10,6 +10,7 @@ Ledger is a single process: the built web app and API on one port (`3001` by def
 - [Bare metal](#bare-metal)
 - [Running as a systemd service](#running-as-a-systemd-service)
 - [Reverse proxy](#reverse-proxy)
+- [Sign-ups and sharing](#sign-ups-and-sharing)
 - [Backups and restore](#backups-and-restore)
 - [Updating](#updating)
 - [Unattended updates (Watchtower)](#unattended-updates-watchtower)
@@ -22,7 +23,7 @@ Ledger is a single process: the built web app and API on one port (`3001` by def
 
 ## Docker Compose
 
-The repo ships [`docker-compose.yml`](docker-compose.yml). It pulls **`ghcr.io/rainnny7/ledger:latest`**, maps port `3001`, mounts **`./data` → `/data`**, and sets `shm_size: 1gb`.
+The repo ships [`docker-compose.yml`](docker-compose.yml). It pulls **`ghcr.io/rainnny7/ledger:latest`**, binds **`127.0.0.1:3001`** (loopback only), mounts **`./data` → `/data`**, and sets `shm_size: 1gb`. Put nginx, Caddy, or similar in front for remote HTTPS access and set `TRUST_PROXY` to match your hop count.
 
 ```bash
 cp .env.example .env    # optional; edit APP_URL, APP_SECRET, etc.
@@ -37,7 +38,9 @@ Open `http://localhost:3001` (or your `APP_URL`) and create an account. The firs
 
 **Private image.** If the GitHub package is private, run `docker login ghcr.io` with a token that has `read:packages` before `docker compose up`.
 
-**Data.** The SQLite database (`app.db`), generated secret, and scheduled backups live under `./data` on the host.
+**Data.** The SQLite database (`app.db`) and scheduled backups live under `./data` on the host. **`APP_SECRET` / `data/.secret` must be stored separately from database backups** (another volume, password manager, or host path not copied with `backups/`). Backups contain password hashes and session data; encrypted bank logins need the same secret to decrypt.
+
+Keep `.secret` out of automated backup jobs that only grab `data/backups/*.db`.
 
 ## Plain docker run
 
@@ -128,6 +131,10 @@ server {
 
 Use the same `APP_URL`, `PUBLIC_URL`, and `TRUST_PROXY` settings as above.
 
+## Sign-ups and sharing
+
+Ledger never verifies sign-up emails: whoever registers an address owns that account. Goals, subscriptions and jobs are shared by email, and the recipient has to accept the invitation (it shows who is inviting them) before they see anything. Even so, someone could register a colleague's address ahead of them and receive an invitation meant for the real person. Keep `ALLOW_REGISTRATION` off unless you trust everyone who can reach the server, and create accounts for the people you share with yourself.
+
 ## Backups and restore
 
 Ledger backs up automatically once a day (and on demand):
@@ -140,7 +147,7 @@ Ledger backs up automatically once a day (and on demand):
 
 1. Stop Ledger.
 2. Replace `$DATA_DIR/app.db` with the downloaded backup file (keep a copy of the current `app.db` first).
-3. Start Ledger with the **same `APP_SECRET`** (or the same `data/.secret`) as when the backup was taken; otherwise saved bank credentials cannot be decrypted.
+3. Start Ledger with the **same `APP_SECRET`** (or the same `data/.secret`) as when the backup was taken; otherwise saved bank credentials cannot be decrypted. Store that secret outside the backup folder so a leaked `.db` file alone is not enough to read bank passwords.
 
 For Docker, the database is `./data/app.db` on the host mount. Copy backups off the server regularly.
 

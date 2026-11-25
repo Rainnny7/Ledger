@@ -10,7 +10,8 @@ services:
     container_name: ledger
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      # Loopback only by default; put a reverse proxy in front for remote access.
+      - "127.0.0.1:3001:3001"
     environment:
       APP_URL: ${APP_URL:-http://localhost:3001}
       PUBLIC_URL: ${PUBLIC_URL:-}

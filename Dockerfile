@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # ---- build the web app ----
-FROM oven/bun:1.3.14 AS build
+# Base images pinned by digest (multi-arch index); Dependabot keeps the pins current.
+FROM oven/bun:1.3.14@sha256:e10577f0db68676a7024391c6e5cb4b879ebd17188ab750cf10024a6d700e5c4 AS build
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
@@ -9,13 +10,13 @@ COPY . .
 RUN bun run build
 
 # ---- production dependencies + Chromium (used to sign in to TD EasyWeb) ----
-FROM oven/bun:1.3.14 AS deps
+FROM oven/bun:1.3.14@sha256:e10577f0db68676a7024391c6e5cb4b879ebd17188ab750cf10024a6d700e5c4 AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
 # ---- runtime ----
-FROM node:24-slim
+FROM node:24-slim@sha256:873f586f3794f52281bd039bf02c048a0be08fde619338f9941bad1eb6b34530
 ENV NODE_ENV=production \
     PORT=3001 \
     DATA_DIR=/data \
