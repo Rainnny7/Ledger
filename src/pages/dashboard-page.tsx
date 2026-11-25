@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { RefreshCWIcon } from '@/components/icons/refresh-cw'
 import { useAnimatedIcon } from '@/components/icons/use-animated-icon'
-import { AlertTriangle, CalendarClock, ChevronDown, ChevronRight, History, KeyRound, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
+import { AlertTriangle, CalendarClock, ChevronDown, ChevronRight, History, KeyRound, MoreHorizontal, Plus, Trash2, Zap, ZapOff } from 'lucide-react'
 import { AnimatedMoney } from '@/components/count-up'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
@@ -110,6 +110,23 @@ export function DashboardPage() {
     if (!confirm(`Remove ${c.label} and all of its synced data?`)) return
     await api.deleteConnection(c.id)
     toast.success('Connection removed')
+  }
+
+  async function toggleInstant(c: Connection) {
+    if (demoMode) return toast.error('Demo mode is read-only. Exit demo mode to make changes.')
+    try {
+      if (c.instantUpdates) {
+        await api.disableInstantUpdates(c.id)
+        toast.success('Instant updates turned off')
+      } else {
+        await api.enableInstantUpdates(c.id)
+        toast.success('Instant updates on', {
+          description: 'PayPal will notify Ledger about payments made through your PayPal app, like invoice checkouts.',
+        })
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not change instant updates')
+    }
   }
 
   async function forget(c: Connection) {
@@ -261,6 +278,13 @@ export function DashboardPage() {
                   <div className="font-medium">{c.label}</div>
                   <div className="text-xs text-muted-foreground">
                     {c.usernameMasked} · synced {formatRelative(c.lastSyncedAt)}
+                    {c.instantUpdates && (
+                      <span title="PayPal sends Ledger webhooks for app payments">
+                        {' '}
+                        · <Zap className="inline size-3 text-primary" /> instant
+                        {c.lastEventAt ? `, last event ${formatRelative(c.lastEventAt)}` : ''}
+                      </span>
+                    )}
                   </div>
                 </div>
                 {/* Split button: Refresh fetches only what's new; the arrow offers a full re-read. */}
@@ -296,7 +320,21 @@ export function DashboardPage() {
                   <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Connection options" />}>
                     <MoreHorizontal />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuContent align="end" className="w-64">
+                    {c.institution === 'paypal' && (
+                      <>
+                        <DropdownMenuItem onClick={() => void toggleInstant(c)}>
+                          {c.instantUpdates ? <ZapOff /> : <Zap />}
+                          <div className="grid">
+                            <span>{c.instantUpdates ? 'Turn off instant updates' : 'Turn on instant updates'}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Webhooks for payments made through your PayPal app. Needs a public https PUBLIC_URL.
+                            </span>
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     {canForget(c) && (
                       <DropdownMenuItem onClick={() => void forget(c)}>
                         <KeyRound /> Forget saved password
