@@ -1,6 +1,6 @@
-import { ChevronRight, ExternalLink, Loader2, LockKeyhole, ShieldCheck, Smartphone, Upload } from 'lucide-react'
+import { ChevronRight, ExternalLink, FileText, KeyRound, Loader2, LockKeyhole, ShieldCheck, Smartphone } from 'lucide-react'
 import { REGEXP_ONLY_DIGITS } from 'input-otp'
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { InstitutionBadge, isProviderId, PROVIDERS, type ProviderId } from '@/components/institution'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -25,7 +25,7 @@ interface Props {
   onUploadStatements?: () => void
 }
 
-type Phase = { type: 'pick' } | { type: 'form'; error?: string } | ConnectStep
+type Phase = { type: 'pick' } | { type: 'td-method' } | { type: 'form'; error?: string } | ConnectStep
 
 export function ConnectDialog({ open, onOpenChange, connection, full = false, onConnected, onUploadStatements }: Props) {
   const [provider, setProvider] = useState<ProviderId>('td')
@@ -114,6 +114,7 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
 
   const resync = !!connection
   const picking = phase.type === 'pick'
+  const choosingTd = phase.type === 'td-method'
 
   return (
     <Dialog open={open} onOpenChange={close} disablePointerDismissal={locked}>
@@ -124,6 +125,14 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
               <DialogTitle>Add an account</DialogTitle>
               <DialogDescription>Choose where your money lives.</DialogDescription>
             </>
+          ) : choosingTd ? (
+            <div className="mb-1 flex items-center gap-3">
+              <InstitutionBadge institution="td" />
+              <div>
+                <DialogTitle>TD Bank</DialogTitle>
+                <DialogDescription>How do you want to bring in your TD accounts?</DialogDescription>
+              </div>
+            </div>
           ) : (
             <div className="mb-1 flex items-center gap-3">
               <InstitutionBadge institution={provider} />
@@ -145,43 +154,48 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
 
         {picking && (
           <div className="grid gap-2">
-            {(Object.keys(PROVIDERS) as ProviderId[]).map((id, i) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => {
-                  setProvider(id)
-                  setRemember(false)
-                  setPhase({ type: 'form' })
-                }}
-                style={{ animationDelay: `${i * 60}ms` }}
-                className="group flex items-center gap-3 rounded-lg border p-3 text-left transition-all animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both hover:border-primary/40 hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-              >
-                <InstitutionBadge institution={id} />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium">{PROVIDERS[id].label}</span>
-                  <span className="block text-xs text-muted-foreground">{PROVIDERS[id].blurb}</span>
-                </span>
-                <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-              </button>
-            ))}
-            {onUploadStatements && (
-              <button
-                type="button"
-                onClick={onUploadStatements}
-                className="group flex items-center gap-3 rounded-lg border border-dashed p-3 text-left transition-all animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both hover:border-primary/40 hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-                style={{ animationDelay: `${Object.keys(PROVIDERS).length * 60}ms` }}
-              >
-                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                  <Upload className="size-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium">Upload TD statements</span>
-                  <span className="block text-xs text-muted-foreground">PDF statements or a .zip, for history past 18 months</span>
-                </span>
-                <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-              </button>
-            )}
+            {(Object.keys(PROVIDERS) as ProviderId[]).map((id, i) => {
+              // TD can be signed in to or fed statement files, so it asks which next.
+              const td = id === 'td' && !!onUploadStatements
+              return (
+                <ChoiceButton
+                  key={id}
+                  index={i}
+                  icon={<InstitutionBadge institution={id} />}
+                  title={td ? 'TD Bank' : PROVIDERS[id].label}
+                  description={td ? 'Sign in with EasyWeb, or upload PDF statements' : PROVIDERS[id].blurb}
+                  onClick={() => {
+                    setProvider(id)
+                    setRemember(false)
+                    setPhase(td ? { type: 'td-method' } : { type: 'form' })
+                  }}
+                />
+              )
+            })}
+          </div>
+        )}
+
+        {choosingTd && (
+          <div className="grid gap-2">
+            <ChoiceButton
+              index={0}
+              icon={<ChoiceIcon><KeyRound className="size-4" /></ChoiceIcon>}
+              title="Sign in with EasyWeb"
+              description="Live balances and up to 18 months of transactions, refreshed automatically"
+              onClick={() => setPhase({ type: 'form' })}
+            />
+            <ChoiceButton
+              index={1}
+              icon={<ChoiceIcon><FileText className="size-4" /></ChoiceIcon>}
+              title="Upload statements"
+              description="PDF statements or a .zip from EasyWeb, for history past 18 months. No sign-in needed"
+              onClick={() => onUploadStatements?.()}
+            />
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setPhase({ type: 'pick' })}>
+                Back
+              </Button>
+            </DialogFooter>
           </div>
         )}
 
@@ -238,7 +252,11 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
             )}
             <DialogFooter>
               {!resync && (
-                <Button type="button" variant="ghost" onClick={() => setPhase({ type: 'pick' })}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setPhase(provider === 'td' && onUploadStatements ? { type: 'td-method' } : { type: 'pick' })}
+                >
                   Back
                 </Button>
               )}
@@ -354,6 +372,43 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
         )}
       </DialogContent>
     </Dialog>
+  )
+}
+
+function ChoiceIcon({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">{children}</span>
+  )
+}
+
+/** One option on the dialog's pick screens. */
+function ChoiceButton({
+  index,
+  icon,
+  title,
+  description,
+  onClick,
+}: {
+  index: number
+  icon: ReactNode
+  title: string
+  description: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{ animationDelay: `${index * 60}ms` }}
+      className="group flex items-center gap-3 rounded-lg border p-3 text-left transition-all animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both hover:border-primary/40 hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+    >
+      {icon}
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium">{title}</span>
+        <span className="block text-xs text-muted-foreground">{description}</span>
+      </span>
+      <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+    </button>
   )
 }
 
