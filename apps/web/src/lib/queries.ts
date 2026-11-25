@@ -1,5 +1,6 @@
 import {
 	keepPreviousData,
+	QueryCache,
 	QueryClient,
 	useQuery,
 	type UseQueryResult,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/api"
 import { addDays, isoDate } from "@/lib/format"
 import { type RangeKey, rangeStart } from "@/lib/ranges"
+import { toastError } from "@/lib/toast"
 
 /**
  * One shared cache for all server data. Pages and the nav ask for the same keys, so a page load
@@ -21,13 +23,24 @@ import { type RangeKey, rangeStart } from "@/lib/ranges"
  * fresh data instead of refetching it.
  */
 export const queryClient = new QueryClient({
+	queryCache: new QueryCache({
+		onError: (error, query) => {
+			const message =
+				error instanceof Error ? error.message : String(error)
+			toastError(message, { id: JSON.stringify(query.queryKey) })
+		},
+	}),
 	defaultOptions: {
 		queries: {
 			staleTime: 60_000,
 			gcTime: 10 * 60_000,
 			// Auth/validation errors won't fix themselves; network blips might.
 			retry: (count, error) =>
-				!(error instanceof ApiError && error.status < 500) && count < 2,
+				!(
+					error instanceof ApiError &&
+					error.status > 0 &&
+					error.status < 500
+				) && count < 2,
 		},
 	},
 })

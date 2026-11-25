@@ -752,3 +752,32 @@
 	background: var(--secondary);
 	color: var(--secondary-foreground);
 }
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	left: auto;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: 0;
+	border-radius: var(--radius-md);
+	color: var(--muted-foreground);
+	background: transparent;
+	transition:
+		color 150ms,
+		background 150ms;
+}
+[data-sonner-toaster]
+	[data-sonner-toast][data-styled="true"]
+	[data-close-button]:hover {
+	color: var(--popover-foreground);
+	background: var(--muted);
+}
+[data-sonner-toaster]
+	[data-sonner-toast][data-styled="true"]
+	[data-close-button]
+	svg {
+	width: 14px;
+	height: 14px;
+}

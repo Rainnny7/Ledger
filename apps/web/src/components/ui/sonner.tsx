@@ -26,6 +26,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
 			offset={20}
 			mobileOffset={16}
 			gap={10}
+			closeButton
 			icons={{
 				success: <CheckIcon className="size-3.5" strokeWidth={2.75} />,
 				info: <InfoIcon className="size-3.5" strokeWidth={2.5} />,

@@ -637,6 +637,23 @@ export class ApiError extends Error {
 	}
 }
 
+const NETWORK_MESSAGE =
+	"Can't reach the server. Check your connection and try again."
+
+async function networkFetch(
+	input: RequestInfo | URL,
+	init?: RequestInit
+): Promise<Response> {
+	try {
+		return await fetch(input, init)
+	} catch (error) {
+		if (error instanceof TypeError) {
+			throw new ApiError(0, NETWORK_MESSAGE)
+		}
+		throw error
+	}
+}
+
 /** Fired after anything is created, changed or deleted; the query cache refetches what's on screen. */
 export const DATA_CHANGED = "ledger:data-changed"
 /** Fired with the saved transaction after a single-row edit, so cached lists can show it right away. */
@@ -660,7 +677,7 @@ async function request<T>(
 	if (demoMode && init.method && init.method !== "GET") {
 		throw new ApiError(403, DEMO_READ_ONLY)
 	}
-	const response = await fetch(`/api/banks${path}`, {
+	const response = await networkFetch(`/api/banks${path}`, {
 		...init,
 		credentials: "include",
 		// Multipart bodies need the browser's own Content-Type (it carries the boundary).
@@ -689,7 +706,7 @@ async function request<T>(
 }
 
 async function adminRequest<T>(path: string): Promise<T> {
-	const response = await fetch(`/api/admin${path}`, {
+	const response = await networkFetch(`/api/admin${path}`, {
 		credentials: "include",
 		headers: { "Content-Type": "application/json" },
 	})
@@ -1094,7 +1111,7 @@ async function publicRequest<T>(
 	path: string,
 	init: RequestInit = {}
 ): Promise<T> {
-	const response = await fetch(`/api/public${path}`, {
+	const response = await networkFetch(`/api/public${path}`, {
 		...init,
 		credentials: "include",
 		headers: { "Content-Type": "application/json", ...init.headers },
