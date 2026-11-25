@@ -43,12 +43,19 @@ const FAMILIES = [
 
 let ready: Promise<FontLoader[]> | null = null
 
+/** A failed font fetch must fail loudly, not hand the renderer an error page as font data. */
+async function fetchBytes(url: string) {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Couldn’t load the invoice font (${res.status})`)
+  return res.arrayBuffer()
+}
+
 function load() {
   ready ??= (async () => {
     const [, latin, ext] = await Promise.all([
       initTakumi({ module_or_path: wasmUrl }),
-      fetch(geistLatin).then((r) => r.arrayBuffer()),
-      fetch(geistLatinExt).then((r) => r.arrayBuffer()),
+      fetchBytes(geistLatin),
+      fetchBytes(geistLatinExt),
     ])
     // Latin-ext covers accented names (é, ł, ő…) the basic Latin file doesn't.
     return FAMILIES.flatMap((name): FontLoader[] => [

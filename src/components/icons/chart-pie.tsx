@@ -1,11 +1,11 @@
 "use client"
 
 import type { Variants } from "motion/react"
-import { motion, useAnimation } from "motion/react"
+import { m, useAnimation } from "motion/react"
 import type { HTMLAttributes } from "react"
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "cn"
 
 export interface ChartPieIconHandle {
   startAnimation: () => void
@@ -75,14 +75,13 @@ const ChartPieIcon = forwardRef<ChartPieIconHandle, ChartPieIconProps>(
           width={size}
           xmlns="http://www.w3.org/2000/svg"
         >
-          <motion.path
+          <m.path
             animate={controls}
             d="M21 12c.552 0 1.005-.449.95-.998a10 10 0 0 0-8.953-8.951c-.55-.055-.998.398-.998.95v8a1 1 0 0 0 1 1z"
             transition={{
               type: "spring",
               stiffness: 250,
               damping: 15,
-              bounce: 0.6,
             }}
             variants={PATH_VARIANTS}
           />

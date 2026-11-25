@@ -1,5 +1,5 @@
 import { Loader2 } from "lucide-react"
-import { Brand } from "@/components/brand"
+import { Brand } from "@/components/layout/brand"
 import { useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -19,7 +19,7 @@ import {
   isStrongPassword,
   PASSWORD_MAX,
   PasswordRules,
-} from "@/components/password-rules"
+} from "@/components/common/password-rules"
 import { signIn, signUp, twoFactor } from "@/lib/auth-client"
 import { detectCurrency } from "@/lib/currency"
 import { usePageTitle } from "@/lib/page-title"
@@ -48,32 +48,34 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
     e.preventDefault()
     setPending(true)
     setError(null)
-    if (needsCode) {
-      const { error } = useBackup
-        ? await twoFactor.verifyBackupCode({ code: code.trim(), trustDevice })
-        : await twoFactor.verifyTotp({
-            code: code.replace(/\s/g, ""),
-            trustDevice,
+    try {
+      if (needsCode) {
+        const { error } = useBackup
+          ? await twoFactor.verifyBackupCode({ code: code.trim(), trustDevice })
+          : await twoFactor.verifyTotp({
+              code: code.replace(/\s/g, ""),
+              trustDevice,
+            })
+        if (error) setError(error.message ?? "That code didn’t work")
+        else navigate("/", { replace: true })
+        return
+      }
+      const { data, error } = isRegister
+        ? await signUp.email({
+            name,
+            email,
+            password,
+            currency: detectCurrency(),
           })
+        : await signIn.email({ email, password })
+      if (error) setError(error.message ?? "Something went wrong")
+      else if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
+        setNeedsCode(true)
+        setCode("")
+      } else navigate("/", { replace: true })
+    } finally {
       setPending(false)
-      if (error) setError(error.message ?? "That code didn’t work")
-      else navigate("/", { replace: true })
-      return
     }
-    const { data, error } = isRegister
-      ? await signUp.email({
-          name,
-          email,
-          password,
-          currency: detectCurrency(),
-        })
-      : await signIn.email({ email, password })
-    setPending(false)
-    if (error) setError(error.message ?? "Something went wrong")
-    else if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
-      setNeedsCode(true)
-      setCode("")
-    } else navigate("/", { replace: true })
   }
 
   return (

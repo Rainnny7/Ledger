@@ -1,11 +1,11 @@
 "use client"
 
 import type { Variants } from "motion/react"
-import { motion, useAnimation } from "motion/react"
+import { m, useAnimation } from "motion/react"
 import type { HTMLAttributes } from "react"
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "cn"
 
 export interface FileTextIconHandle {
   startAnimation: () => void
@@ -76,7 +76,7 @@ const FileTextIcon = forwardRef<FileTextIconHandle, FileTextIconProps>(
         onMouseLeave={handleMouseLeave}
         {...props}
       >
-        <motion.svg
+        <m.svg
           animate={controls}
           fill="none"
           height={size}
@@ -96,7 +96,7 @@ const FileTextIcon = forwardRef<FileTextIconHandle, FileTextIconProps>(
           <path d="M10 9H8" />
           <path d="M16 13H8" />
           <path d="M16 17H8" />
-        </motion.svg>
+        </m.svg>
       </div>
     )
   }

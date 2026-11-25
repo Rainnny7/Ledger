@@ -1,9 +1,10 @@
-import { copyText, WithContextMenu } from "@/components/app-context-menu"
+import { WithContextMenu } from "@/components/layout/app-context-menu"
+import { copyText } from "@/lib/clipboard"
 import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { confirmDialog } from "@/components/confirm-dialog"
+import { confirmDialog } from "@/lib/confirm"
 import {
   Check,
   Copy,
@@ -16,7 +17,7 @@ import {
 } from "lucide-react"
 import { type FormEvent, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { ContactAvatar } from "@/components/share-bits"
+import { ContactAvatar } from "@/components/sharing/share-bits"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -29,7 +30,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api, type Contact, type Shared } from "@/lib/api"
-import { formatDate } from "@/lib/format"
+import { formatDate, localDate } from "@/lib/format"
 import { useContacts, useGoals, useSubscriptions, useWork } from "@/lib/queries"
 
 /** Your contacts: people you share goals, subscriptions and jobs with. */
@@ -306,7 +307,7 @@ function ContactRow({
               {c.name ? `${c.email} · ` : ""}
               {sharing > 0
                 ? `Sharing ${sharing} ${sharing === 1 ? "item" : "items"}`
-                : `Added ${formatDate(c.createdAt.slice(0, 10))}`}
+                : `Added ${formatDate(localDate(c.createdAt))}`}
             </p>
           </div>
         )}

@@ -1,5 +1,5 @@
 import { authClient } from "./auth-client"
-import { DEMO_READ_ONLY, demoMode } from "./demo"
+import { DEMO_READ_ONLY, demoMode, demoPersona } from "./demo"
 
 export type AccountType =
   | "chequing"
@@ -549,6 +549,17 @@ export interface StatementImport {
   }[]
 }
 
+export type UpdateInfo = {
+  current: string
+  latest: string | null
+  available: boolean
+  url: string | null
+  notes: string | null
+  publishedAt: string | null
+  install: "docker" | "source"
+  commands: string[]
+}
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -587,23 +598,38 @@ async function request<T>(
       ...(init.body instanceof FormData
         ? {}
         : { "Content-Type": "application/json" }),
-      ...(demoMode ? { "X-Ledger-Demo": "1" } : {}),
+      ...(demoMode ? { "X-Ledger-Demo": demoPersona.id } : {}),
       // Due dates and deadlines are worked out for "today" where you are.
       "X-Timezone": TIME_ZONE,
       ...init.headers,
     },
   })
-  const data = await res.json().catch(() => ({}))
   // Signed out elsewhere or the session ran out: re-check it, and the app falls back to the sign-in page.
   if (res.status === 401) authClient.$store.notify("$sessionSignal")
-  if (!res.ok)
-    throw new ApiError(
-      res.status,
-      (data as { error?: string }).error ?? res.statusText
-    )
+  if (!res.ok) throw await apiError(res)
+  const data = await res.json().catch(() => ({}))
   if (init.method && init.method !== "GET" && init.notify !== false)
     notifyDataChanged(path)
   return data as T
+}
+
+async function adminRequest<T>(path: string): Promise<T> {
+  const res = await fetch(`/api/admin${path}`, {
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+  })
+  if (res.status === 401) authClient.$store.notify("$sessionSignal")
+  if (!res.ok) throw await apiError(res)
+  return (await res.json().catch(() => ({}))) as T
+}
+
+/** The error for a failed response: the server's `error` message, else the status text. */
+async function apiError(res: Response) {
+  const data = await res.json().catch(() => ({}))
+  return new ApiError(
+    res.status,
+    (data as { error?: string }).error ?? res.statusText
+  )
 }
 
 export const api = {
@@ -926,6 +952,8 @@ export const api = {
       `/advice/dismissed${id ? `?id=${encodeURIComponent(id)}` : ""}`,
       { method: "DELETE" }
     ),
+
+  update: () => adminRequest<UpdateInfo>("/update"),
 }
 
 /** The share link: no sign-in, so it skips the signed-in /api/banks helper. */
@@ -938,13 +966,8 @@ async function publicRequest<T>(
     credentials: "include",
     headers: { "Content-Type": "application/json", ...init.headers },
   })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok)
-    throw new ApiError(
-      res.status,
-      (data as { error?: string }).error ?? res.statusText
-    )
-  return data as T
+  if (!res.ok) throw await apiError(res)
+  return (await res.json().catch(() => ({}))) as T
 }
 
 export const publicApi = {

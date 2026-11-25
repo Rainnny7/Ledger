@@ -1,11 +1,11 @@
 "use client"
 
 import type { Variants } from "motion/react"
-import { motion, useAnimation } from "motion/react"
+import { m, useAnimation } from "motion/react"
 import type { HTMLAttributes } from "react"
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "cn"
 
 export interface LightbulbIconHandle {
   startAnimation: () => void
@@ -88,7 +88,7 @@ const LightbulbIcon = forwardRef<LightbulbIconHandle, LightbulbIconProps>(
           width={size}
           xmlns="http://www.w3.org/2000/svg"
         >
-          <motion.g
+          <m.g
             animate={controls}
             initial="normal"
             style={{ originX: "50%", originY: "0%" }}
@@ -97,9 +97,9 @@ const LightbulbIcon = forwardRef<LightbulbIconHandle, LightbulbIconProps>(
             <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
             <path d="M9 18h6" />
             <path d="M10 22h4" />
-          </motion.g>
+          </m.g>
           {["M12 1V0", "M3.5 3.5 2.8 2.8", "M20.5 3.5l.7-.7"].map((d, i) => (
-            <motion.path
+            <m.path
               animate={controls}
               custom={i}
               d={d}

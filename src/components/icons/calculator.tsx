@@ -1,11 +1,11 @@
 "use client"
 
 import type { Variants } from "motion/react"
-import { motion, useAnimation } from "motion/react"
+import { m, useAnimation } from "motion/react"
 import type { HTMLAttributes } from "react"
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "cn"
 
 export interface CalculatorIconHandle {
   startAnimation: () => void
@@ -88,11 +88,7 @@ const CalculatorIcon = forwardRef<CalculatorIconHandle, CalculatorIconProps>(
           width={size}
           xmlns="http://www.w3.org/2000/svg"
         >
-          <motion.g
-            animate={controls}
-            initial="normal"
-            variants={PAPER_VARIANTS}
-          >
+          <m.g animate={controls} initial="normal" variants={PAPER_VARIANTS}>
             <rect height="20" rx="2" width="16" x="4" y="2" />
             <path d="M8 6h8" />
             {[
@@ -105,7 +101,7 @@ const CalculatorIcon = forwardRef<CalculatorIconHandle, CalculatorIconProps>(
               "M8 18h.01",
               "M12 18h4",
             ].map((d, i) => (
-              <motion.path
+              <m.path
                 animate={controls}
                 custom={i}
                 d={d}
@@ -114,7 +110,7 @@ const CalculatorIcon = forwardRef<CalculatorIconHandle, CalculatorIconProps>(
                 variants={LINE_VARIANTS}
               />
             ))}
-          </motion.g>
+          </m.g>
         </svg>
       </div>
     )

@@ -4,10 +4,7 @@ import "./index.css"
 import { configureBoneyard } from "boneyard-js/react"
 import "./bones/registry"
 import App from "./App.tsx"
-import {
-  clearReloadFlag,
-  reloadForNewVersion,
-} from "@/components/error-boundary"
+import { clearReloadFlag, reloadForNewVersion } from "@/lib/chunk-reload"
 
 // A page's code file failed to load, usually because the app was rebuilt while this tab was open.
 window.addEventListener("vite:preloadError", (event) => {

@@ -110,6 +110,7 @@ export const queryKeys = {
     ["transactions", from ?? "all"] as const,
   account: (id: string) => ["account", id] as const,
   accountDetails: (id: string) => ["account", id, "details"] as const,
+  update: ["admin", "update"] as const,
 }
 
 /** The `{ data, error, loading, reload }` shape pages use; `loading` is true while any fetch runs. */
@@ -179,6 +180,19 @@ export const useAccountDetails = (id: string, enabled: boolean) =>
   )
 
 /** Public server settings (no sign-in needed). */
+const UPDATE_STALE = 6 * 60 * 60_000
+
+/** Whether a newer GitHub release is out (admins only; endpoint returns 403 otherwise). */
+export const useUpdate = (enabled: boolean) =>
+  useQuery({
+    queryKey: queryKeys.update,
+    queryFn: api.update,
+    enabled,
+    staleTime: UPDATE_STALE,
+    refetchInterval: UPDATE_STALE,
+    retry: false,
+  })
+
 export const useAppConfig = () =>
   useQuery({
     queryKey: ["config"],

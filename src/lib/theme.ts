@@ -24,13 +24,10 @@ export const THEME_CLASSES: Record<string, string> = Object.fromEntries(
   THEMES.map((t) => [t.id, t.className])
 )
 
-const reducedMotion = () =>
-  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
-
 const systemTheme = (): ThemeId =>
   matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
 
-/** Puts the theme's class on <html> right away, so a view transition captures the new look. */
+/** Puts the theme's class on <html> before the next paint. */
 function applyClass(choice: ThemeChoice) {
   const id = choice === "system" ? systemTheme() : choice
   const root = document.documentElement
@@ -38,10 +35,7 @@ function applyClass(choice: ThemeChoice) {
   root.classList.add(themeMeta(id)!.className)
 }
 
-/**
- * The current theme and a setter. `from` is the element the change came from: where supported, the
- * new theme spreads out from it in a circle instead of swapping in at once.
- */
+/** The current theme and a setter. */
 export function useAppTheme() {
   const { theme, resolvedTheme, setTheme } = useTheme()
   const { data } = useSession()
@@ -50,13 +44,12 @@ export function useAppTheme() {
 
   const signedIn = Boolean(data)
   const change = useCallback(
-    async (next: ThemeChoice, from?: Element | null) => {
+    (next: ThemeChoice) => {
       if (next === choice) return
-      const apply = () =>
-        flushSync(() => {
-          applyClass(next)
-          setTheme(next)
-        })
+      flushSync(() => {
+        applyClass(next)
+        setTheme(next)
+      })
 
       // Saved to the account too (not in demo mode: that's a look around, not your account).
       if (signedIn && !demoMode) {
@@ -64,30 +57,6 @@ export function useAppTheme() {
           if (error) toast.error(error.message ?? "Couldn’t save your theme")
         })
       }
-
-      if (!from || reducedMotion() || !("startViewTransition" in document))
-        return apply()
-      await document.startViewTransition(apply).ready
-      const { top, left, width, height } = from.getBoundingClientRect()
-      const x = left + width / 2
-      const y = top + height / 2
-      const radius = Math.hypot(
-        Math.max(x, innerWidth - x),
-        Math.max(y, innerHeight - y)
-      )
-      document.documentElement.animate(
-        {
-          clipPath: [
-            `circle(0px at ${x}px ${y}px)`,
-            `circle(${radius}px at ${x}px ${y}px)`,
-          ],
-        },
-        {
-          duration: 450,
-          easing: "ease-in-out",
-          pseudoElement: "::view-transition-new(root)",
-        }
-      )
     },
     [choice, signedIn, setTheme]
   )

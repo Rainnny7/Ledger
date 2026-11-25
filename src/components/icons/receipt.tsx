@@ -1,11 +1,11 @@
 "use client"
 
 import type { Variants } from "motion/react"
-import { motion, useAnimation } from "motion/react"
+import { m, useAnimation } from "motion/react"
 import type { HTMLAttributes } from "react"
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "cn"
 
 export interface ReceiptIconHandle {
   startAnimation: () => void
@@ -88,14 +88,10 @@ const ReceiptIcon = forwardRef<ReceiptIconHandle, ReceiptIconProps>(
           width={size}
           xmlns="http://www.w3.org/2000/svg"
         >
-          <motion.g
-            animate={controls}
-            initial="normal"
-            variants={PAPER_VARIANTS}
-          >
+          <m.g animate={controls} initial="normal" variants={PAPER_VARIANTS}>
             <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
             {["M8 8h8", "M8 12h8", "M8 16h5"].map((d, i) => (
-              <motion.path
+              <m.path
                 animate={controls}
                 custom={i}
                 d={d}
@@ -104,7 +100,7 @@ const ReceiptIcon = forwardRef<ReceiptIconHandle, ReceiptIconProps>(
                 variants={LINE_VARIANTS}
               />
             ))}
-          </motion.g>
+          </m.g>
         </svg>
       </div>
     )

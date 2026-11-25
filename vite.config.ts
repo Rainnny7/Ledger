@@ -33,7 +33,9 @@ const themeBoot = (): Plugin => ({
     const themes = Object.fromEntries(
       THEMES.map((t) => [t.id, [t.className, t.swatch[0], t.dark]])
     )
-    const script = `<script>(function(){try{var T=${JSON.stringify(themes)},c=localStorage.getItem("theme")||"system";if(c==="system"||!T[c])c=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var t=T[c],r=document.documentElement;r.classList.add(t[0]);r.style.colorScheme=t[2]?"dark":"light";r.style.backgroundColor=t[1]}catch(e){}})()</script>`
+    // Escape `<` so a theme value can never close the inline script early.
+    const json = JSON.stringify(themes).replace(/</g, "\\u003c")
+    const script = `<script>(function(){try{var T=${json},c=localStorage.getItem("theme")||"system";if(c==="system"||!T[c])c=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var t=T[c],r=document.documentElement;r.classList.add(t[0]);r.style.colorScheme=t[2]?"dark":"light";r.style.backgroundColor=t[1]}catch(e){}})()</script>`
     return html.replace("<!-- %THEME_BOOT% -->", script)
   },
 })

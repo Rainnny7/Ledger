@@ -1,7 +1,7 @@
 import { KeyRound, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
-import { Brand } from "@/components/brand"
+import { Brand } from "@/components/layout/brand"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,7 +20,7 @@ import {
   isStrongPassword,
   PASSWORD_MAX,
   PasswordRules,
-} from "@/components/password-rules"
+} from "@/components/common/password-rules"
 
 /**
  * Shown instead of the app while the account is on a temporary password an admin set. The person
@@ -49,22 +49,28 @@ export function ChangeTemporaryPasswordPage() {
     if (!valid) return
     setBusy(true)
     setError(null)
-    const { error } = await authClient.changePassword({
-      currentPassword: current,
-      newPassword: next,
-      revokeOtherSessions: true,
-    })
-    if (error) {
+    // On success the spinner stays on: the refetched session swaps this page out for the app.
+    try {
+      const { error } = await authClient.changePassword({
+        currentPassword: current,
+        newPassword: next,
+        revokeOtherSessions: true,
+      })
+      if (error) {
+        setBusy(false)
+        setError(
+          error.code === "INVALID_PASSWORD"
+            ? "That temporary password is wrong."
+            : (error.message ?? "Could not change your password")
+        )
+        return
+      }
+      await refetch()
+      toast.success("Password changed. Welcome to Ledger!")
+    } catch (err) {
       setBusy(false)
-      setError(
-        error.code === "INVALID_PASSWORD"
-          ? "That temporary password is wrong."
-          : (error.message ?? "Could not change your password")
-      )
-      return
+      throw err
     }
-    await refetch()
-    toast.success("Password changed. Welcome to Ledger!")
   }
 
   return (

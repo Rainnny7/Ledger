@@ -13,8 +13,9 @@ export async function adminFetch<T>(
     credentials: "include",
     headers: { "Content-Type": "application/json" },
   })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok)
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
     throw new Error((data as { error?: string }).error ?? "Request failed")
-  return data as T
+  }
+  return (await res.json().catch(() => ({}))) as T
 }

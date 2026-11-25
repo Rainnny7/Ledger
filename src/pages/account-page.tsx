@@ -1,34 +1,19 @@
-import { Money } from "@/components/money"
-import {
-  ArrowDownLeft,
-  ArrowLeft,
-  ArrowUpRight,
-  Download,
-  History,
-} from "lucide-react"
 import { useMemo, useState } from "react"
-import { Link, useParams } from "react-router"
-import { AccountDetailsButton } from "@/components/account-details-dialog"
+import { useParams } from "react-router"
+import { AccountBackLink } from "@/components/accounts/account-back-link"
+import { AccountDetailsButton } from "@/components/accounts/account-details-dialog"
+import { accountPeriodItems } from "@/components/accounts/account-filter-items"
+import { AccountStatCards } from "@/components/accounts/account-stat-cards"
+import { AccountTransactionsCard } from "@/components/accounts/account-transactions-card"
 import {
-  BalanceLabel,
-  BalanceValue,
-  CreditMeter,
   isDebtAccount,
-  OverdraftMeter,
   shownRunningBalance,
   useIncludeOverdraft,
-} from "@/components/account-figures"
-import { BalanceChart, CategoryBars } from "@/components/charts"
-import {
-  RANGES,
-  RangePicker,
-  type RangeKey,
-  rangeStart,
-} from "@/components/range-picker"
-import { TransactionSheet } from "@/components/transaction-sheet"
-import { TransactionsTable } from "@/components/transactions-table"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+} from "@/components/accounts/account-figures"
+import { BalanceChart, CategoryBars } from "@/components/common/charts"
+import { RangePicker } from "@/components/common/range-picker"
+import { RANGES, type RangeKey, rangeStart } from "@/lib/ranges"
+import { TransactionSheet } from "@/components/transactions/transaction-sheet"
 import {
   Card,
   CardAction,
@@ -37,29 +22,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { SearchInput } from "@/components/search-input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Account, Category, Transaction } from "@/lib/api"
 import { CATEGORY_LIST, CATEGORY_META } from "@/lib/categories"
 import { balanceSeries, downloadCsv, spendByCategory } from "@/lib/finance"
-import {
-  ACCOUNT_TYPE_LABEL,
-  formatLongDate,
-  formatRelative,
-} from "@/lib/format"
+import { ACCOUNT_TYPE_LABEL, formatRelative } from "@/lib/format"
 import { useAccount } from "@/lib/queries"
 import { useUrlState } from "@/lib/url-state"
 
 type Flow = "all" | "in" | "out"
-const PAGE = 100
 
 export function AccountPage() {
   const { id = "" } = useParams()
@@ -68,7 +40,7 @@ export function AccountPage() {
   if (error && !data) {
     return (
       <div className="grid gap-4">
-        <BackLink />
+        <AccountBackLink />
         <p className="text-sm text-destructive">{error.message}</p>
       </div>
     )
@@ -76,7 +48,7 @@ export function AccountPage() {
   if (!data) {
     return (
       <div className="grid gap-6">
-        <BackLink />
+        <AccountBackLink />
         <Skeleton className="h-8 w-64" />
         <div className="grid gap-4 sm:grid-cols-3">
           {[0, 1, 2].map((i) => (
@@ -92,28 +64,7 @@ export function AccountPage() {
   return <AccountView account={data.account} transactions={data.transactions} />
 }
 
-function BackLink() {
-  return (
-    <Link
-      to="/"
-      className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-    >
-      <ArrowLeft className="size-4" /> All accounts
-    </Link>
-  )
-}
-
-const periodItems = [
-  { value: "30d", label: "Last 30 days" },
-  { value: "90d", label: "Last 90 days" },
-  { value: "6m", label: "Last 6 months" },
-  { value: "1y", label: "Last year" },
-  { value: "all", label: "All time" },
-]
-const categoryItems = [
-  { value: "all", label: "All categories" },
-  ...CATEGORY_LIST.map((c) => ({ value: c, label: CATEGORY_META[c].label })),
-]
+const PAGE = 100
 
 function AccountView({
   account: a,
@@ -183,8 +134,6 @@ function AccountView({
   )
 
   const debt = isDebtAccount(a)
-  const earliest = transactions.at(-1)?.date
-
   function resetLimit() {
     setLimit(PAGE)
   }
@@ -219,7 +168,7 @@ function AccountView({
 
   return (
     <div className="grid gap-6">
-      <BackLink />
+      <AccountBackLink />
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
@@ -237,67 +186,7 @@ function AccountView({
         {a.type !== "wallet" && <AccountDetailsButton account={a} />}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card size="sm">
-          <CardHeader>
-            <CardDescription>
-              <BalanceLabel account={a} />
-            </CardDescription>
-            <CardTitle className="text-2xl! font-semibold">
-              <BalanceValue account={a} />
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card size="sm">
-          <CardHeader>
-            <CardDescription>
-              {a.type === "credit" ? "Available credit" : "Available"}
-            </CardDescription>
-            <CardTitle className="text-2xl! font-semibold tabular-nums">
-              <Money value={a.available} currency={a.currency} />
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card size="sm">
-          <CardHeader>
-            <CardDescription>
-              {debt ? "Credit limit" : "Overdraft"}
-            </CardDescription>
-            <CardTitle className="text-2xl! font-semibold tabular-nums">
-              {debt ? (
-                <Money
-                  value={
-                    a.creditLimit ??
-                    (a.available !== null && a.balance !== null
-                      ? a.available + a.balance
-                      : null)
-                  }
-                  currency={a.currency}
-                />
-              ) : (a.overdraftUsed ?? 0) > 0 ? (
-                <span className="text-destructive">
-                  <Money value={a.overdraftUsed} currency={a.currency} />
-                </span>
-              ) : a.overdraftLimit ? (
-                "Not in use"
-              ) : (
-                "None"
-              )}
-            </CardTitle>
-          </CardHeader>
-          {(debt
-            ? a.type === "credit"
-            : a.overdraftLimit || (a.overdraftUsed ?? 0) > 0) && (
-            <CardContent>
-              {debt ? (
-                <CreditMeter account={a} />
-              ) : (
-                <OverdraftMeter account={a} />
-              )}
-            </CardContent>
-          )}
-        </Card>
-      </div>
+      <AccountStatCards account={a} />
 
       <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-3">
@@ -324,8 +213,8 @@ function AccountView({
           <CardHeader>
             <CardTitle>Where it went</CardTitle>
             <CardDescription>
-              {periodItems.find((p) => p.value === period)?.label} · tap to
-              filter
+              {accountPeriodItems.find((p) => p.value === period)?.label} · tap
+              to filter
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -341,141 +230,25 @@ function AccountView({
         </Card>
       </div>
 
-      <Card>
-        <CardHeader className="gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <CardTitle>Transactions</CardTitle>
-              <CardDescription className="flex flex-wrap items-center gap-x-2">
-                <span>
-                  {filtered.length.toLocaleString()} of{" "}
-                  {transactions.length.toLocaleString()}
-                </span>
-                {earliest && (
-                  <span className="inline-flex items-center gap-1">
-                    <History className="size-3" /> history from{" "}
-                    {formatLongDate(
-                      a.historyFrom && a.historyFrom < earliest
-                        ? a.historyFrom
-                        : earliest
-                    )}
-                  </span>
-                )}
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-4 text-sm">
-              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                <ArrowDownLeft className="size-4" />
-                <span className="tabular-nums">
-                  <Money value={totals.moneyIn} currency={a.currency} />
-                </span>
-              </span>
-              <span className="flex items-center gap-1 text-muted-foreground">
-                <ArrowUpRight className="size-4" />
-                <span className="tabular-nums">
-                  <Money value={totals.moneyOut} currency={a.currency} />
-                </span>
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportCsv}
-                disabled={filtered.length === 0}
-              >
-                <Download /> CSV
-              </Button>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <SearchInput
-              placeholder="Search merchant, description, note or amount"
-              value={query}
-              onChange={(v) => {
-                setQuery(v)
-                resetLimit()
-              }}
-            />
-            <Select
-              items={periodItems}
-              value={period}
-              onValueChange={(v) => {
-                if (v) setPeriod(v as RangeKey)
-                resetLimit()
-              }}
-            >
-              <SelectTrigger className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {periodItems.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              items={categoryItems}
-              value={category}
-              onValueChange={(v) => {
-                if (v) setCategory(v as Category | "all")
-                resetLimit()
-              }}
-            >
-              <SelectTrigger className="w-44">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {categoryItems.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Tabs
-              value={flow}
-              onValueChange={(v) => {
-                setFlow(v as Flow)
-                resetLimit()
-              }}
-            >
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="in">In</TabsTrigger>
-                <TabsTrigger value="out">Out</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-        </CardHeader>
-        <CardContent className="px-0">
-          {filtered.length === 0 ? (
-            <p className="px-4 py-12 text-center text-sm text-muted-foreground">
-              {transactions.length === 0
-                ? "No transactions were found for this account yet."
-                : "No transactions match."}
-            </p>
-          ) : (
-            <TransactionsTable
-              transactions={filtered.slice(0, limit)}
-              accounts={[a]}
-              onSelect={setSelected}
-              showBalance={transactions.some((t) => t.runningBalance !== null)}
-            />
-          )}
-          {filtered.length > limit && (
-            <div className="flex justify-center pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setLimit((l) => l + PAGE)}
-              >
-                Show {Math.min(PAGE, filtered.length - limit)} more
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <AccountTransactionsCard
+        account={a}
+        transactions={transactions}
+        filtered={filtered}
+        totals={totals}
+        query={query}
+        setQuery={setQuery}
+        flow={flow}
+        setFlow={setFlow}
+        category={category}
+        setCategory={setCategory}
+        period={period}
+        setPeriod={setPeriod}
+        limit={limit}
+        setLimit={setLimit}
+        setSelected={setSelected}
+        pageSize={PAGE}
+        onExport={exportCsv}
+      />
 
       <TransactionSheet
         transaction={selected}

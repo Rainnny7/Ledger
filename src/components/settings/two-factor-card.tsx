@@ -28,7 +28,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp"
 import { Label } from "@/components/ui/label"
-import { QrCode } from "@/components/qr-code"
+import { QrCode } from "@/components/common/qr-code"
 import { twoFactor, useSession } from "@/lib/auth-client"
 import { PasswordDialog } from "@/components/settings/password-dialog"
 
@@ -129,28 +129,38 @@ function SetupDialog({
     e.preventDefault()
     setBusy(true)
     setError(null)
-    const { data, error } = await twoFactor.enable({ password })
-    setBusy(false)
-    setPassword("")
-    if (error || !data || !("totpURI" in data))
-      return setError(error?.message ?? "Could not start setup")
-    setStep({ type: "scan", uri: data.totpURI, backupCodes: data.backupCodes })
+    try {
+      const { data, error } = await twoFactor.enable({ password })
+      if (error || !data || !("totpURI" in data))
+        return setError(error?.message ?? "Could not start setup")
+      setStep({
+        type: "scan",
+        uri: data.totpURI,
+        backupCodes: data.backupCodes,
+      })
+    } finally {
+      setBusy(false)
+      setPassword("")
+    }
   }
 
   async function verify(value: string) {
     if (step.type !== "scan" || busy) return
     setBusy(true)
     setError(null)
-    const { error } = await twoFactor.verifyTotp({ code: value })
-    setBusy(false)
-    if (error) {
-      setCode("")
-      return setError(
-        error.message ?? "That code didn’t match. Try the next one."
-      )
+    try {
+      const { error } = await twoFactor.verifyTotp({ code: value })
+      if (error) {
+        setCode("")
+        return setError(
+          error.message ?? "That code didn’t match. Try the next one."
+        )
+      }
+      setStep({ type: "codes", backupCodes: step.backupCodes })
+      toast.success("Two-factor authentication is on")
+    } finally {
+      setBusy(false)
     }
-    setStep({ type: "codes", backupCodes: step.backupCodes })
-    toast.success("Two-factor authentication is on")
   }
 
   return (

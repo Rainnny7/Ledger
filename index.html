@@ -18,7 +18,7 @@
     <!-- %THEME_BOOT% -->
     <style>
       /*
-       * The full-page loader (src/components/app-loader.tsx). It lives here so it styles the copy in
+       * The full-page loader (src/components/layout/app-loader.tsx). It lives here so it styles the copy in
        * #root below, which shows until the app's code has loaded. Every animation is a fraction of one
        * 3.2s loop and starts at --loader-phase, so the app's own copy picks up where this one is.
        */
@@ -139,7 +139,7 @@
   </head>
   <body>
     <div id="root">
-      <!-- Shown until the app loads; React swaps in the same loader (src/components/app-loader.tsx). -->
+      <!-- Shown until the app loads; React swaps in the same loader (src/components/layout/app-loader.tsx). -->
       <div class="app-loader" role="status" aria-label="Loading">
         <div class="app-loader-mark">
           <svg viewBox="0 0 24 24" aria-hidden="true">

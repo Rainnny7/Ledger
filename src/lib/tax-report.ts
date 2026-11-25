@@ -1,6 +1,7 @@
 import { strToU8, zipSync } from "fflate"
 import type { Account, Category, Transaction } from "./api"
 import { CATEGORY_LIST, CATEGORY_META, NON_SPEND } from "./categories"
+import { isoDate } from "./format"
 
 /**
  * The tax report: one period's money in and out, by category and by month, split into business
@@ -378,10 +379,7 @@ function readme(input: ExportInput, fmt: (v: number) => string) {
       `${r.pending.length} transaction(s) were still pending when this was exported.`,
   ].filter(Boolean)
   if (loose.length) lines.push("", "Still open", ...loose.map((l) => `  ${l}`))
-  lines.push(
-    "",
-    `Exported from Ledger on ${new Date().toISOString().slice(0, 10)}.`
-  )
+  lines.push("", `Exported from Ledger on ${isoDate()}.`)
   return lines.join("\r\n") + "\r\n"
 }
 

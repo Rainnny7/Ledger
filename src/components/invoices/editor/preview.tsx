@@ -1,0 +1,120 @@
+import { Download, ExternalLink, Eye, Loader2 } from "lucide-react"
+import { useEffect, useEffectEvent, useState } from "react"
+import { Button } from "@/components/ui/button"
+import type { InvoicePdfSource } from "@/lib/invoice-pdf"
+import { renderPdf, saveBlob } from "@/components/invoices/pdf-files"
+
+function useBlobUrl(blob: Blob | null) {
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!blob) {
+      setUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return null
+      })
+      return
+    }
+    const next = URL.createObjectURL(blob)
+    setUrl(next)
+    return () => URL.revokeObjectURL(next)
+  }, [blob])
+  return url
+}
+
+/**
+ * The real PDF, re-drawn a moment after you stop typing. Phones can't show PDFs inline,
+ * so there it's a button that opens the PDF in a new tab.
+ */
+export function InvoicePreview({
+  source,
+  fileName,
+}: {
+  source: InvoicePdfSource
+  fileName: string
+}) {
+  const [blob, setBlob] = useState<Blob | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const key = JSON.stringify(source)
+  const [drawnKey, setDrawnKey] = useState<string | null>(null)
+  const busy = drawnKey !== key
+  const draw = useEffectEvent(() => renderPdf(source))
+  const url = useBlobUrl(blob)
+
+  useEffect(() => {
+    let cancelled = false
+    const t = setTimeout(() => {
+      draw()
+        .then((b) => {
+          if (cancelled) return
+          setBlob(b)
+          setError(null)
+        })
+        .catch((e: Error) => !cancelled && setError(e.message))
+        .finally(() => !cancelled && setDrawnKey(key))
+    }, 450)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+      setBlob(null)
+    }
+  }, [key])
+
+  const actions = (
+    <div className="flex gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={!url}
+        render={<a href={url ?? undefined} target="_blank" rel="noreferrer" />}
+        nativeButton={false}
+      >
+        <ExternalLink /> Open
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={!blob}
+        onClick={() => blob && saveBlob(blob, fileName)}
+      >
+        <Download /> Download
+      </Button>
+    </div>
+  )
+
+  return (
+    <div className="grid gap-2 lg:sticky lg:top-20">
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2 text-sm font-medium">
+          <Eye className="size-4 text-muted-foreground" /> Preview
+          {busy && (
+            <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+          )}
+        </span>
+        {actions}
+      </div>
+      {error && (
+        <p className="text-sm text-destructive">
+          Couldn’t draw the PDF: {error}
+        </p>
+      )}
+      <div className="hidden overflow-hidden rounded-xl border bg-muted/40 lg:block">
+        {url ? (
+          // No `sandbox`: it's our own PDF from a blob URL, and browsers refuse to run their PDF
+          // viewer inside a sandboxed frame, so any sandbox value would blank the preview.
+          <iframe
+            title="Invoice PDF preview"
+            src={`${url}#toolbar=0&navpanes=0&view=FitH`}
+            className="aspect-[210/297] w-full bg-white"
+          />
+        ) : (
+          <div className="flex aspect-[210/297] items-center justify-center">
+            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          </div>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground lg:hidden">
+        Open the preview to see the PDF exactly as it will be sent.
+      </p>
+    </div>
+  )
+}

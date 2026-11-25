@@ -584,13 +584,6 @@
   );
 }
 
-/* Theme switch: the new theme is revealed by a circle the toggle animates, not a cross-fade. */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
 /*
  * Toasts: a calm card in the app's own surfaces with a tinted icon chip for the tone.
  * Selectors are one step more specific than sonner's injected styles so these win.

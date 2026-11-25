@@ -44,6 +44,11 @@ export function parseUtc(value: string) {
   ).getTime()
 }
 
+/** The calendar date (YYYY-MM-DD) a stored UTC timestamp falls on in the viewer's own time zone. */
+export function localDate(sqliteUtc: string) {
+  return isoDate(new Date(parseUtc(sqliteUtc)))
+}
+
 export function formatRelative(sqliteUtc: string | null) {
   if (!sqliteUtc) return "never"
   const t = parseUtc(sqliteUtc)

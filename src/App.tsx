@@ -1,6 +1,8 @@
 import { QueryClientProvider } from "@tanstack/react-query"
 import { lazy, type ReactNode, Suspense, useEffect } from "react"
+import { domAnimation, LazyMotion } from "motion/react"
 import { ThemeProvider } from "next-themes"
+import { NuqsAdapter } from "nuqs/adapters/react-router/v8"
 import {
   createBrowserRouter,
   createRoutesFromElements,
@@ -10,11 +12,11 @@ import {
   RouterProvider,
   useLocation,
 } from "react-router"
-import { AppLoader } from "@/components/app-loader"
-import { AppShell } from "@/components/app-shell"
-import { ConfirmHost } from "@/components/confirm-dialog"
-import { ErrorBoundary } from "@/components/error-boundary"
-import { useNoNativeContextMenu } from "@/components/app-context-menu"
+import { AppLoader } from "@/components/layout/app-loader"
+import { AppShell } from "@/components/layout/app-shell"
+import { ConfirmHost } from "@/components/common/confirm-dialog"
+import { ErrorBoundary } from "@/components/layout/error-boundary"
+import { useNoNativeContextMenu } from "@/components/layout/app-context-menu"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { useSession } from "@/lib/auth-client"
@@ -164,7 +166,15 @@ function GuestOnly() {
 // A data router, so pages can block navigation (e.g. the invoice editor with unsaved changes).
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route errorElement={<ErrorBoundary fullScreen>{null}</ErrorBoundary>}>
+    <Route
+      element={
+        // Inside the router: nuqs reads and writes the address through React Router.
+        <NuqsAdapter>
+          <Outlet />
+        </NuqsAdapter>
+      }
+      errorElement={<ErrorBoundary fullScreen>{null}</ErrorBoundary>}
+    >
       <Route element={<GuestOnly />}>
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
@@ -324,9 +334,11 @@ export default function App() {
           enableSystem
           disableTransitionOnChange
         >
-          <TooltipProvider delay={300}>
-            <RouterProvider router={router} />
-          </TooltipProvider>
+          <LazyMotion features={domAnimation} strict>
+            <TooltipProvider delay={300}>
+              <RouterProvider router={router} />
+            </TooltipProvider>
+          </LazyMotion>
           <ConfirmHost />
           <Toaster />
         </ThemeProvider>

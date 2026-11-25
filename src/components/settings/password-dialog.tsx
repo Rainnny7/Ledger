@@ -55,11 +55,14 @@ export function PasswordDialog({
     e.preventDefault()
     setBusy(true)
     setError(null)
-    const err = await run(password)
-    setBusy(false)
-    setPassword("")
-    if (err) setError(err)
-    else if (!keepOpen) close()
+    try {
+      const err = await run(password)
+      if (err) setError(err)
+      else if (!keepOpen) close()
+    } finally {
+      setBusy(false)
+      setPassword("")
+    }
   }
 
   return (

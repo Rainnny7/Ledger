@@ -1,10 +1,10 @@
 "use client"
 
-import { motion, useAnimation } from "motion/react"
+import { m, useAnimation } from "motion/react"
 import type { HTMLAttributes } from "react"
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "cn"
 
 export interface UsersIconHandle {
   startAnimation: () => void
@@ -58,7 +58,7 @@ const UsersIcon = forwardRef<UsersIconHandle, UsersIconProps>(
         onMouseLeave={handleMouseLeave}
         {...props}
       >
-        <motion.svg
+        <m.svg
           fill="none"
           height={size}
           stroke="currentColor"
@@ -71,19 +71,19 @@ const UsersIcon = forwardRef<UsersIconHandle, UsersIconProps>(
         >
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
           <circle cx="9" cy="7" r="4" />
-          <motion.path
+          <m.path
             d="M22 21v-2a4 4 0 0 0-3-3.87"
             variants={{ normal: { x: 0 }, animate: { x: [0, 2, 0] } }}
             animate={controls}
             transition={{ duration: 0.5 }}
           />
-          <motion.path
+          <m.path
             d="M16 3.13a4 4 0 0 1 0 7.75"
             variants={{ normal: { x: 0 }, animate: { x: [0, 2, 0] } }}
             animate={controls}
             transition={{ duration: 0.5, delay: 0.05 }}
           />
-        </motion.svg>
+        </m.svg>
       </div>
     )
   }
