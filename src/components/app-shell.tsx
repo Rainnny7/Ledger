@@ -313,7 +313,7 @@ export function AppShell() {
         </div>
       )}
       <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-3 sm:gap-4 sm:px-4">
+        <div className="mx-auto flex h-14 max-w-[90rem] items-center gap-2 px-3 sm:gap-4 sm:px-4">
           <Link to="/" aria-label="Ledger home" className="shrink-0">
             <Brand hideNameOnMobile />
           </Link>
@@ -418,7 +418,7 @@ export function AppShell() {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
+      <main className="mx-auto max-w-[90rem] px-4 py-8">
         {/* Keyed by route so each page fades in when you navigate to it. */}
         <div
           key={pathname}
