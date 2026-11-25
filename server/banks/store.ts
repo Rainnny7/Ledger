@@ -1,7 +1,125 @@
 import { randomUUID } from "node:crypto"
 import { encrypt } from "../crypto.ts"
 import { db } from "../db.ts"
-import type { ScrapedAccount } from "./types.ts"
+import { toCents, toCentsOrNull } from "../../shared/money.ts"
+import { planTransactionCarryOvers, type StoredTx } from "./sync-match.ts"
+import type { ScrapedAccount, ScrapedTransaction } from "./types.ts"
+
+/** The fingerprint keeps the decimal amount text it always had, so rows stored before cents still match. */
+function txFingerprint(
+  t: ScrapedTransaction,
+  occurrences: Map<string, number>
+) {
+  if (t.externalId) return `id|${t.externalId}`
+  const base = `${t.date}|${t.description.toLowerCase()}|${t.amount.toFixed(2)}|${t.pending ? "p" : "c"}`
+  const n = occurrences.get(base) ?? 0
+  occurrences.set(base, n + 1)
+  return `${base}|${n}`
+}
+
+/** Move user fields and foreign links off a row that's about to be deleted. */
+function moveTransactionAnnotations(fromId: string, toId: string) {
+  const from = db
+    .prepare(
+      `SELECT category_override AS categoryOverride, note, tax_tag AS taxTag
+         FROM bank_transaction WHERE id = ?`
+    )
+    .get(fromId) as
+    | {
+        categoryOverride: string | null
+        note: string | null
+        taxTag: string | null
+      }
+    | undefined
+  if (!from) return
+  db.prepare(
+    `UPDATE bank_transaction
+        SET category_override = COALESCE(?, category_override),
+            note = COALESCE(?, note),
+            tax_tag = COALESCE(?, tax_tag)
+      WHERE id = ?`
+  ).run(from.categoryOverride, from.note, from.taxTag, toId)
+
+  db.prepare(
+    `UPDATE subscription_charge SET transaction_id = ? WHERE transaction_id = ?`
+  ).run(toId, fromId)
+  for (const table of [
+    "goal_payment",
+    "work_payment",
+    "invoice_payment",
+  ] as const) {
+    db.prepare(
+      `UPDATE ${table} SET transaction_id = ? WHERE transaction_id = ?`
+    ).run(toId, fromId)
+  }
+}
+
+function syncTransactions(
+  accountId: string,
+  transactions: ScrapedTransaction[]
+) {
+  if (transactions.length === 0) return
+
+  const incomingFingerprints = new Set<string>()
+  const occurrences = new Map<string, number>()
+  let syncDateMin = transactions[0]!.date
+  let syncDateMax = transactions[0]!.date
+  const insertTx = db.prepare(
+    `INSERT INTO bank_transaction (id, account_id, fingerprint, date, description, amount, running_balance, pending)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (account_id, fingerprint) DO UPDATE SET
+       date = excluded.date,
+       description = excluded.description,
+       amount = excluded.amount,
+       running_balance = excluded.running_balance,
+       pending = excluded.pending`
+  )
+
+  for (const t of transactions) {
+    const fingerprint = txFingerprint(t, occurrences)
+    incomingFingerprints.add(fingerprint)
+    if (t.date < syncDateMin) syncDateMin = t.date
+    if (t.date > syncDateMax) syncDateMax = t.date
+    insertTx.run(
+      randomUUID(),
+      accountId,
+      fingerprint,
+      t.date,
+      t.description,
+      toCents(t.amount),
+      toCentsOrNull(t.runningBalance),
+      t.pending ? 1 : 0
+    )
+  }
+
+  const stored = db
+    .prepare(
+      `SELECT id, fingerprint, date, description, amount, pending
+         FROM bank_transaction WHERE account_id = ?`
+    )
+    .all(accountId) as unknown as (Omit<StoredTx, "pending"> & {
+    pending: number
+  })[]
+
+  const storedNorm: StoredTx[] = stored.map((row) => ({
+    ...row,
+    pending: row.pending !== 0,
+  }))
+
+  const { pairs, deleteIds } = planTransactionCarryOvers(
+    storedNorm,
+    incomingFingerprints,
+    syncDateMin,
+    syncDateMax
+  )
+  for (const { fromId, toId } of pairs) {
+    if (fromId !== toId) moveTransactionAnnotations(fromId, toId)
+  }
+  if (deleteIds.length) {
+    const del = db.prepare(`DELETE FROM bank_transaction WHERE id = ?`)
+    for (const id of deleteIds) del.run(id)
+  }
+}
 
 interface SaveInput {
   userId: string
@@ -68,16 +186,6 @@ export function saveScrape(input: SaveInput): string {
     const setDetails = db.prepare(
       `UPDATE bank_account SET details_enc = ?, details_updated_at = datetime('now') WHERE id = ?`
     )
-    const clearPending = db.prepare(
-      `DELETE FROM bank_transaction WHERE account_id = ? AND pending = 1`
-    )
-    const insertTx = db.prepare(
-      `INSERT INTO bank_transaction (id, account_id, fingerprint, date, description, amount, running_balance, pending)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT (account_id, fingerprint) DO UPDATE SET date = excluded.date, description = excluded.description,
-         amount = excluded.amount, running_balance = excluded.running_balance, pending = excluded.pending`
-    )
-
     for (const a of input.accounts) {
       const existing = findAccount.get(connectionId, a.externalKey) as
         | { id: string }
@@ -88,11 +196,11 @@ export function saveScrape(input: SaveInput): string {
         a.type,
         a.numberMasked,
         a.currency,
-        a.balance,
-        a.available,
-        a.overdraftLimit,
-        a.overdraftUsed,
-        a.creditLimit,
+        toCentsOrNull(a.balance),
+        toCentsOrNull(a.available),
+        toCentsOrNull(a.overdraftLimit),
+        toCentsOrNull(a.overdraftUsed),
+        toCentsOrNull(a.creditLimit),
       ] as const
       if (existing) updateAccount.run(...vals, accountId)
       else insertAccount.run(accountId, connectionId, a.externalKey, ...vals)
@@ -101,29 +209,7 @@ export function saveScrape(input: SaveInput): string {
       // Keep the last good details when a sync couldn't read them.
       if (a.details) setDetails.run(encrypt(a.details), accountId)
 
-      // Pending items get replaced each sync (they either post or disappear).
-      clearPending.run(accountId)
-      const occurrences = new Map<string, number>()
-      for (const t of a.transactions) {
-        let fingerprint: string
-        if (t.externalId) fingerprint = `id|${t.externalId}`
-        else {
-          const base = `${t.date}|${t.description.toLowerCase()}|${t.amount.toFixed(2)}|${t.pending ? "p" : "c"}`
-          const n = occurrences.get(base) ?? 0
-          occurrences.set(base, n + 1)
-          fingerprint = `${base}|${n}`
-        }
-        insertTx.run(
-          randomUUID(),
-          accountId,
-          fingerprint,
-          t.date,
-          t.description,
-          t.amount,
-          t.runningBalance,
-          t.pending ? 1 : 0
-        )
-      }
+      syncTransactions(accountId, a.transactions)
     }
     db.exec("COMMIT")
     return connectionId
@@ -192,12 +278,19 @@ export function recordPaypalTransaction(
       `INSERT INTO bank_transaction (id, account_id, fingerprint, date, description, amount, pending)
        VALUES (?, ?, ?, ?, ?, ?, 0) ON CONFLICT (account_id, fingerprint) DO NOTHING`
     )
-    .run(randomUUID(), account.id, fingerprint, t.date, t.description, t.amount)
+    .run(
+      randomUUID(),
+      account.id,
+      fingerprint,
+      t.date,
+      t.description,
+      toCents(t.amount)
+    )
   // Move the balance too, so it's right until the next sync reads the real one.
   if (Number(r.changes) > 0) {
     db.prepare(
       `UPDATE bank_account SET balance = COALESCE(balance, 0) + ?, updated_at = datetime('now') WHERE id = ?`
-    ).run(t.amount, account.id)
+    ).run(toCents(t.amount), account.id)
   }
   const row = db
     .prepare(
