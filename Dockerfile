@@ -16,7 +16,7 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
 # ---- runtime ----
-FROM node:24-slim@sha256:873f586f3794f52281bd039bf02c048a0be08fde619338f9941bad1eb6b34530
+FROM oven/bun:1.3.14@sha256:e10577f0db68676a7024391c6e5cb4b879ebd17188ab750cf10024a6d700e5c4
 ENV NODE_ENV=production \
     PORT=3001 \
     DATA_DIR=/data \
@@ -26,19 +26,19 @@ WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
-RUN npx --no-install playwright install --with-deps chromium \
+RUN bunx playwright install --with-deps chromium \
     && rm -rf /var/lib/apt/lists/*
 
 COPY server ./server
 COPY shared ./shared
 COPY --from=build /app/dist ./dist
 
-RUN mkdir -p /data && chown -R node:node /data /app
-USER node
+RUN mkdir -p /data && chown -R bun:bun /data /app
+USER bun
 VOLUME /data
 EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3001)+'/').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+  CMD bun -e "fetch('http://127.0.0.1:'+(process.env.PORT||3001)+'/').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
 
-CMD ["node", "server/index.ts"]
+CMD ["bun", "server/index.ts"]

@@ -19,7 +19,7 @@ Ledger is a single process: the built web app and API on one port (`3001` by def
 ## Requirements
 
 - **Docker**: enough disk for the image (~Chromium included) and a bind mount for data. Give the container **at least 1 GB `shm_size`** so TD’s headless browser does not crash.
-- **Bare metal**: [Bun](https://bun.sh) 1.3+ and **Node.js 22.5+** (the server uses `node:sqlite`). Playwright Chromium (`bunx playwright install chromium`) for TD. A Linux or macOS host is typical; Windows works for development.
+- **Bare metal**: [Bun](https://bun.sh) 1.3+ (the server runs on Bun with `bun:sqlite`; Node.js is not needed). Playwright Chromium (`bunx playwright install chromium`) for TD. A Linux or macOS host is typical; Windows works for development.
 
 ## Docker Compose
 
@@ -181,15 +181,15 @@ Example alongside Ledger (adjust labels to taste):
 
 ```yaml
 services:
-  ledger:
-    image: ghcr.io/rainnny7/ledger:latest
-    # … your existing ledger service …
+    ledger:
+        image: ghcr.io/rainnny7/ledger:latest
+        # … your existing ledger service …
 
-  watchtower:
-    image: containrrr/watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 86400 --cleanup ledger
+    watchtower:
+        image: containrrr/watchtower
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        command: --interval 86400 --cleanup ledger
 ```
 
 Review release notes before auto-upgrading production; database migrations are forward-only and backups are still your responsibility.

@@ -3,16 +3,22 @@
  */
 import type { Locator } from "playwright"
 
+/** TD EasyWeb sign-in entry URL. */
 export const LOGIN_URL = "https://easyweb.td.com/"
+/** Safety cap on accounts scraped in one TD session. */
 export const MAX_ACCOUNTS = 20
 
+/** Playwright selector for TD EasyWeb username field. */
 export const USERNAME_SEL =
-  '#username, input[name="username"], input[autocomplete="username"]'
+	'#username, input[name="username"], input[autocomplete="username"]'
+/** Playwright selector for TD EasyWeb password field. */
 export const PASSWORD_SEL = '#uapPassword, input[type="password"]'
+/** Page text that indicates TD 2-step verification. */
 export const MFA_TEXT =
-  /2-step|two-step|verif|security code|one-time|confirm (it.s|that it.s) you|make sure it.s you|let.s make sure/i
+	/2-step|two-step|verif|security code|one-time|confirm (it.s|that it.s) you|make sure it.s you|let.s make sure/i
+/** Playwright selector for TD one-time code field. */
 export const CODE_SEL =
-  'input#code, input[autocomplete="one-time-code"], input[name*="code" i]:not([type="hidden"]), input[id*="otp" i], input[name*="otp" i], input[id*="securityCode" i]'
+	'input#code, input[autocomplete="one-time-code"], input[name*="code" i]:not([type="hidden"]), input[id*="otp" i], input[name*="otp" i], input[id*="securityCode" i]'
 
 /** In-page extractor. Written as a plain string so the TS toolchain can't inject helpers into it. */
 export const EXTRACT_SCRIPT = `(() => {
@@ -75,22 +81,26 @@ export const EXTRACT_SCRIPT = `(() => {
   };
 })()`
 
-export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+/** Pause the scraper between Playwright actions. */
+export const sleep = (ms: number) =>
+	new Promise((resolve) => setTimeout(resolve, ms))
 
-export async function visible(l: Locator): Promise<boolean> {
-  return l
-    .first()
-    .isVisible()
-    .catch(() => false)
+/** True when the locator is visible without throwing on detached nodes. */
+export async function visible(locator: Locator): Promise<boolean> {
+	return locator
+		.first()
+		.isVisible()
+		.catch(() => false)
 }
 
+/** ISO calendar date for `days` before today (UTC fields). */
 export function isoDaysAgo(days: number) {
-  const d = new Date()
-  d.setDate(d.getDate() - days)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+	const date = new Date()
+	date.setDate(date.getDate() - days)
+	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
 }
 
 /** EasyWeb's date inputs take MM/DD/YYYY. */
 export function toTdInputDate(iso: string) {
-  return `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`
+	return `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`
 }

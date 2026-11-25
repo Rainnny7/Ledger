@@ -4,26 +4,28 @@
  * migration can be tested against a throwaway database.
  */
 
-import { toCents } from "../shared/money.ts"
+import { toCents } from "../../shared/money.ts"
 
 type Param = string | number | bigint | null
 
+/** Shape of Statement as stored and returned by the API. */
 export interface Statement {
-  all(...params: Param[]): unknown[]
-  get(...params: Param[]): unknown
-  run(...params: Param[]): unknown
+	all(...params: Param[]): unknown[]
+	get(...params: Param[]): unknown
+	run(...params: Param[]): unknown
 }
+/** Shape of Conn as stored and returned by the API. */
 export interface Conn {
-  exec(sql: string): void
-  prepare(sql: string): Statement
+	exec(sql: string): void
+	prepare(sql: string): Statement
 }
 
 interface CentsOptions {
-  /** Column may be NULL (e.g. a balance the bank didn't report). */
-  nullable?: boolean
-  /** Smallest value the app ever writes, as an invariant (e.g. a budget is never negative). */
-  min?: number
-  default?: number
+	/** Column may be NULL (e.g. a balance the bank didn't report). */
+	nullable?: boolean
+	/** Smallest value the app ever writes, as an invariant (e.g. a budget is never negative). */
+	min?: number
+	default?: number
 }
 
 /**
@@ -31,36 +33,36 @@ interface CentsOptions {
  * alone would quietly keep a stray 12.34 as a REAL, so a writer that forgot `toCents` fails loudly.
  */
 const cents = (name: string, o: CentsOptions = {}) =>
-  [
-    `${name} INTEGER`,
-    o.nullable ? "" : "NOT NULL",
-    o.default === undefined ? "" : `DEFAULT ${o.default}`,
-    `CHECK (typeof(${name}) IN (${o.nullable ? "'integer', 'null'" : "'integer'"})${
-      o.min === undefined ? "" : ` AND ${name} >= ${o.min}`
-    })`,
-  ]
-    .filter(Boolean)
-    .join(" ")
+	[
+		`${name} INTEGER`,
+		o.nullable ? "" : "NOT NULL",
+		o.default === undefined ? "" : `DEFAULT ${o.default}`,
+		`CHECK (typeof(${name}) IN (${o.nullable ? "'integer', 'null'" : "'integer'"})${
+			o.min === undefined ? "" : ` AND ${name} >= ${o.min}`
+		})`,
+	]
+		.filter(Boolean)
+		.join(" ")
 
 interface MoneyTable {
-  name: string
-  /** Columns that hold money (cents after the migration). */
-  columns: string[]
-  ddl: (name: string) => string
+	name: string
+	/** Columns that hold money (cents after the migration). */
+	columns: string[]
+	ddl: (name: string) => string
 }
 
 /** Every table with a money column. The DDL is the single source for fresh databases and rebuilds. */
 export const MONEY_TABLES: MoneyTable[] = [
-  {
-    name: "bank_account",
-    columns: [
-      "balance",
-      "available",
-      "overdraft_limit",
-      "overdraft_used",
-      "credit_limit",
-    ],
-    ddl: (t) => `CREATE TABLE ${t} (
+	{
+		name: "bank_account",
+		columns: [
+			"balance",
+			"available",
+			"overdraft_limit",
+			"overdraft_used",
+			"credit_limit",
+		],
+		ddl: (tableName) => `CREATE TABLE ${tableName} (
       id TEXT PRIMARY KEY,
       connection_id TEXT NOT NULL REFERENCES bank_connection(id) ON DELETE CASCADE,
       external_key TEXT NOT NULL,      -- stable key from the bank (masked number + name)
@@ -79,11 +81,11 @@ export const MONEY_TABLES: MoneyTable[] = [
       details_updated_at TEXT,
       UNIQUE (connection_id, external_key)
     )`,
-  },
-  {
-    name: "bank_transaction",
-    columns: ["amount", "running_balance"],
-    ddl: (t) => `CREATE TABLE ${t} (
+	},
+	{
+		name: "bank_transaction",
+		columns: ["amount", "running_balance"],
+		ddl: (tableName) => `CREATE TABLE ${tableName} (
       id TEXT PRIMARY KEY,
       account_id TEXT NOT NULL REFERENCES bank_account(id) ON DELETE CASCADE,
       fingerprint TEXT NOT NULL,       -- dedupe key: date|description|amount|occurrence
@@ -98,11 +100,11 @@ export const MONEY_TABLES: MoneyTable[] = [
       tax_tag TEXT,                    -- business | personal, for the tax report
       UNIQUE (account_id, fingerprint)
     )`,
-  },
-  {
-    name: "subscription",
-    columns: ["amount"],
-    ddl: (t) => `CREATE TABLE ${t} (
+	},
+	{
+		name: "subscription",
+		columns: ["amount"],
+		ddl: (tableName) => `CREATE TABLE ${tableName} (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
@@ -117,12 +119,12 @@ export const MONEY_TABLES: MoneyTable[] = [
       active INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
-  },
-  {
-    name: "budget",
-    columns: ["amount"],
-    // A monthly spending limit per category, in the user's home currency.
-    ddl: (t) => `CREATE TABLE ${t} (
+	},
+	{
+		name: "budget",
+		columns: ["amount"],
+		// A monthly spending limit per category, in the user's home currency.
+		ddl: (tableName) => `CREATE TABLE ${tableName} (
       user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
       category TEXT NOT NULL,
       ${cents("amount", { min: 0 })},
@@ -130,12 +132,12 @@ export const MONEY_TABLES: MoneyTable[] = [
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       PRIMARY KEY (user_id, category)
     )`,
-  },
-  {
-    name: "goal",
-    columns: ["target"],
-    // Savings / pay-off goals and the partial payments logged toward them.
-    ddl: (t) => `CREATE TABLE ${t} (
+	},
+	{
+		name: "goal",
+		columns: ["target"],
+		// Savings / pay-off goals and the partial payments logged toward them.
+		ddl: (tableName) => `CREATE TABLE ${tableName} (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
@@ -149,11 +151,11 @@ export const MONEY_TABLES: MoneyTable[] = [
       archived INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
-  },
-  {
-    name: "goal_payment",
-    columns: ["amount"],
-    ddl: (t) => `CREATE TABLE ${t} (
+	},
+	{
+		name: "goal_payment",
+		columns: ["amount"],
+		ddl: (tableName) => `CREATE TABLE ${tableName} (
       id TEXT PRIMARY KEY,
       goal_id TEXT NOT NULL REFERENCES goal(id) ON DELETE CASCADE,
       ${cents("amount")},                  -- negative = withdrawn from the goal
@@ -162,12 +164,12 @@ export const MONEY_TABLES: MoneyTable[] = [
       transaction_id TEXT REFERENCES bank_transaction(id) ON DELETE SET NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
-  },
-  {
-    name: "work_job",
-    columns: ["rate", "pay_amount"],
-    // Work-hours tracking for side jobs paid by the hour, in instalments.
-    ddl: (t) => `CREATE TABLE ${t} (
+	},
+	{
+		name: "work_job",
+		columns: ["rate", "pay_amount"],
+		// Work-hours tracking for side jobs paid by the hour, in instalments.
+		ddl: (tableName) => `CREATE TABLE ${tableName} (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
@@ -180,12 +182,12 @@ export const MONEY_TABLES: MoneyTable[] = [
       archived INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
-  },
-  {
-    name: "work_invoice",
-    columns: ["rate", "total"],
-    // A bill: "done N hours since last pay, total is $X". Paid off in instalments.
-    ddl: (t) => `CREATE TABLE ${t} (
+	},
+	{
+		name: "work_invoice",
+		columns: ["rate", "total"],
+		// A bill: "done N hours since last pay, total is $X". Paid off in instalments.
+		ddl: (tableName) => `CREATE TABLE ${tableName} (
       id TEXT PRIMARY KEY,
       job_id TEXT NOT NULL REFERENCES work_job(id) ON DELETE CASCADE,
       date TEXT NOT NULL,
@@ -197,11 +199,11 @@ export const MONEY_TABLES: MoneyTable[] = [
       note TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
-  },
-  {
-    name: "work_payment",
-    columns: ["amount", "received_amount"],
-    ddl: (t) => `CREATE TABLE ${t} (
+	},
+	{
+		name: "work_payment",
+		columns: ["amount", "received_amount"],
+		ddl: (tableName) => `CREATE TABLE ${tableName} (
       id TEXT PRIMARY KEY,
       invoice_id TEXT NOT NULL REFERENCES work_invoice(id) ON DELETE CASCADE,
       ${cents("amount")},
@@ -213,12 +215,12 @@ export const MONEY_TABLES: MoneyTable[] = [
       ${cents("received_amount", { nullable: true })}, -- paid in one currency, arrived in another
       received_currency TEXT
     )`,
-  },
-  {
-    name: "invoice",
-    columns: ["discount"],
-    // Invoices you send to clients. Line items, parties and the chosen payment methods are JSON.
-    ddl: (t) => `CREATE TABLE ${t} (
+	},
+	{
+		name: "invoice",
+		columns: ["discount"],
+		// Invoices you send to clients. Line items, parties and the chosen payment methods are JSON.
+		ddl: (tableName) => `CREATE TABLE ${tableName} (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
       number TEXT NOT NULL,
@@ -244,11 +246,11 @@ export const MONEY_TABLES: MoneyTable[] = [
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
-  },
-  {
-    name: "invoice_payment",
-    columns: ["amount"],
-    ddl: (t) => `CREATE TABLE ${t} (
+	},
+	{
+		name: "invoice_payment",
+		columns: ["amount"],
+		ddl: (tableName) => `CREATE TABLE ${tableName} (
       id TEXT PRIMARY KEY,
       invoice_id TEXT NOT NULL REFERENCES invoice(id) ON DELETE CASCADE,
       ${cents("amount")},
@@ -259,7 +261,7 @@ export const MONEY_TABLES: MoneyTable[] = [
       external_id TEXT UNIQUE,             -- PayPal capture id, so a webhook and a redirect don't count it twice
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
-  },
+	},
 ]
 
 const PLAIN_TABLES = `
@@ -406,20 +408,23 @@ const INDEXES = `
 `
 
 const columnsOf = (conn: Conn, table: string) =>
-  conn.prepare(`PRAGMA table_info(${table})`).all() as {
-    name: string
-    type: string
-  }[]
+	conn.prepare(`PRAGMA table_info(${table})`).all() as {
+		name: string
+		type: string
+	}[]
 
 /** Creates anything missing, upgrades old money columns to cents, then (re)creates indexes. */
 export function createSchema(conn: Conn) {
-  conn.exec(PLAIN_TABLES)
-  for (const t of MONEY_TABLES)
-    conn.exec(
-      t.ddl(t.name).replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS")
-    )
-  migrateMoneyToCents(conn)
-  conn.exec(INDEXES)
+	conn.exec(PLAIN_TABLES)
+	for (const table of MONEY_TABLES) {
+		conn.exec(
+			table
+				.ddl(table.name)
+				.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS")
+		)
+	}
+	migrateMoneyToCents(conn)
+	conn.exec(INDEXES)
 }
 
 /**
@@ -430,68 +435,82 @@ export function createSchema(conn: Conn) {
  * table would otherwise cascade-delete its children) and checked before committing.
  */
 export function migrateMoneyToCents(conn: Conn) {
-  const stale = MONEY_TABLES.filter((t) => {
-    const cols = columnsOf(conn, t.name)
-    return t.columns.some(
-      (c) => cols.find((x) => x.name === c)?.type.toUpperCase() !== "INTEGER"
-    )
-  })
-  if (stale.length === 0) return
+	const stale = MONEY_TABLES.filter((table) => {
+		const cols = columnsOf(conn, table.name)
+		return table.columns.some(
+			(columnName) =>
+				cols
+					.find((columnInfo) => columnInfo.name === columnName)
+					?.type.toUpperCase() !== "INTEGER"
+		)
+	})
+	if (stale.length === 0) {
+		return
+	}
 
-  conn.exec("PRAGMA foreign_keys = OFF")
-  try {
-    conn.exec("BEGIN")
-    try {
-      for (const t of stale) rebuildAsCents(conn, t)
-      const broken = conn.prepare("PRAGMA foreign_key_check").all()
-      if (broken.length)
-        throw new Error("Money migration left broken foreign keys")
-      conn.exec("COMMIT")
-    } catch (e) {
-      conn.exec("ROLLBACK")
-      throw e
-    }
-  } finally {
-    conn.exec("PRAGMA foreign_keys = ON")
-  }
+	conn.exec("PRAGMA foreign_keys = OFF")
+	try {
+		conn.exec("BEGIN")
+		try {
+			for (const table of stale) {
+				rebuildAsCents(conn, table)
+			}
+			const broken = conn.prepare("PRAGMA foreign_key_check").all()
+			if (broken.length) {
+				throw new Error("Money migration left broken foreign keys")
+			}
+			conn.exec("COMMIT")
+		} catch (error) {
+			conn.exec("ROLLBACK")
+			throw error
+		}
+	} finally {
+		conn.exec("PRAGMA foreign_keys = ON")
+	}
 }
 
 function rebuildAsCents(conn: Conn, t: MoneyTable) {
-  const tmp = `${t.name}__cents`
-  const old = new Set(columnsOf(conn, t.name).map((c) => c.name))
-  conn.exec(t.ddl(tmp))
-  const shared = columnsOf(conn, tmp)
-    .map((c) => c.name)
-    .filter((c) => old.has(c))
-  const select = shared.map((c) =>
-    t.columns.includes(c) ? `CAST(ROUND(${c} * 100) AS INTEGER)` : c
-  )
-  conn.exec(
-    `INSERT INTO ${tmp} (${shared.join(", ")}) SELECT ${select.join(", ")} FROM ${t.name}`
-  )
-  conn.exec(`DROP TABLE ${t.name}`)
-  conn.exec(`ALTER TABLE ${tmp} RENAME TO ${t.name}`)
-  if (t.name === "invoice") itemsToCents(conn)
+	const temporaryTable = `${t.name}__cents`
+	const old = new Set(columnsOf(conn, t.name).map((column) => column.name))
+	conn.exec(t.ddl(temporaryTable))
+	const shared = columnsOf(conn, temporaryTable)
+		.map((column) => column.name)
+		.filter((column) => old.has(column))
+	const select = shared.map((column) =>
+		t.columns.includes(column)
+			? `CAST(ROUND(${column} * 100) AS INTEGER)`
+			: column
+	)
+	conn.exec(
+		`INSERT INTO ${temporaryTable} (${shared.join(", ")}) SELECT ${select.join(", ")} FROM ${t.name}`
+	)
+	conn.exec(`DROP TABLE ${t.name}`)
+	conn.exec(`ALTER TABLE ${temporaryTable} RENAME TO ${t.name}`)
+	if (t.name === "invoice") {
+		itemsToCents(conn)
+	}
 }
 
 /** `items_json` line items: `unitPrice` (dollars) → `unitPriceCents`. */
 function itemsToCents(conn: Conn) {
-  const rows = conn
-    .prepare("SELECT id, items_json AS json FROM invoice")
-    .all() as {
-    id: string
-    json: string
-  }[]
-  const update = conn.prepare("UPDATE invoice SET items_json = ? WHERE id = ?")
-  for (const r of rows) {
-    const items = JSON.parse(r.json) as {
-      unitPrice?: number
-      unitPriceCents?: number
-    }[]
-    const converted = items.map(({ unitPrice, ...item }) => ({
-      ...item,
-      unitPriceCents: item.unitPriceCents ?? toCents(unitPrice ?? 0),
-    }))
-    update.run(JSON.stringify(converted), r.id)
-  }
+	const rows = conn
+		.prepare("SELECT id, items_json AS json FROM invoice")
+		.all() as {
+		id: string
+		json: string
+	}[]
+	const update = conn.prepare(
+		"UPDATE invoice SET items_json = ? WHERE id = ?"
+	)
+	for (const row of rows) {
+		const items = JSON.parse(row.json) as {
+			unitPrice?: number
+			unitPriceCents?: number
+		}[]
+		const converted = items.map(({ unitPrice, ...item }) => ({
+			...item,
+			unitPriceCents: item.unitPriceCents ?? toCents(unitPrice ?? 0),
+		}))
+		update.run(JSON.stringify(converted), row.id)
+	}
 }

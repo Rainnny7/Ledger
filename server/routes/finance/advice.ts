@@ -1,58 +1,68 @@
+import { Elysia } from "elysia"
+import { sessionUser } from "../session.ts"
 import { z } from "zod"
-import { boundedString, validate } from "../../validation.ts"
-import { db } from "../../db.ts"
-import { todayIso } from "../../today.ts"
-import type { Hono } from "hono"
-import type { Vars } from "./types.ts"
+import { boundedString, jsonBody } from "../../http/validation.ts"
+import { db } from "../../db/connection.ts"
+import { todayIso } from "../../time/today.ts"
 
 const dismissBody = z.object({
-  id: boundedString(300).min(1),
-  days: z.number().int().min(1).max(366).optional(),
+	id: boundedString(300).min(1),
+	days: z.number().int().min(1).max(366).optional(),
 })
 
 const dismissedQuery = z.object({
-  id: boundedString(300).min(1).optional(),
+	id: boundedString(300).min(1).optional(),
 })
 
-export function mountAdvice(finance: Hono<Vars>) {
-  finance.get("/advice/dismissed", (c) => {
-    const rows = db
-      .prepare(
-        `SELECT tip_id AS id, until FROM advice_dismissed WHERE user_id = ? AND (until IS NULL OR until > ?)`
-      )
-      .all(c.var.user.id, todayIso()) as { id: string; until: string | null }[]
-    return c.json({ dismissed: rows })
-  })
+/** Elysia plugin wiring HTTP handlers for this area. */
+export const adviceRoutes = new Elysia({ name: "finance-advice" }).use(
+	sessionUser
+)
 
-  finance.post("/advice/dismiss", validate("json", dismissBody), (c) => {
-    const body = c.req.valid("json")
-    let until: string | null = null
-    if (body.days) {
-      const d = new Date()
-      d.setDate(d.getDate() + body.days)
-      until = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-    }
-    db.prepare(
-      `INSERT INTO advice_dismissed (user_id, tip_id, until) VALUES (?, ?, ?)
+adviceRoutes.get("/advice/dismissed", ({ user }) => {
+	const rows = db
+		.prepare(
+			`SELECT tip_id AS id, until FROM advice_dismissed WHERE user_id = ? AND (until IS NULL OR until > ?)`
+		)
+		.all(user.id, todayIso()) as {
+		id: string
+		until: string | null
+	}[]
+	return { dismissed: rows }
+})
+
+adviceRoutes.post(
+	"/advice/dismiss",
+	({ user, body }) => {
+		let until: string | null = null
+		if (body.days) {
+			const today = new Date()
+			today.setDate(today.getDate() + body.days)
+			until = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+		}
+		db.prepare(
+			`INSERT INTO advice_dismissed (user_id, tip_id, until) VALUES (?, ?, ?)
      ON CONFLICT (user_id, tip_id) DO UPDATE SET until = excluded.until, created_at = datetime('now')`
-    ).run(c.var.user.id, body.id, until)
-    return c.json({ ok: true })
-  })
+		).run(user.id, body.id, until)
+		return { ok: true }
+	},
+	{ body: jsonBody(dismissBody) }
+)
 
-  finance.delete(
-    "/advice/dismissed",
-    validate("query", dismissedQuery),
-    (c) => {
-      const { id } = c.req.valid("query")
-      if (id)
-        db.prepare(
-          `DELETE FROM advice_dismissed WHERE user_id = ? AND tip_id = ?`
-        ).run(c.var.user.id, id)
-      else
-        db.prepare(`DELETE FROM advice_dismissed WHERE user_id = ?`).run(
-          c.var.user.id
-        )
-      return c.json({ ok: true })
-    }
-  )
-}
+adviceRoutes.delete(
+	"/advice/dismissed",
+	({ user, query }) => {
+		const { id } = query
+		if (id) {
+			db.prepare(
+				`DELETE FROM advice_dismissed WHERE user_id = ? AND tip_id = ?`
+			).run(user.id, id)
+		} else {
+			db.prepare(`DELETE FROM advice_dismissed WHERE user_id = ?`).run(
+				user.id
+			)
+		}
+		return { ok: true }
+	},
+	{ query: dismissedQuery }
+)

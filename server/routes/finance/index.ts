@@ -1,18 +1,17 @@
-import { Hono } from "hono"
-import { mountAdvice } from "./advice.ts"
-import { mountBudgets } from "./budgets.ts"
-import { mountGoals } from "./goals.ts"
-import { mountSubscriptions } from "./subscriptions.ts"
-import { mountTransactions } from "./transactions.ts"
-import type { Vars } from "./types.ts"
+import { Elysia } from "elysia"
+import { adviceRoutes } from "./advice.ts"
+import { budgetRoutes } from "./budgets.ts"
+import { goalRoutes } from "./goals.ts"
+import { subscriptionRoutes } from "./subscriptions.ts"
+import { transactionRoutes } from "./transactions.ts"
 
+/** Type values accepted by validation and routes. */
 export type { EnrichedTx } from "./types.ts"
 
-type FinanceVars = Vars
-export const finance = new Hono<FinanceVars>()
-
-mountBudgets(finance)
-mountTransactions(finance)
-mountSubscriptions(finance)
-mountGoals(finance)
-mountAdvice(finance)
+/** Budgets, transactions, subscriptions, goals and advice, all behind the signed-in session. */
+export const finance = new Elysia({ name: "finance" })
+	.use(budgetRoutes)
+	.use(transactionRoutes)
+	.use(subscriptionRoutes)
+	.use(goalRoutes)
+	.use(adviceRoutes)

@@ -68,7 +68,7 @@ Ledger currently connects to **TD EasyWeb** and **PayPal**.
 
 ## Getting started
 
-You'll need [Bun](https://bun.sh) 1.3+ and Node.js 22.5+ (the API uses `node:sqlite`).
+You'll need [Bun](https://bun.sh) 1.3+ (the API runs on Bun and uses `bun:sqlite`).
 
 ```bash
 bun install
@@ -137,7 +137,7 @@ All optional. See [`.env.example`](.env.example). For deployment details see [SE
 
 ## Built with
 
-React, Vite, Tailwind CSS and shadcn/ui on the front end. Hono, Better Auth, SQLite and Playwright on the server.
+React, Vite, Tailwind CSS and shadcn/ui on the front end. Elysia, Better Auth, SQLite and Playwright on the server.
 
 ```bash
 bun test server     # tests
