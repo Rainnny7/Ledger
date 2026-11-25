@@ -2,6 +2,7 @@ import { confirmDialog } from "@/lib/confirm"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { parseAsString, useQueryState } from "nuqs"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import type { PaymentDraft } from "@/components/goals/goal-form"
 import { byUrgency } from "@/components/goals/goal-sort"
 import { leaveShared, splitShared } from "@/lib/sharing"
@@ -26,7 +27,7 @@ async function removeGoal(goal: Goal) {
 		await api.deleteGoal(goal.id)
 		toast.success("Goal deleted")
 	} catch (error) {
-		toast.error((error as Error).message)
+		toastError((error as Error).message)
 	}
 }
 
@@ -35,13 +36,13 @@ async function setGoalArchived(goal: Goal, value: boolean) {
 		await api.updateGoal(goal.id, { archived: value })
 		toast.success(value ? `${goal.name} archived` : `${goal.name} restored`)
 	} catch (error) {
-		toast.error((error as Error).message)
+		toastError((error as Error).message)
 	}
 }
 
 /** State and handlers for goals page. */
 export function useGoalsPage() {
-	const { data, loading, error } = useGoals()
+	const { data, loading, error, reload } = useGoals()
 	const [creating, setCreating] = useState<Partial<GoalInput> | null>(null)
 	const [editing, setEditing] = useState<Goal | null>(null)
 	const [paying, setPaying] = useState<PaymentDraft | null>(null)
@@ -116,6 +117,7 @@ export function useGoalsPage() {
 		data,
 		loading,
 		error,
+		reload,
 		creating,
 		editing,
 		paying,

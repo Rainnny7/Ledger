@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { api, type Goal, type GoalInput, type GoalKind } from "@/lib/api"
 import { formatMoney, getDisplayCurrency, isoDate } from "@/lib/format"
 
@@ -211,7 +212,7 @@ export function useGoalForm(
 		try {
 			await submitGoal(goal, form, onClose)
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setSaving(false)
 		}
@@ -259,7 +260,7 @@ export function usePaymentForm(
 			await logGoalPayment(draft, direction, value, date, note)
 			onClose()
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setSaving(false)
 		}

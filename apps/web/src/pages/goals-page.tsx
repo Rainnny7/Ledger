@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Bones } from "@/components/common/bones"
 import { Skeleton } from "@/components/ui/skeleton"
+import { QueryError } from "@/components/ui/query-error"
 import { cn } from "cn"
 
 /** Savings goals: targets, progress, and payments toward each one. */
@@ -34,8 +35,11 @@ export function GoalsPage() {
 				</Button>
 			</div>
 
-			{page.error && (
-				<p className="text-sm text-destructive">{page.error.message}</p>
+			{page.error && !page.data && (
+				<QueryError
+					message={page.error.message}
+					onRetry={() => void page.reload()}
+				/>
 			)}
 
 			<Bones

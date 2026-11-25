@@ -5,6 +5,7 @@ import { MoreHorizontal, Plus } from "lucide-react"
 import { useState } from "react"
 import { parseAsString, useQueryState } from "nuqs"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import {
 	GoalBar,
 	GoalIcon,
@@ -57,7 +58,7 @@ export function GoalCard({
 			await api.deleteGoalPayment(goal.id, id)
 			toast.success("Payment removed")
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		}
 	}
 
