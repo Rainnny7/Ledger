@@ -1,6 +1,7 @@
 import { Loader2, Upload } from "lucide-react"
 import { type RefObject, useRef, useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { InstitutionBadge } from "@/components/accounts/institution"
 import { ImportSummary } from "@/components/accounts/statement-import-summary"
 import { StatementFileList } from "@/components/accounts/statement-file-list"
@@ -57,7 +58,7 @@ export function StatementUploadDialog({
 		const picked = [...(list ?? [])]
 		const ok = picked.filter(isAcceptedStatementFile)
 		if (ok.length < picked.length) {
-			toast.error("Only PDF statements and .zip archives can be uploaded")
+			toastError("Only PDF statements and .zip archives can be uploaded")
 		}
 		setFiles((prev) => [
 			...prev,
@@ -74,7 +75,7 @@ export function StatementUploadDialog({
 
 	async function upload() {
 		if (demoMode) {
-			return toast.error(
+			return toastError(
 				"Demo mode is read-only. Exit demo mode to make changes."
 			)
 		}

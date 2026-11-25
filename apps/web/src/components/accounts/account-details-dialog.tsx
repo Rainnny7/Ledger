@@ -1,7 +1,7 @@
 import { Hint } from "@/components/common/hint"
 import { Check, Copy, Eye, EyeOff, Landmark, Loader2 } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import {
 	Dialog,
@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import type { Account } from "@/lib/api"
 import { Money } from "@/components/common/money"
 import { formatRelative } from "@/lib/format"
+import { QueryError } from "@/components/ui/query-error"
 import { useAccountDetails } from "@/lib/queries"
 
 /** "Direct deposit & limits": institution / transit / account number plus TD's daily limits. */
@@ -64,7 +65,10 @@ export function AccountDetailsButton({
 }
 
 function DetailsBody({ account }: { account: Account }) {
-	const { data, loading, error } = useAccountDetails(account.id, true)
+	const { data, loading, error, reload } = useAccountDetails(
+		account.id,
+		true
+	)
 	const [revealed, setRevealed] = useState(false)
 
 	if (!data && loading) {
@@ -74,8 +78,13 @@ function DetailsBody({ account }: { account: Account }) {
 			</div>
 		)
 	}
-	if (error) {
-		return <p className="text-sm text-destructive">{error.message}</p>
+	if (error && !data) {
+		return (
+			<QueryError
+				message={error.message}
+				onRetry={() => void reload()}
+			/>
+		)
 	}
 
 	const details = data?.details
@@ -217,7 +226,7 @@ function Row({
 			setCopied(true)
 			setTimeout(() => setCopied(false), 1500)
 		} catch {
-			toast.error("Could not copy to the clipboard")
+			toastError("Could not copy to the clipboard")
 		}
 	}
 
