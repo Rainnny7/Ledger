@@ -1,5 +1,5 @@
 import { authClient } from './auth-client'
-import { demoMode } from './demo'
+import { DEMO_READ_ONLY, demoMode } from './demo'
 
 export type AccountType = 'chequing' | 'savings' | 'credit' | 'loan' | 'investment' | 'wallet' | 'other'
 
@@ -531,6 +531,9 @@ const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
 
 /** `notify: false` leaves telling the cache what changed to the caller. */
 async function request<T>(path: string, init: RequestInit & { notify?: boolean } = {}): Promise<T> {
+  // Demo mode lets you open every form, but nothing is ever written: refuse here, before the
+  // request goes out (the server refuses it too). Callers show the message like any other error.
+  if (demoMode && init.method && init.method !== 'GET') throw new ApiError(403, DEMO_READ_ONLY)
   const res = await fetch(`/api/banks${path}`, {
     ...init,
     credentials: 'include',

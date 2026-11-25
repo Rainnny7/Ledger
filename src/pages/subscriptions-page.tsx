@@ -28,7 +28,6 @@ import { api, type RecurringSuggestion, type Subscription } from '@/lib/api'
 import { cycleLabel, shiftCycle } from '@/lib/cycles'
 import { addDays, daysFromToday, formatLongDate, formatMoney, formatRelativeDate, isoDate, parseIso } from '@/lib/format'
 import { useConverter } from '@/lib/currency'
-import { demoMode } from '@/lib/demo'
 import { useOverview, useSubscriptions } from '@/lib/queries'
 import { useIntent } from '@/lib/url-state'
 import { cn } from '@/lib/utils'
@@ -118,7 +117,6 @@ export function SubscriptionsPage() {
   }, [params, setParams])
 
   useIntent('new', () => {
-    if (demoMode) return void toast.error('Demo mode is read-only. Exit demo mode to make changes.')
     setEditing(null)
     setDraft({ cycle: 'monthly', anchorDate: isoDate() })
   })
@@ -353,7 +351,7 @@ export function SubscriptionsPage() {
                         )}
                         {s.access === 'owner' ? (
                           <>
-                            <DropdownMenuItem onClick={() => (demoMode ? toast.error('Demo mode is read-only. Exit demo mode to make changes.') : setSharing(s))}>
+                            <DropdownMenuItem onClick={() => setSharing(s)}>
                               <Share2 /> Share
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />

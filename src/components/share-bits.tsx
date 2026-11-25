@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { api, type Shared, type ShareKind, type SharePermission } from '@/lib/api'
-import { demoMode } from '@/lib/demo'
 import { useContacts } from '@/lib/queries'
 import { initials, KIND_LABEL, shortName } from '@/lib/sharing'
 import { cn } from '@/lib/utils'
@@ -202,7 +201,7 @@ export function ShareDialog({
             <Link to="/contacts" className="text-xs text-muted-foreground hover:text-foreground hover:underline" onClick={close}>
               Manage contacts
             </Link>
-            <Button type="submit" size="sm" disabled={saving || !email.trim() || demoMode}>
+            <Button type="submit" size="sm" disabled={saving || !email.trim()}>
               {saving ? <Loader2 className="animate-spin" /> : <UserPlus />} Share
             </Button>
           </div>

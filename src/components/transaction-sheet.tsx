@@ -27,7 +27,6 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { type Account, api, type Category, type TaxTag, type Transaction } from '@/lib/api'
 import { CATEGORY_LIST, CATEGORY_META, TAX_TAG_LIST, TAX_TAG_META } from '@/lib/categories'
-import { demoMode } from '@/lib/demo'
 import { formatLongDate, formatTimestamp } from '@/lib/format'
 import { queryClient, useGoals, useSubscriptions } from '@/lib/queries'
 import { cn } from '@/lib/utils'
@@ -294,7 +293,7 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
                   Save changes
                 </Button>
                 {t.amount < 0 &&
-                  (demoMode || subs.length === 0 ? (
+                  (subs.length === 0 ? (
                     <Button variant="outline" onClick={trackAsSubscription}>
                       <Repeat /> Track as subscription
                     </Button>
@@ -332,7 +331,7 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
                       </DropdownMenuContent>
                     </DropdownMenu>
                   ))}
-                {!demoMode && openGoals.length > 0 && (
+                {openGoals.length > 0 && (
                   <DropdownMenu>
                     <DropdownMenuTrigger render={<Button variant="outline" />}>
                       <Target /> Add to goal

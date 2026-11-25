@@ -18,6 +18,9 @@ function read() {
 
 export const demoMode = read()
 
+/** Shown when something would be saved in demo mode. Forms still open so the app can be explored. */
+export const DEMO_READ_ONLY = 'Demo mode is read-only. Exit demo mode to make changes.'
+
 /** The made-up person shown instead of the signed-in user while in demo mode. */
 export const DEMO_IDENTITY = { name: 'Alex Morgan', email: 'alex.morgan@example.com' }
 

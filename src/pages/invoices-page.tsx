@@ -91,11 +91,6 @@ export function InvoicesPage() {
   // Keep the dialogs on the latest copy after a write refreshes the list.
   const live = (inv: Invoice | null) => (inv ? (invoices.find((i) => i.id === inv.id) ?? inv) : null)
 
-  const guard =
-    <A extends unknown[]>(fn: (...a: A) => void) =>
-    (...a: A) =>
-      demoMode ? readOnly() : fn(...a)
-
   async function removeMethod(m: PaymentMethod) {
     if (!(await confirmDialog({ title: `Remove ${m.label}?`, description: 'Invoices that offered it stop showing it.', action: 'Remove', destructive: true }))) return
     try {
@@ -113,11 +108,9 @@ export function InvoicesPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Invoices</h1>
           <p className="text-sm text-muted-foreground">Make an invoice in a minute, send the link or PDF, and see when it’s paid.</p>
         </div>
-        {!demoMode && (
-          <Button render={<Link to="/invoices/new" />} nativeButton={false}>
-            <Plus /> New invoice
-          </Button>
-        )}
+        <Button render={<Link to="/invoices/new" />} nativeButton={false}>
+          <Plus /> New invoice
+        </Button>
       </div>
 
       {error && <p className="text-sm text-destructive">{error.message}</p>}
@@ -170,11 +163,9 @@ export function InvoicesPage() {
                       <p className="font-medium">No invoices yet</p>
                       <p className="text-sm text-muted-foreground">Your details and payment methods are remembered, so every invoice after the first is quicker.</p>
                     </div>
-                    {!demoMode && (
-                      <Button render={<Link to="/invoices/new" />} nativeButton={false}>
-                        <Plus /> Create your first invoice
-                      </Button>
-                    )}
+                    <Button render={<Link to="/invoices/new" />} nativeButton={false}>
+                      <Plus /> Create your first invoice
+                    </Button>
                   </div>
                 ) : shown.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">Nothing here.</p>
@@ -186,9 +177,9 @@ export function InvoicesPage() {
                       state={state}
                       methods={methods}
                       onOpen={() => navigate(`/invoices/${inv.id}`)}
-                      onShare={guard(() => setSharing(inv))}
-                      onPay={guard(() => setPaying(inv))}
-                      onDuplicate={guard(() => navigate(`/invoices/new?copy=${inv.id}`))}
+                      onShare={() => setSharing(inv)}
+                      onPay={() => setPaying(inv)}
+                      onDuplicate={() => navigate(`/invoices/new?copy=${inv.id}`)}
                     />
                   ))
                 )}
@@ -199,13 +190,11 @@ export function InvoicesPage() {
               <CardHeader>
                 <CardTitle>Payment methods</CardTitle>
                 <CardDescription>How people can pay you. Tick the ones you want on each invoice.</CardDescription>
-                {!demoMode && (
-                  <CardAction>
-                    <Button variant="outline" size="sm" onClick={() => setMethodDialog({ method: null })}>
-                      <Plus /> Add
-                    </Button>
-                  </CardAction>
-                )}
+                <CardAction>
+                  <Button variant="outline" size="sm" onClick={() => setMethodDialog({ method: null })}>
+                    <Plus /> Add
+                  </Button>
+                </CardAction>
               </CardHeader>
               <CardContent>
                 {methods.length === 0 ? (
@@ -226,7 +215,7 @@ export function InvoicesPage() {
                         </>
                       )
                       return (
-                      <WithContextMenu key={m.id} menu={!demoMode && methodItems}>
+                      <WithContextMenu key={m.id} menu={methodItems}>
                       <div className="flex items-start gap-3 rounded-lg border p-3">
                         <Wallet className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                         <div className="min-w-0 flex-1">
@@ -242,14 +231,12 @@ export function InvoicesPage() {
                                   .join(' · ') || methodKind(m.kind).label}
                           </p>
                         </div>
-                        {!demoMode && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={`${m.label} options`} />}>
-                              <MoreHorizontal />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">{methodItems}</DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={`${m.label} options`} />}>
+                            <MoreHorizontal />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">{methodItems}</DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                       </WithContextMenu>
                       )

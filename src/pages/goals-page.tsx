@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, type Goal, type GoalInput } from '@/lib/api'
-import { demoMode } from '@/lib/demo'
 import { formatDate, formatShortDate, isoDate } from '@/lib/format'
 import { useConverter } from '@/lib/currency'
 import { useGoals } from '@/lib/queries'
@@ -79,10 +78,7 @@ export function GoalsPage() {
     return fx.sum(goals.flatMap((g) => g.payments.filter((p) => p.date.startsWith(prefix)).map((p) => [p.amount, g.currency] as const)))
   }, [goals, fx])
 
-  const startNew = (preset: Partial<GoalInput> = {}) => {
-    if (demoMode) return toast.error('Demo mode is read-only. Exit demo mode to make changes.')
-    setCreating(preset)
-  }
+  const startNew = (preset: Partial<GoalInput> = {}) => setCreating(preset)
   useIntent('new', () => startNew())
 
   async function remove(g: Goal) {
@@ -109,7 +105,7 @@ export function GoalsPage() {
     onEdit: setEditing,
     onDelete: (g: Goal) => void remove(g),
     onArchive: (g: Goal) => void setArchived(g, !g.archived),
-    onShare: (g: Goal) => (demoMode ? toast.error('Demo mode is read-only. Exit demo mode to make changes.') : setSharing(g)),
+    onShare: (g: Goal) => setSharing(g),
     onLeave: (g: Goal) => void leaveShared('goal', g),
   }
 

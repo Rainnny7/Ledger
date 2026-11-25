@@ -5,7 +5,6 @@ import { Link } from 'react-router'
 import { GoalBar, GoalIcon, goalNudge, GoalStatusPill } from '@/components/goal-bits'
 import { GoalPaymentDialog, type PaymentDraft } from '@/components/goal-dialogs'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { demoMode } from '@/lib/demo'
 import { formatMoney } from '@/lib/format'
 import { useConverter } from '@/lib/currency'
 import { useGoals } from '@/lib/queries'
@@ -63,11 +62,9 @@ export function GoalsSpotlight() {
                   <span className="text-muted-foreground"> · <Money value={g.remaining} currency={g.currency} /> left</span>
                 </p>
               </div>
-              {!demoMode && (
-                <Button size="icon-sm" variant="ghost" aria-label={`Add to ${g.name}`} onClick={() => setPaying({ goal: g })}>
-                  <Plus />
-                </Button>
-              )}
+              <Button size="icon-sm" variant="ghost" aria-label={`Add to ${g.name}`} onClick={() => setPaying({ goal: g })}>
+                <Plus />
+              </Button>
             </div>
             <GoalBar goal={g} className="h-1.5" />
             <p className="truncate text-xs text-muted-foreground">{goalNudge(g)}</p>

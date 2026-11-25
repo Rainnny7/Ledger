@@ -16,7 +16,7 @@ import { CurrencySelect } from '@/components/currency-select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { api, type Invoice, type InvoiceInput, type InvoiceParty, type InvoicesData, type PaymentMethod, type WorkJob } from '@/lib/api'
-import { demoMode } from '@/lib/demo'
+import { DEMO_READ_ONLY, demoMode } from '@/lib/demo'
 import { addDays, daysFromToday, formatShortDate, isoDate } from '@/lib/format'
 import { EMPTY_PARTY, invoiceMoney, invoiceTotals, methodKind, methodLines, round2, shareUrl, TEMPLATES, THEMES } from '@/lib/invoice'
 import type { InvoicePdfSource } from '@/lib/invoice-pdf'
@@ -192,7 +192,7 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
   const source: InvoicePdfSource = { invoice: { ...d, items }, methods: chosen, paid, url: saved ? shareUrl(saved.token) : null }
 
   async function save(then: 'stay' | 'send') {
-    if (demoMode) return toast.error('Demo mode is read-only. Exit demo mode to make changes.')
+    if (demoMode) return toast.error(DEMO_READ_ONLY)
     if (!valid) return toast.error(items.length ? 'Every line item needs a description.' : 'Add at least one line item.')
     setSaving(then === 'send' ? 'send' : 'save')
     const body: InvoiceInput = {
@@ -227,12 +227,12 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
 
   // Warn before leaving with unsaved changes: closing the tab, and moving elsewhere in the app.
   useEffect(() => {
-    if (!dirty) return
+    if (!dirty || demoMode) return
     const warn = (e: BeforeUnloadEvent) => e.preventDefault()
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
-  const blocker = useBlocker(({ currentLocation, nextLocation }) => dirtyRef.current && currentLocation.pathname !== nextLocation.pathname)
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => !demoMode && dirtyRef.current && currentLocation.pathname !== nextLocation.pathname)
   useEffect(() => {
     if (blocker.state !== 'blocked') return
     void confirmDialog({
@@ -471,7 +471,7 @@ function Editor({ data, saved, initial }: { data: InvoicesData; saved: Invoice |
               <CardTitle>How they can pay</CardTitle>
               <CardDescription>Shown on the PDF and the invoice page with copy buttons and QR codes.</CardDescription>
               <CardAction>
-                <Button variant="outline" size="sm" onClick={() => (demoMode ? toast.error('Demo mode is read-only.') : setMethodDialog({ method: null }))}>
+                <Button variant="outline" size="sm" onClick={() => setMethodDialog({ method: null })}>
                   <Plus /> Add
                 </Button>
               </CardAction>

@@ -107,20 +107,14 @@ export function WorkPage() {
     .sort()
     .at(-1)
 
-  // Writes are blocked in demo mode; every action funnels through here.
-  const guard =
-    <A extends unknown[]>(fn: (...a: A) => void) =>
-    (...a: A) =>
-      demoMode ? readOnly() : fn(...a)
-
   // From the command palette: `?new=1` adds a job, `?log=<job id>` logs hours on one.
-  useIntent('new', guard(() => setJobDialog({ job: null })))
+  useIntent('new', () => setJobDialog({ job: null }))
   useIntent(
     'log',
-    guard((id: string) => {
+    (id: string) => {
       const job = active.find((j) => j.id === id)
       if (job) setLogging(job)
-    }),
+    },
     !!data,
   )
 
@@ -145,13 +139,13 @@ export function WorkPage() {
   }
 
   const actions: JobActions = {
-    onLog: guard((j) => setLogging(j)),
-    onBill: guard((j, invoice) => setBilling({ job: j, invoice })),
-    onPay: guard((j, invoiceId) => setPaying({ job: j, invoiceId })),
-    onEdit: guard((j) => setJobDialog({ job: j })),
-    onArchive: guard((j) => void setArchived(j, !j.archived)),
-    onDelete: guard((j) => void removeJob(j)),
-    onShare: guard((j) => setSharing(j)),
+    onLog: (j) => setLogging(j),
+    onBill: (j, invoice) => setBilling({ job: j, invoice }),
+    onPay: (j, invoiceId) => setPaying({ job: j, invoiceId }),
+    onEdit: (j) => setJobDialog({ job: j }),
+    onArchive: (j) => void setArchived(j, !j.archived),
+    onDelete: (j) => void removeJob(j),
+    onShare: (j) => setSharing(j),
     onLeave: (j) => void leaveShared('job', j),
   }
 
@@ -162,7 +156,7 @@ export function WorkPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Work</h1>
           <p className="text-sm text-muted-foreground">Log your hours, bill them, and track every instalment until you’re paid in full.</p>
         </div>
-        {!demoMode && jobs.length > 0 && (
+        {jobs.length > 0 && (
           <Button onClick={() => setJobDialog({ job: null })}>
             <Plus /> Add job
           </Button>
@@ -181,7 +175,7 @@ export function WorkPage() {
           <Skeleton className="h-72 rounded-xl" />
         </div>
       ) : jobs.length === 0 && sharedActive.length === 0 ? (
-        <EmptyWork onAdd={guard(() => setJobDialog({ job: null }))} />
+        <EmptyWork onAdd={() => setJobDialog({ job: null })} />
       ) : (
         <>
           {active.length > 0 && (
@@ -270,7 +264,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
   const paidBills = j.invoices.filter((i) => i.status === 'paid')
   const owner = j.access === 'owner'
   // Demo mode, or a job someone shared with you to look at only.
-  const readonly = demoMode || j.access === 'view'
+  const readonly = j.access === 'view'
 
   async function removeEntry(id: string) {
     if (demoMode) return readOnly()
@@ -311,7 +305,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
   )
 
   return (
-    <WithContextMenu menu={!demoMode && menuItems}>
+    <WithContextMenu menu={menuItems}>
     <Card className="@container min-w-0 gap-0">
       <CardHeader className="flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl" style={tintStyle(j.color)}>
@@ -332,16 +326,14 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
             ) : null}
           </CardDescription>
         </div>
-        {!demoMode && (
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={`${j.name} options`} />}>
-              <MoreHorizontal />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {menuItems}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={`${j.name} options`} />}>
+            <MoreHorizontal />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {menuItems}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
 
       <CardContent className="grid gap-5 pt-4">
@@ -460,7 +452,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
   // Newest first on screen, like a feed.
   const payments = [...inv.payments].reverse()
   const shown = showAll ? payments : payments.slice(0, 4)
-  const readonly = demoMode || j.access === 'view'
+  const readonly = j.access === 'view'
 
   async function remove() {
     const n = inv.payments.length
@@ -656,11 +648,9 @@ function EmptyWork({ onAdd }: { onAdd: () => void }) {
             </div>
           ))}
         </div>
-        {!demoMode && (
-          <Button onClick={onAdd}>
-            <Plus /> Add a job
-          </Button>
-        )}
+        <Button onClick={onAdd}>
+          <Plus /> Add a job
+        </Button>
       </CardContent>
     </Card>
   )
