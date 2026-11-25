@@ -248,7 +248,6 @@ interface JobActions {
 
 function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
   const [showPaid, setShowPaid] = useState(false)
-  const money = (n: number) => formatMoney(n, j.currency)
   const openBills = j.invoices.filter((i) => i.status !== 'paid')
   const paidBills = j.invoices.filter((i) => i.status === 'paid')
   const owner = j.access === 'owner'
@@ -332,7 +331,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase">{j.owner ? `Owed to ${shortName(j.owner)}` : 'Owed to you'}</p>
             <p className="text-3xl font-semibold tabular-nums"><Money value={j.owed} currency={j.currency} /></p>
-            <p className="mt-0.5 text-sm text-muted-foreground">{jobNudge(j, money)}</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">{jobNudge(j)}</p>
           </div>
           {!readonly && !j.archived && (
             <div className="flex flex-wrap gap-2">
@@ -404,7 +403,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
               onClick={() => setShowPaid((v) => !v)}
             >
               <ChevronDown className={cn('size-4 transition-transform', !showPaid && '-rotate-90')} />
-              Paid bills ({paidBills.length}) · {money(paidBills.reduce((s, i) => s + i.total, 0))}
+              Paid bills ({paidBills.length}) · <Money value={paidBills.reduce((s, i) => s + i.total, 0)} currency={j.currency} />
             </button>
             {showPaid && (
               <div className="grid gap-3 md:grid-cols-2 animate-in fade-in-0 duration-200">
@@ -421,13 +420,13 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
   )
 }
 
-function jobNudge(j: WorkJob, money: (n: number) => string) {
+function jobNudge(j: WorkJob): ReactNode {
   if (j.owed <= 0) return j.unbilledHours > 0 ? `${formatDuration(j.unbilledHours)} ready to bill` : 'All paid up'
   if (j.payoffDate && j.paymentsLeft) {
     const next = j.nextPaymentDate === isoDate() ? 'next one due today' : `next ${formatShortDate(j.nextPaymentDate!)}`
     return `${j.paymentsLeft} more payment${j.paymentsLeft === 1 ? '' : 's'} · ${next} · cleared by ${formatDate(j.payoffDate)}`
   }
-  return j.lastPaymentDate ? `Last paid ${formatRelativeDate(j.lastPaymentDate)}` : `Billed ${money(j.billedTotal)} so far`
+  return j.lastPaymentDate ? `Last paid ${formatRelativeDate(j.lastPaymentDate)}` : <>Billed <Money value={j.billedTotal} currency={j.currency} /> so far</>
 }
 
 const STATUS: Record<InvoiceStatus, { label: string; className: string }> = {
@@ -539,7 +538,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
         <div className="flex items-baseline justify-between gap-2 tabular-nums">
           <span className="text-xl font-semibold"><Money value={inv.status === 'paid' ? inv.total : inv.remaining} currency={j.currency} /></span>
           <span className="text-xs text-muted-foreground">
-            {inv.status === 'paid' ? `paid ${inv.paidAt ? formatShortDate(inv.paidAt) : ''}` : `left of ${money(inv.total)}`}
+            {inv.status === 'paid' ? `paid ${inv.paidAt ? formatShortDate(inv.paidAt) : ''}` : <>left of <Money value={inv.total} currency={j.currency} /></>}
           </span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-muted">
@@ -575,7 +574,7 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
                 )}
                 <span className="flex min-w-0 flex-1 items-center justify-end gap-1 truncate text-xs text-muted-foreground tabular-nums">
                   {p.transactionId && <Link2 className="size-3 shrink-0" aria-label="Linked to a transaction" />}
-                  {p.remainingAfter > 0 ? `${money(p.remainingAfter)} left` : 'cleared'}
+                  {p.remainingAfter > 0 ? <><Money value={p.remainingAfter} currency={j.currency} /> left</> : 'cleared'}
                 </span>
                 <Hint label={`Copy: ${paymentLine(p, j.currency)}`}>
                 <button

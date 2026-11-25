@@ -230,7 +230,11 @@ export function WorkEntryDialog({ job, onClose }: { job: WorkJob | null; onClose
             <Label htmlFor="entry-hours">Hours</Label>
             <Input id="entry-hours" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="3.5, 3:30 or 3h 30m" className="h-11 text-lg tabular-nums" required autoFocus />
             <p className="h-4 text-xs text-muted-foreground">
-              {parsed !== null && parsed > 0 && job && `${formatDuration(parsed)} · ${formatMoney(parsed * job.rate, job.currency)}`}
+              {parsed !== null && parsed > 0 && job && (
+                <>
+                  {formatDuration(parsed)} · <Money value={parsed * job.rate} currency={job.currency} />
+                </>
+              )}
               {hours && parsed === null && <span className="text-destructive">Try 3.5, 3:30 or 3h 30m</span>}
             </p>
           </div>
@@ -690,7 +694,7 @@ export function WorkPaymentDialog({ draft, onClose }: { draft: WorkPaymentDraft 
                 <div className="flex justify-between gap-3">
                   <span className="text-muted-foreground">After this</span>
                   <span className="font-medium tabular-nums">
-                    {after <= 0.005 ? 'Paid off' : `${formatMoney(after, job?.currency)} remaining`}
+                    {after <= 0.005 ? 'Paid off' : <><Money value={after} currency={job?.currency} /> remaining</>}
                   </span>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-muted">
