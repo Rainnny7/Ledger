@@ -1,6 +1,7 @@
 import { Dices, Loader2, MonitorPlay } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import {
 	Card,
@@ -26,7 +27,7 @@ export function DemoCard() {
 			void queryClient.invalidateQueries()
 			toast.success("Demo data reseeded")
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setReseeding(false)
 		}

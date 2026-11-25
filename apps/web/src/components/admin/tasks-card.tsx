@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { CirclePlay, ListChecks, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { Hint } from "@/components/common/hint"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -12,6 +13,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card"
+import { QueryError } from "@/components/ui/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import { type TaskInfo, every, took } from "@/components/admin/task-types"
 import { adminFetch, auditKey, backupsKey, tasksKey } from "@/lib/admin"
@@ -63,7 +65,7 @@ export function TasksCard({
 			void queryClient.invalidateQueries({ queryKey: auditKey })
 			toast.success(`${task.label} started`)
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setStarting(null)
 		}
@@ -83,10 +85,11 @@ export function TasksCard({
 			</CardHeader>
 			<CardContent className="grid gap-2">
 				{tasks.isPending && <Skeleton className="h-16 w-full" />}
-				{tasks.error && (
-					<p className="text-sm text-destructive">
-						{tasks.error.message}
-					</p>
+				{tasks.error && !tasks.data && (
+					<QueryError
+						message={tasks.error.message}
+						onRetry={() => void tasks.refetch()}
+					/>
 				)}
 				{tasks.data?.tasks
 					.filter((task) => showBackupTask || task.id !== "backup")

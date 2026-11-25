@@ -1,6 +1,7 @@
 import { Loader2, Save } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import {
 	Dialog,
@@ -41,7 +42,7 @@ export function BackUpDialog({
 			setNote("")
 			onOpenChange(false)
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setSaving(false)
 		}

@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -32,6 +33,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { QueryError } from "@/components/ui/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
 	type AdminUser,
@@ -86,7 +88,7 @@ export function UsersCard() {
 		const { error } = await run()
 		setBusy(null)
 		if (error) {
-			toast.error(error.message ?? "Something went wrong")
+			toastError(error.message ?? "Something went wrong")
 		} else {
 			toast.success(label)
 		}
@@ -135,10 +137,11 @@ export function UsersCard() {
 							</div>
 						</div>
 					))}
-				{users.error && (
-					<p className="text-sm text-destructive">
-						{users.error.message}
-					</p>
+				{users.error && !users.data && (
+					<QueryError
+						message={users.error.message}
+						onRetry={() => void users.refetch()}
+					/>
 				)}
 				{users.data?.map((user, index) => {
 					const isMe = user.id === session?.user.id

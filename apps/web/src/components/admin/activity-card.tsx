@@ -10,6 +10,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card"
+import { QueryError } from "@/components/ui/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { adminFetch, auditKey } from "@/lib/admin"
@@ -70,10 +71,11 @@ export function ActivityCard() {
 			</CardHeader>
 			<CardContent>
 				{audit.isPending && <Skeleton className="h-16 w-full" />}
-				{audit.error && (
-					<p className="text-sm text-destructive">
-						{audit.error.message}
-					</p>
+				{audit.error && !audit.data && (
+					<QueryError
+						message={audit.error.message}
+						onRetry={() => void audit.refetch()}
+					/>
 				)}
 				{audit.data && entries.length === 0 && (
 					<p className="text-sm text-muted-foreground">

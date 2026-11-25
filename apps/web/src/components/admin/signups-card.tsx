@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { Badge } from "@/components/ui/badge"
 import {
 	Card,
@@ -9,6 +10,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card"
+import { QueryError } from "@/components/ui/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { useAdminSettings } from "@/components/admin/use-admin-settings"
@@ -34,7 +36,7 @@ export function SignupsCard() {
 				next ? "Anyone can now create an account" : "Sign-ups closed"
 			)
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setSaving(false)
 		}
@@ -69,11 +71,12 @@ export function SignupsCard() {
 					)}
 				</CardAction>
 			</CardHeader>
-			{settings.error && (
+			{settings.error && !settings.data && (
 				<CardContent>
-					<p className="text-sm text-destructive">
-						{settings.error.message}
-					</p>
+					<QueryError
+						message={settings.error.message}
+						onRetry={() => void settings.refetch()}
+					/>
 				</CardContent>
 			)}
 		</Card>
