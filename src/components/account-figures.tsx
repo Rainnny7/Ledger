@@ -74,8 +74,8 @@ export function OverdraftMeter({ account, compact }: { account: Account; compact
       <div className="flex items-baseline justify-between text-xs">
         <span className="text-muted-foreground">Overdraft</span>
         <span className={cn('tabular-nums', used > 0 ? 'font-medium text-destructive' : 'text-muted-foreground')}>
-          {used > 0 ? `${formatMoney(used, account.currency)} used` : 'Not in use'}
-          {limit ? ` · ${formatMoney(limit, account.currency)} limit` : ''}
+          {used > 0 ? <><Money value={used} currency={account.currency} /> used</> : 'Not in use'}
+          {limit ? <> · <Money value={limit} currency={account.currency} /> limit</> : null}
         </span>
       </div>
       {!compact || used > 0 ? (

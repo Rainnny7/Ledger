@@ -18,7 +18,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Account, Category, Transaction } from '@/lib/api'
 import { CATEGORY_LIST, CATEGORY_META } from '@/lib/categories'
 import { balanceSeries, downloadCsv, spendByCategory } from '@/lib/finance'
-import { ACCOUNT_TYPE_LABEL, formatLongDate, formatMoney, formatRelative } from '@/lib/format'
+import { ACCOUNT_TYPE_LABEL, formatLongDate, formatRelative } from '@/lib/format'
 import { useAccount } from '@/lib/queries'
 
 type Flow = 'all' | 'in' | 'out'
@@ -174,7 +174,7 @@ function AccountView({ account: a, transactions }: { account: Account; transacti
             <CardDescription>{debt ? 'Credit limit' : 'Overdraft'}</CardDescription>
             <CardTitle className="text-2xl! font-semibold tabular-nums">
               {debt ? (
-                formatMoney(a.creditLimit ?? (a.available !== null && a.balance !== null ? a.available + a.balance : null), a.currency)
+                <Money value={a.creditLimit ?? (a.available !== null && a.balance !== null ? a.available + a.balance : null)} currency={a.currency} />
               ) : (a.overdraftUsed ?? 0) > 0 ? (
                 <span className="text-destructive"><Money value={a.overdraftUsed} currency={a.currency} /></span>
               ) : a.overdraftLimit ? (

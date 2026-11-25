@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import type { Account } from '@/lib/api'
-import { formatMoney, formatRelative } from '@/lib/format'
+import { Money } from '@/components/money'
+import { formatRelative } from '@/lib/format'
 import { useAccountDetails } from '@/lib/queries'
 
 /** "Direct deposit & limits": institution / transit / account number plus TD's daily limits. */
@@ -66,9 +67,9 @@ function DetailsBody({ account: a }: { account: Account }) {
 
   const d = data?.details
   const limits = [
-    ...(a.overdraftLimit ? [{ label: 'Overdraft limit', value: formatMoney(a.overdraftLimit, a.currency) }] : []),
-    ...(a.creditLimit ? [{ label: 'Credit limit', value: formatMoney(a.creditLimit, a.currency) }] : []),
-    ...(d?.limits ?? []).map((l) => ({ label: l.label, value: l.amount !== null ? formatMoney(l.amount, a.currency) : (l.text ?? '—') })),
+    ...(a.overdraftLimit ? [{ label: 'Overdraft limit', value: <Money value={a.overdraftLimit} currency={a.currency} /> }] : []),
+    ...(a.creditLimit ? [{ label: 'Credit limit', value: <Money value={a.creditLimit} currency={a.currency} /> }] : []),
+    ...(d?.limits ?? []).map((l) => ({ label: l.label, value: l.amount !== null ? <Money value={l.amount} currency={a.currency} /> : (l.text ?? '—') })),
   ]
   const hasNumbers = !!(d?.accountNumber || d?.transit)
 
