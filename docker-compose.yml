@@ -1,0 +1,25 @@
+# Self-hosting Ledger. Pulls the prebuilt image from GitHub Packages (no local build).
+#
+#   cp .env.example .env   # optional
+#   docker compose up -d
+#
+# Then open http://localhost:3001 and create your account (the first one becomes the admin).
+services:
+  ledger:
+    image: ghcr.io/rainnny7/ledger:latest
+    container_name: ledger
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      APP_URL: ${APP_URL:-http://localhost:3001}
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      # Signs sessions and encrypts saved bank credentials (32+ chars). Generated into the
+      # data volume on first run if left empty.
+      APP_SECRET: ${APP_SECRET:-}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-false}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+    volumes:
+      - ./data:/data
+    # Chromium needs more shared memory than Docker's 64MB default
+    shm_size: 1gb

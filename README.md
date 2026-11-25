@@ -68,6 +68,16 @@ For production:
 bun run build && bun run start     # serves the app and API from one port
 ```
 
+## Self-hosting with Docker
+
+A prebuilt image is published to GitHub Packages on every push to `master`. Grab [`docker-compose.yml`](docker-compose.yml) and run:
+
+```bash
+docker compose up -d     # http://localhost:3001
+```
+
+Data (database, generated secret, backups) lives in the `ledger-data` volume. Set `APP_URL`, `APP_SECRET` and the other [settings](#configuration) in a `.env` next to the compose file. Generate a secret with `openssl rand -hex 32` (at least 32 characters). If the package is private, run `docker login ghcr.io` first.
+
 ## Connecting accounts
 
 **TD.** TD doesn't have a public API, so the server signs in to EasyWeb with a headless browser (Playwright), reads your accounts and transactions, and saves them. If TD asks for a 2-Step Verification code, the app asks you for it. Refreshes only pull in what's new. Set `TD_HEADLESS=false` to watch the browser while it works.
@@ -81,7 +91,7 @@ bun run build && bun run start     # serves the app and API from one port
 
 ## Security
 
-- Your bank password is only saved if you tick **Save credentials**. Saved credentials, API keys and account numbers are encrypted with AES-256-GCM using `APP_SECRET` (generated into `data/.secret` if you don't set one).
+- Your bank password is only saved if you tick **Save credentials**. Saved credentials, API keys and account numbers are encrypted with AES-256-GCM using `APP_SECRET` (generated into `data/.secret` if you don't set one; to pick your own, run `openssl rand -hex 32`).
 - Everything lives in a local SQLite database in `data/`. It's git-ignored; don't commit or share it.
 - Passwords need at least 10 characters with a lowercase and uppercase letter, a number and a symbol. The server enforces this too.
 - Sign-in is rate-limited, sign-ups are closed after the first account unless an admin opens them, and the server sends strict security headers.
