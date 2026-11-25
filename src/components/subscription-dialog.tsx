@@ -13,7 +13,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { type Account, api, type Category, type Cycle, type CycleUnit, type Subscription, type SubscriptionInput } from '@/lib/api'
 import { CATEGORY_LIST, CATEGORY_META } from '@/lib/categories'
 import { CYCLE_UNITS, customCycle, PRESET_CYCLES, parseCustomCycle } from '@/lib/cycles'
-import { formatLongDate, formatMoney, getDisplayCurrency, isoDate } from '@/lib/format'
+import { Money } from '@/components/money'
+import { formatLongDate, getDisplayCurrency, isoDate } from '@/lib/format'
 
 export type SubscriptionDraft = Partial<SubscriptionInput> & { id?: string }
 
@@ -273,7 +274,7 @@ export function SubscriptionDialog({ draft, existing, accounts, onClose, onSaved
                   {existing.payments.map((p) => (
                     <li key={p.id} className="flex justify-between rounded-md px-2 py-1 odd:bg-muted/50">
                       <span className="text-muted-foreground">{formatLongDate(p.date)}</span>
-                      <span className="tabular-nums">{formatMoney(Math.abs(p.amount), existing.currency)}</span>
+                      <Money value={Math.abs(p.amount)} currency={existing.currency} className="tabular-nums" />
                     </li>
                   ))}
                 </ul>
