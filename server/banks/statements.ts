@@ -56,7 +56,8 @@ export function collectPdfs(uploads: UploadedFile[]): { pdfs: UploadedFile[]; re
   let count = 0
   for (const u of uploads) {
     if (/\.pdf$/i.test(u.name)) {
-      if (++count > MAX_FILES) rejected.push({ name: u.name, status: 'error', message: 'Too many files in one upload' })
+      if (u.bytes.byteLength > MAX_PDF_BYTES) rejected.push({ name: u.name, status: 'error', message: 'Too large for a statement' })
+      else if (++count > MAX_FILES) rejected.push({ name: u.name, status: 'error', message: 'Too many files in one upload' })
       else pdfs.push(u)
       continue
     }

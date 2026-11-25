@@ -11,7 +11,12 @@ mkdirSync(DATA_DIR, { recursive: true })
  * and keep it in the data directory so restarts don't log everyone out.
  */
 function loadSecret(): string {
-  if (process.env.APP_SECRET) return process.env.APP_SECRET
+  if (process.env.APP_SECRET) {
+    // It signs sessions and keys the bank-credential encryption, so a guessable one undoes both.
+    // Not fatal: changing it signs everyone out and makes saved bank details unreadable.
+    if (process.env.APP_SECRET.length < 32) console.warn('[security] APP_SECRET is shorter than 32 characters; use a random one (openssl rand -base64 32).')
+    return process.env.APP_SECRET
+  }
   const file = path.join(DATA_DIR, '.secret')
   if (existsSync(file)) return readFileSync(file, 'utf8').trim()
   const secret = randomBytes(32).toString('base64url')

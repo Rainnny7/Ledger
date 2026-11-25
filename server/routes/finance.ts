@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { currencyCode, isoDate } from '../validation.ts'
 import type { auth } from '../auth.ts'
 import { db } from '../db.ts'
 import {
@@ -298,9 +299,9 @@ finance.get('/subscriptions', (c) => {
 const subBody = z.object({
   name: z.string().trim().min(1).max(80),
   amount: z.number().positive().max(1_000_000),
-  currency: z.string().regex(/^[A-Za-z]{3}$/).default('CAD'),
+  currency: currencyCode.default('CAD'),
   cycle: z.string().refine(isCycle, 'Unknown billing period'),
-  anchorDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  anchorDate: isoDate,
   category: z.enum(CATEGORIES).default('subscriptions'),
   accountId: z.string().nullable().optional(),
   merchantKey: z.string().max(120).nullable().optional(),
@@ -430,12 +431,11 @@ const viewGoal = (userId: string, id: string) => viewOne('goal', userId, id, goa
 
 finance.get('/goals', (c) => c.json({ goals: listWithShared('goal', c.var.user.id, (o) => loadGoals(o), goalFor) }))
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const goalBody = z.object({
   name: z.string().trim().min(1).max(80),
   kind: z.enum(GOAL_KINDS).default('save'),
   target: z.number().positive().max(100_000_000),
-  currency: z.string().regex(/^[A-Za-z]{3}$/).default('CAD'),
+  currency: currencyCode.default('CAD'),
   targetDate: isoDate.nullable().optional(),
   icon: z.string().regex(/^[a-z-]{1,32}$/).default('target'),
   color: z.string().regex(/^[a-z-]{1,32}$/).default('sunset'),

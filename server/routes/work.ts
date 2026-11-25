@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { currencyCode, isoDate } from '../validation.ts'
 import type { auth } from '../auth.ts'
 import { db } from '../db.ts'
 import { access, canEdit, forgetItem, listWithShared, viewOne } from '../sharing.ts'
@@ -72,7 +73,6 @@ const ownsTransaction = (userId: string, txId: string) =>
     )
     .get(txId, userId)
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const note = z.string().max(300).nullable().optional()
 const clean = (s: string | null | undefined) => s?.trim() || null
 /** Only plain web links: a `javascript:` URL would run when clicked. */
@@ -100,7 +100,7 @@ work.get('/work', (c) => c.json({ jobs: listWithShared('job', c.var.user.id, (o)
 const jobBody = z.object({
   name: z.string().trim().min(1).max(80),
   rate: z.number().positive().max(100_000),
-  currency: z.string().regex(/^[A-Za-z]{3}$/).default('CAD'),
+  currency: currencyCode.default('CAD'),
   payAmount: z.number().positive().max(MAX_MONEY).nullable().optional(),
   payEveryDays: z.number().int().min(1).max(366).nullable().optional(),
   color: z.string().regex(/^[a-z-]{1,32}$/).default('ocean'),
@@ -273,7 +273,7 @@ const paymentBody = z.object({
   transactionId: z.string().max(80).nullable().optional(),
   /** What actually landed, when you were paid in one currency and it arrived converted to another. */
   receivedAmount: z.number().positive().max(MAX_MONEY).nullable().optional(),
-  receivedCurrency: z.string().regex(/^[A-Z]{3}$/).nullable().optional(),
+  receivedCurrency: currencyCode.nullable().optional(),
 })
 
 work.post('/work/invoices/:id/payments', async (c) => {

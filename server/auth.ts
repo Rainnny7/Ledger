@@ -8,6 +8,7 @@ import { db, getSetting } from './db.ts'
 import { DEMO_EMAIL, DEMO_USER_ID } from './demo.ts'
 import { env } from './env.ts'
 import { PASSWORD_MAX, PASSWORD_MIN, passwordProblem } from '../shared/password.ts'
+import { isCurrencyCode } from './validation.ts'
 
 /** index.ts puts the caller's real address here, replacing anything the client sent. */
 export const CLIENT_IP_HEADER = 'x-ledger-client-ip'
@@ -16,7 +17,18 @@ export const CLIENT_IP_HEADER = 'x-ledger-client-ip'
  * Signing in as someone else, or editing their email behind their back, isn't something this app
  * offers; leaving the endpoints reachable would only widen what a stolen admin session could do.
  */
-const DISABLED_PATHS = new Set(['/admin/impersonate-user', '/admin/stop-impersonating', '/admin/update-user'])
+const DISABLED_PATHS = new Set([
+  '/admin/impersonate-user',
+  '/admin/stop-impersonating',
+  '/admin/update-user',
+  // Unused by the app. Revoking by session token names no user, so the owner guard below couldn't
+  // stop another admin from listing the owner's devices and signing them out one by one.
+  '/admin/list-user-sessions',
+  '/admin/revoke-user-session',
+])
+
+/** Longest display name accepted anywhere a name is set. */
+const NAME_MAX = 100
 
 /** What someone on a temporary password can still do: sign in, see who they are, change it, leave. */
 const PASSWORD_CHANGE_ALLOWED = new Set(['/get-session', '/sign-out', '/change-password', '/sign-in/email', '/ok', '/error'])
@@ -137,6 +149,10 @@ function guardOwner(path: string, actorId: string, body: AdminBody) {
     if (target === actorId) throw new APIError('BAD_REQUEST', { message: 'You can’t change your own role.' })
     if (!validRole(body?.role)) throw new APIError('BAD_REQUEST', { message: 'Unknown role.' })
   }
+  // `data` is merged into the new user, role included, which would slip past the role check below.
+  if (path === '/admin/create-user' && (body as { data?: unknown } | undefined)?.data !== undefined) {
+    throw new APIError('BAD_REQUEST', { message: 'Unsupported field: data.' })
+  }
   if (path === '/admin/create-user' && body?.role !== undefined) {
     if (!validRole(body.role)) throw new APIError('BAD_REQUEST', { message: 'Unknown role.' })
     if (body.role === 'admin' && actorId !== ownerId) throw new APIError('FORBIDDEN', { message: 'Only the owner can add admins.' })
@@ -181,7 +197,13 @@ export const auth = betterAuth({
       }
       if ((ctx.path === '/update-user' || ctx.path === '/sign-up/email') && (ctx.body as { currency?: unknown } | undefined)?.currency != null) {
         const currency = (ctx.body as { currency?: unknown }).currency
-        if (typeof currency !== 'string' || !/^[A-Z]{3}$/.test(currency)) throw new APIError('BAD_REQUEST', { message: 'Unknown currency.' })
+        if (!isCurrencyCode(currency)) throw new APIError('BAD_REQUEST', { message: 'Unknown currency.' })
+      }
+      if (ctx.path === '/update-user' || ctx.path === '/sign-up/email' || ctx.path === '/admin/create-user') {
+        const name = (ctx.body as { name?: unknown } | undefined)?.name
+        if (name !== undefined && (typeof name !== 'string' || name.trim().length > NAME_MAX)) {
+          throw new APIError('BAD_REQUEST', { message: `Use a name of at most ${NAME_MAX} characters.` })
+        }
       }
       if (DISABLED_PATHS.has(ctx.path)) throw new APIError('NOT_FOUND', { message: 'Not available.' })
       // New passwords must meet the complexity rules, wherever they're set from.

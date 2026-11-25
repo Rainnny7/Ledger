@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { currencyCode, isoDate } from '../validation.ts'
 import { auth } from '../auth.ts'
 import { createOrder, captureOrder, PaypalApiError } from '../banks/paypal/api.ts'
 import { recordCapture } from '../banks/paypal/webhooks.ts'
@@ -25,7 +26,6 @@ const MAX_MONEY = 100_000_000
 const TEMPLATES = ['modern', 'minimal', 'classic'] as const
 const THEMES = ['professional', 'modern', 'elegant', 'corporate', 'forest', 'vivid'] as const
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const text = (max: number) => z.string().trim().max(max).default('')
 const party = z.object({
   name: text(120),
@@ -44,7 +44,7 @@ const invoiceBody = z.object({
   status: z.enum(['draft', 'sent', 'void']).default('draft'),
   template: z.enum(TEMPLATES).default('modern'),
   theme: z.enum(THEMES).default('professional'),
-  currency: z.string().regex(/^[A-Za-z]{3}$/).default('CAD'),
+  currency: currencyCode.default('CAD'),
   issueDate: isoDate,
   dueDate: isoDate.nullable().default(null),
   from: party,
@@ -264,7 +264,7 @@ const profileBody = z.object({
   prefix: z.string().max(20).default('INV-'),
   template: z.enum(TEMPLATES),
   theme: z.enum(THEMES),
-  currency: z.string().regex(/^[A-Za-z]{3}$/),
+  currency: currencyCode,
   taxRate: z.number().min(0).max(100),
   taxLabel: z.string().trim().min(1).max(30),
   dueDays: z.number().int().min(0).max(365).nullable(),
@@ -400,15 +400,17 @@ function limited(key: string) {
   const recent = (attempts.get(key) ?? []).filter((t) => now - t < 60_000)
   recent.push(now)
   attempts.set(key, recent)
-  if (attempts.size > 5000) attempts.clear()
+  // Drop only idle entries; clearing everything would let a burst of requests reset every link's count.
+  if (attempts.size > 5000) for (const [k, times] of attempts) if (times.every((t) => now - t >= 60_000)) attempts.delete(k)
   return recent.length > 10
 }
 
 publicInvoices.post('/invoices/:token/paypal', async (c) => {
   const token = c.req.param('token')
-  if (limited(token)) return c.json({ error: 'Too many attempts. Wait a minute and try again.' }, 429)
+  // Only real links are counted, so made-up tokens can't fill the table.
   const found = loadByToken(token)
   if (!found) return c.json({ error: 'This invoice link is not valid any more.' }, 404)
+  if (limited(token)) return c.json({ error: 'Too many attempts. Wait a minute and try again.' }, 429)
   const { invoice, userId } = found
   if (invoice.status === 'void') return c.json({ error: 'This invoice was cancelled.' }, 400)
   if (invoice.balance <= 0) return c.json({ error: 'This invoice is already paid.' }, 400)
@@ -435,11 +437,11 @@ publicInvoices.post('/invoices/:token/paypal', async (c) => {
 /** The payer is back from PayPal (`?token=<order id>`): take the payment. */
 publicInvoices.post('/invoices/:token/paypal/capture', async (c) => {
   const token = c.req.param('token')
-  if (limited(token)) return c.json({ error: 'Too many attempts. Wait a minute and try again.' }, 429)
   const body = z.object({ orderId: z.string().regex(/^[A-Z0-9]{5,40}$/) }).safeParse(await c.req.json().catch(() => ({})))
   if (!body.success) return c.json({ error: 'Invalid request' }, 400)
   const found = loadByToken(token)
   if (!found) return c.json({ error: 'This invoice link is not valid any more.' }, 404)
+  if (limited(token)) return c.json({ error: 'Too many attempts. Wait a minute and try again.' }, 429)
   const connectionId = checkoutConnection(found.userId, found.invoice)
   if (!connectionId) return c.json({ error: 'Paying by PayPal is not available on this invoice.' }, 400)
   try {

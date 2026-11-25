@@ -49,6 +49,7 @@ app.use(
       objectSrc: ["'none'"],
     },
     referrerPolicy: 'same-origin',
+    permissionsPolicy: { camera: [], microphone: [], geolocation: [], payment: [], usb: [] },
   }),
 )
 app.use('/api/*', compress())
@@ -174,6 +175,11 @@ app.onError((err, c) => {
 
 serve({ fetch: app.fetch, port: env.port }, (info) => {
   console.log(`API listening on http://localhost:${info.port}`)
+  // Session cookies are only marked Secure when APP_URL is https.
+  const { hostname, protocol } = new URL(env.appUrl)
+  if (protocol !== 'https:' && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    console.warn(`[security] APP_URL (${env.appUrl}) is not https: sign-in cookies and passwords travel unencrypted.`)
+  }
   startScheduler()
 })
 
