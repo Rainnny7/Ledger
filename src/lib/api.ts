@@ -71,6 +71,13 @@ export type {
   TaxTag,
 } from "../../shared/categories.ts"
 
+export type TransactionListParams = {
+  from?: string
+  until?: string
+  limit?: number
+  cursor?: string
+}
+
 export interface Transaction {
   id: string
   accountId: string
@@ -110,6 +117,17 @@ export interface Share {
   /** Your contact name for them. */
   name: string | null
   permission: SharePermission
+  /** "pending" until they accept the invitation. */
+  status: "pending" | "accepted"
+}
+
+/** Someone offering to share an item with you; it appears in your lists once you accept. */
+export interface ShareInvite {
+  id: string
+  kind: ShareKind
+  name: string
+  permission: SharePermission
+  owner: { name: string; email: string }
 }
 
 /** Who can see a goal, subscription or job, and what you can do with it. */
@@ -687,10 +705,19 @@ export const api = {
     return request<StatementImport>("/statements", { method: "POST", body })
   },
 
-  transactions: (from?: string) =>
-    request<{ transactions: Transaction[] }>(
-      `/transactions${from ? `?from=${from}` : ""}`
-    ),
+  transactions: (params: TransactionListParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.from) q.set("from", params.from)
+    if (params.until) q.set("until", params.until)
+    if (params.limit) q.set("limit", String(params.limit))
+    if (params.cursor) q.set("cursor", params.cursor)
+    const qs = q.size ? `?${q}` : ""
+    return request<{
+      transactions: Transaction[]
+      nextCursor: string | null
+      categories: Category[]
+    }>(`/transactions${qs}`)
+  },
   updateTransaction: async (
     id: string,
     body: {
@@ -866,7 +893,7 @@ export const api = {
     itemId: string,
     body: { email: string; permission: SharePermission }
   ) =>
-    request<{ shares: Share[] }>(`/shares/${kind}/${itemId}`, {
+    request<{ ok: true }>(`/shares/${kind}/${itemId}`, {
       method: "POST",
       body: JSON.stringify(body),
     }),
@@ -877,6 +904,11 @@ export const api = {
     }),
   unshare: (id: string) =>
     request<{ ok: true }>(`/shares/${id}`, { method: "DELETE" }),
+  invites: () => request<{ invites: ShareInvite[] }>("/invites"),
+  acceptInvite: (id: string) =>
+    request<{ ok: true }>(`/invites/${id}/accept`, { method: "POST" }),
+  declineInvite: (id: string) =>
+    request<{ ok: true }>(`/invites/${id}/decline`, { method: "POST" }),
   leaveShare: (kind: ShareKind, itemId: string) =>
     request<{ ok: true }>(`/shares/${kind}/${itemId}/me`, { method: "DELETE" }),
 
@@ -954,6 +986,22 @@ export const api = {
     ),
 
   update: () => adminRequest<UpdateInfo>("/update"),
+}
+
+export async function fetchAllTransactions(
+  params: Omit<TransactionListParams, "cursor" | "limit"> = {}
+) {
+  const all: Transaction[] = []
+  let cursor: string | undefined
+  let categories: Category[] = []
+  for (;;) {
+    const page = await api.transactions({ ...params, limit: 500, cursor })
+    categories = page.categories
+    all.push(...page.transactions)
+    if (!page.nextCursor) break
+    cursor = page.nextCursor
+  }
+  return { transactions: all, categories }
 }
 
 /** The share link: no sign-in, so it skips the signed-in /api/banks helper. */

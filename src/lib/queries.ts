@@ -9,6 +9,7 @@ import {
   api,
   DATA_CHANGED,
   TRANSACTION_UPDATED,
+  fetchAllTransactions,
   type Transaction,
 } from "@/lib/api"
 import { addDays, isoDate } from "@/lib/format"
@@ -53,6 +54,7 @@ const AFFECTS: [RegExp, readonly string[]][] = [
   [/^\/(invoices|invoice-profile|payment-methods)/, ["invoices", "work"]],
   [/^\/contacts/, ["contacts", "shares", "goals", "subscriptions", "work"]],
   [/^\/shares/, ["shares", "goals", "subscriptions", "work"]],
+  [/^\/invites/, ["invites", "goals", "subscriptions", "work"]],
   // Instant updates and forgetting a password only change the connection itself.
   [
     /^\/connections\/[^/]+\/(instant-updates|forget-credentials)/,
@@ -75,7 +77,10 @@ export function patchCachedTransaction(tx: Transaction) {
       : list
   queryClient.setQueriesData<{ transactions: Transaction[] }>(
     { queryKey: ["transactions"] },
-    (d) => (d ? { ...d, transactions: swap(d.transactions) } : d)
+    (d) =>
+      d && Array.isArray(d.transactions)
+        ? { ...d, transactions: swap(d.transactions) }
+        : d
   )
   queryClient.setQueriesData<{ transactions: Transaction[] }>(
     { queryKey: ["account"] },
@@ -107,6 +112,7 @@ export const queryKeys = {
   work: ["work"] as const,
   invoices: ["invoices"] as const,
   contacts: ["contacts"] as const,
+  invites: ["invites"] as const,
   budgets: ["budgets"] as const,
   transactions: (from: string | null) =>
     ["transactions", from ?? "all"] as const,
@@ -141,6 +147,8 @@ export const useWork = () =>
   view(useQuery({ queryKey: queryKeys.work, queryFn: api.work }))
 export const useContacts = () =>
   view(useQuery({ queryKey: queryKeys.contacts, queryFn: api.contacts }))
+export const useInvites = (enabled: boolean) =>
+  view(useQuery({ queryKey: queryKeys.invites, queryFn: api.invites, enabled }))
 export const useInvoices = () =>
   view(useQuery({ queryKey: queryKeys.invoices, queryFn: api.invoices }))
 export const useBudgets = () =>
@@ -154,7 +162,8 @@ export function useTransactions(from: string | null) {
     useQuery({
       queryKey: queryKeys.transactions(from),
       placeholderData: keepPreviousData,
-      queryFn: () => api.transactions(from ?? undefined),
+      queryFn: async () =>
+        from ? fetchAllTransactions({ from }) : fetchAllTransactions(),
     })
   )
 }

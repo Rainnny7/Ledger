@@ -11,8 +11,13 @@ import {
 } from "@/components/ui/tooltip"
 import { UpdateDialog } from "@/components/admin/update-dialog"
 import { Brand } from "@/components/layout/brand"
-import { CommandPalette } from "@/components/layout/command-palette"
 import { openCommandPalette } from "@/components/layout/command-palette-open"
+
+const CommandPalette = lazy(() =>
+  import("@/components/layout/command-palette").then((m) => ({
+    default: m.CommandPalette,
+  }))
+)
 import { BriefcaseBusinessIcon } from "@/components/icons/briefcase-business"
 import { CalculatorIcon } from "@/components/icons/calculator"
 import { ChartPieIcon } from "@/components/icons/chart-pie"
@@ -57,6 +62,7 @@ import {
 } from "@/components/ui/navigation-menu"
 import { useAdvice } from "@/components/advisor/use-advice"
 import { api } from "@/lib/api"
+import { InvitesBanner } from "@/components/sharing/invites-banner"
 import { authClient, signOut, useSession } from "@/lib/auth-client"
 import { detectCurrency, savedCurrency, useHomeCurrency } from "@/lib/currency"
 import { DEMO_IDENTITY, demoMode, demoPersona, setDemoMode } from "@/lib/demo"
@@ -83,12 +89,15 @@ import { useQuery } from "@tanstack/react-query"
 import { Monitor, MonitorPlay, Palette, Search, X } from "lucide-react"
 import {
   type ForwardRefExoticComponent,
+  lazy,
   type RefAttributes,
+  Suspense,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
 } from "react"
+import { domAnimation, LazyMotion } from "motion/react"
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router"
 
 /** Clicking a link to the page you're already on takes you back to its top. */
@@ -103,6 +112,7 @@ function useScrollTopOnPageChange(pathname: string) {
   }, [])
   useLayoutEffect(() => {
     window.scrollTo(0, 0)
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- scroll to top on route path only
   }, [pathname])
 }
 
@@ -430,6 +440,7 @@ function ScrollNav({
     } else if (right + pad > nav.scrollLeft + nav.clientWidth) {
       nav.scrollTo({ left: right + pad - nav.clientWidth, behavior: "smooth" })
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- pathname selects which nav link to scroll into view
   }, [pathname])
 
   return (
@@ -623,185 +634,197 @@ export function AppShell() {
     .toUpperCase()
 
   return (
-    <div className="min-h-svh bg-muted/40 print:bg-background">
-      {demoMode && (
-        <div className="relative z-40 flex animate-in items-center justify-center gap-3 bg-primary px-4 py-1.5 text-sm text-primary-foreground duration-300 slide-in-from-top print:hidden">
-          <MonitorPlay className="size-4 shrink-0" />
-          <span className="truncate">
-            <span className="font-medium">Demo mode</span>
-            <span className="hidden sm:inline">
-              {" "}
-              · {demoPersona.name} ({demoPersona.label}) · everything here is
-              made-up sample data
+    <LazyMotion features={domAnimation} strict>
+      <div className="min-h-svh bg-muted/40 print:bg-background">
+        {demoMode && (
+          <div className="relative z-40 flex animate-in items-center justify-center gap-3 bg-primary px-4 py-1.5 text-sm text-primary-foreground duration-300 slide-in-from-top print:hidden">
+            <MonitorPlay className="size-4 shrink-0" />
+            <span className="truncate">
+              <span className="font-medium">Demo mode</span>
+              <span className="hidden sm:inline">
+                {" "}
+                · {demoPersona.name} ({demoPersona.label}) · everything here is
+                made-up sample data
+              </span>
             </span>
-          </span>
-          <Button
-            size="xs"
-            variant="secondary"
-            className="h-6 shrink-0"
-            onClick={() => setDemoMode(false)}
-          >
-            <X /> Exit
-          </Button>
-        </div>
-      )}
-      <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur print:hidden">
-        <div className="mx-auto flex h-14 max-w-[90rem] items-center gap-2 px-3 sm:gap-4 sm:px-4">
-          <Link
-            to="/"
-            aria-label="Ledger home"
-            className="shrink-0"
-            onClick={() => scrollUpIfHere("/", pathname)}
-          >
-            <Brand hideNameOnMobile />
-          </Link>
-          <ScrollNav pathname={pathname}>
-            {NAV.map((item) => (
-              <NavItem
-                key={item.to}
-                {...item}
-                // Counted links always show their badge (0 while loading) so the nav doesn't shift.
-                count={item.count ? (counts[item.count] ?? 0) : null}
-                alert={item.count === "accounts" ? counts.accountsAlert : null}
-                // Account detail pages live under Bank Accounts.
-                active={
-                  item.to === "/"
-                    ? pathname === "/" || pathname.startsWith("/accounts")
-                    : pathname.startsWith(item.to)
-                }
-              />
-            ))}
-            <NavGroup
-              label="Business"
-              icon={BriefcaseBusinessIcon}
-              items={BUSINESS_NAV}
-              counts={counts}
-              pathname={pathname}
-            />
-          </ScrollNav>
-          <div className="flex shrink-0 items-center gap-1">
             <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Search (Ctrl+K)"
-              title="Search (Ctrl+K / ⌘K)"
-              onClick={openCommandPalette}
+              size="xs"
+              variant="secondary"
+              className="h-6 shrink-0"
+              onClick={() => setDemoMode(false)}
             >
-              <Search />
+              <X /> Exit
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full"
-                    aria-label="Account menu"
-                  />
-                }
-              >
-                <Avatar className="size-7">
-                  <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>
-                    <div className="truncate text-sm font-medium text-foreground">
-                      {user?.name}
-                    </div>
-                    <div className="truncate text-xs font-normal">
-                      {user?.email}
-                    </div>
-                  </DropdownMenuLabel>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                {demoMode ? (
-                  <>
-                    <MenuItem
-                      icon={SettingsIcon}
-                      onClick={() => navigate("/settings")}
-                    >
-                      Settings
-                    </MenuItem>
-                    <DropdownMenuItem onClick={() => setDemoMode(false)}>
-                      <X /> Exit demo mode
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
-                    <MenuItem
-                      icon={UsersIcon}
-                      onClick={() => navigate("/contacts")}
-                    >
-                      Contacts
-                    </MenuItem>
-                    <MenuItem
-                      icon={SettingsIcon}
-                      onClick={() => navigate("/settings")}
-                    >
-                      Settings
-                    </MenuItem>
-                    {isAdmin && (
-                      <MenuItem
-                        icon={ShieldCheckIcon}
-                        onClick={() => navigate("/admin")}
-                      >
-                        Admin
-                      </MenuItem>
-                    )}
-                    {isAdmin && updateInfo?.available && updateInfo.latest && (
-                      <DropdownMenuItem onClick={() => setUpdateOpen(true)}>
-                        <RefreshCWIcon size={16} className="flex shrink-0" />
-                        <span className="flex items-center gap-2">
-                          Update available · v{updateInfo.latest}
-                          <span
-                            className="size-1.5 rounded-full bg-primary"
-                            aria-hidden
-                          />
-                        </span>
-                      </DropdownMenuItem>
-                    )}
-                  </>
-                )}
-                <ThemeMenu />
-                <DropdownMenuSeparator />
-                <MenuItem
-                  icon={LogoutIcon}
-                  onClick={async () => {
-                    await signOut()
-                    if (demoMode) setDemoMode(false)
-                    // Don't leave this user's data in memory for whoever signs in next.
-                    queryClient.clear()
-                    navigate("/login", { replace: true })
-                  }}
-                >
-                  Sign out
-                </MenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
-        </div>
-      </header>
-      {updateInfo?.available ? (
-        <UpdateDialog
-          open={updateOpen}
-          onOpenChange={setUpdateOpen}
-          info={updateInfo}
-        />
-      ) : null}
-      <CommandPalette />
-      <main className="mx-auto max-w-[90rem] px-4 py-8">
-        {/* Keyed by route so each page fades in when you navigate to it. */}
-        <div
-          key={pathname}
-          className="animate-[ledger-fade_220ms_ease-out_both]"
-        >
-          <Outlet />
-        </div>
-      </main>
-    </div>
+        )}
+        <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur print:hidden">
+          <div className="mx-auto flex h-14 max-w-[90rem] items-center gap-2 px-3 sm:gap-4 sm:px-4">
+            <Link
+              to="/"
+              aria-label="Ledger home"
+              className="shrink-0"
+              onClick={() => scrollUpIfHere("/", pathname)}
+            >
+              <Brand hideNameOnMobile />
+            </Link>
+            <ScrollNav pathname={pathname}>
+              {NAV.map((item) => (
+                <NavItem
+                  key={item.to}
+                  {...item}
+                  // Counted links always show their badge (0 while loading) so the nav doesn't shift.
+                  count={item.count ? (counts[item.count] ?? 0) : null}
+                  alert={
+                    item.count === "accounts" ? counts.accountsAlert : null
+                  }
+                  // Account detail pages live under Bank Accounts.
+                  active={
+                    item.to === "/"
+                      ? pathname === "/" || pathname.startsWith("/accounts")
+                      : pathname.startsWith(item.to)
+                  }
+                />
+              ))}
+              <NavGroup
+                label="Business"
+                icon={BriefcaseBusinessIcon}
+                items={BUSINESS_NAV}
+                counts={counts}
+                pathname={pathname}
+              />
+            </ScrollNav>
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Search (Ctrl+K)"
+                title="Search (Ctrl+K / ⌘K)"
+                onClick={openCommandPalette}
+              >
+                <Search />
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full"
+                      aria-label="Account menu"
+                    />
+                  }
+                >
+                  <Avatar className="size-7">
+                    <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>
+                      <div className="truncate text-sm font-medium text-foreground">
+                        {user?.name}
+                      </div>
+                      <div className="truncate text-xs font-normal">
+                        {user?.email}
+                      </div>
+                    </DropdownMenuLabel>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  {demoMode ? (
+                    <>
+                      <MenuItem
+                        icon={SettingsIcon}
+                        onClick={() => navigate("/settings")}
+                      >
+                        Settings
+                      </MenuItem>
+                      <DropdownMenuItem onClick={() => setDemoMode(false)}>
+                        <X /> Exit demo mode
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <MenuItem
+                        icon={UsersIcon}
+                        onClick={() => navigate("/contacts")}
+                      >
+                        Contacts
+                      </MenuItem>
+                      <MenuItem
+                        icon={SettingsIcon}
+                        onClick={() => navigate("/settings")}
+                      >
+                        Settings
+                      </MenuItem>
+                      {isAdmin && (
+                        <MenuItem
+                          icon={ShieldCheckIcon}
+                          onClick={() => navigate("/admin")}
+                        >
+                          Admin
+                        </MenuItem>
+                      )}
+                      {isAdmin &&
+                        updateInfo?.available &&
+                        updateInfo.latest && (
+                          <DropdownMenuItem onClick={() => setUpdateOpen(true)}>
+                            <RefreshCWIcon
+                              size={16}
+                              className="flex shrink-0"
+                            />
+                            <span className="flex items-center gap-2">
+                              Update available · v{updateInfo.latest}
+                              <span
+                                className="size-1.5 rounded-full bg-primary"
+                                aria-hidden
+                              />
+                            </span>
+                          </DropdownMenuItem>
+                        )}
+                    </>
+                  )}
+                  <ThemeMenu />
+                  <DropdownMenuSeparator />
+                  <MenuItem
+                    icon={LogoutIcon}
+                    onClick={async () => {
+                      await signOut()
+                      if (demoMode) setDemoMode(false)
+                      // Don't leave this user's data in memory for whoever signs in next.
+                      queryClient.clear()
+                      navigate("/login", { replace: true })
+                    }}
+                  >
+                    Sign out
+                  </MenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </header>
+        {updateInfo?.available ? (
+          <UpdateDialog
+            open={updateOpen}
+            onOpenChange={setUpdateOpen}
+            info={updateInfo}
+          />
+        ) : null}
+        <Suspense fallback={null}>
+          <CommandPalette />
+        </Suspense>
+        <main className="mx-auto max-w-[90rem] px-4 py-8">
+          <InvitesBanner enabled={!demoMode} />
+          {/* Keyed by route so each page fades in when you navigate to it. */}
+          <div
+            key={pathname}
+            className="animate-[ledger-fade_220ms_ease-out_both]"
+          >
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </LazyMotion>
   )
 }

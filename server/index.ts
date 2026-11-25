@@ -8,7 +8,14 @@ import { compress } from "hono/compress"
 import { csrf } from "hono/csrf"
 import { secureHeaders } from "hono/secure-headers"
 import type { HttpBindings } from "@hono/node-server"
-import { audit, getOwnerId, migrateAdminTables, recentAudit } from "./admin.ts"
+import {
+  audit,
+  getOwnerId,
+  isInstanceOwner,
+  migrateAdminTables,
+  recentAudit,
+} from "./admin.ts"
+import { migrateCryptoAtRest } from "./crypto.ts"
 import { auth, migrateAuthTables, registrationOpen } from "./auth/index.ts"
 import { CLIENT_IP_HEADER } from "./auth/hooks.ts"
 import { migrateAppTables, setSetting } from "./db.ts"
@@ -32,9 +39,12 @@ import {
   startScheduler,
 } from "./tasks.ts"
 import { getUpdateInfo } from "./updates.ts"
+import { boundedString, id, validate } from "./validation.ts"
+import { z } from "zod"
 
 await migrateAuthTables()
 migrateAppTables()
+await migrateCryptoAtRest()
 migrateAdminTables()
 removeOldDebugDumps()
 
@@ -73,7 +83,28 @@ app.use(
     },
   })
 )
-app.use("/api/*", compress())
+const gzip = compress({
+  encoding: "gzip",
+  threshold: 1024,
+})
+app.use("/api/*", gzip)
+/** Hashed bundles can cache forever; HTML must stay fresh for new deploys. */
+app.use("/assets/*", async (c, next) => {
+  await next()
+  if (c.res.status === 200)
+    c.res.headers.set("Cache-Control", "public, max-age=31536000, immutable")
+})
+app.use("*", async (c, next) => {
+  if (c.req.path.startsWith("/api/")) return next()
+  await gzip(c, next)
+  if (
+    c.res.status === 200 &&
+    !c.req.path.startsWith("/assets/") &&
+    (c.req.path === "/" || !c.req.path.includes("."))
+  ) {
+    c.res.headers.set("Cache-Control", "no-cache")
+  }
+})
 // Every API body is small JSON; refuse anything large before it's parsed. Statement uploads set their own limit.
 const smallBody = bodyLimit({
   maxSize: 64 * 1024,
@@ -85,16 +116,30 @@ app.use("/api/*", (c, next) =>
 // Rejects cross-site form posts (JSON requests are already blocked by CORS preflight).
 app.use("/api/*", csrf({ origin: env.appUrl }))
 
+let xffWithoutTrustWarned = false
+
 /**
- * Who's calling, for rate limits and the Devices list. Behind a reverse proxy set TRUST_PROXY=true
- * and the proxy's X-Forwarded-For is used; otherwise the socket address. A client-sent copy of the
- * header is always replaced, so it can't be used to dodge the sign-in limits.
+ * Who's calling, for rate limits and the Devices list. With TRUST_PROXY set, the client address is
+ * taken from X-Forwarded-For using the configured hop count; otherwise the socket address. A
+ * client-sent copy of the header is always replaced, so it can't be used to dodge the sign-in limits.
  */
 app.use("/api/*", async (c, next) => {
-  const forwarded = env.trustProxy
-    ? c.req.header("x-forwarded-for")?.split(",").at(-1)?.trim()
-    : undefined
-  const ip = forwarded || c.env?.incoming?.socket?.remoteAddress || ""
+  const xff = c.req.header("x-forwarded-for")
+  if (xff && env.trustProxyHops === 0 && !xffWithoutTrustWarned) {
+    xffWithoutTrustWarned = true
+    console.warn(
+      "[security] X-Forwarded-For is present but TRUST_PROXY is unset; rate limits use the proxy address, not the visitor. Set TRUST_PROXY to the number of trusted hops."
+    )
+  }
+  let ip = c.env?.incoming?.socket?.remoteAddress || ""
+  if (env.trustProxyHops > 0 && xff) {
+    const parts = xff
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+    const idx = Math.max(0, parts.length - env.trustProxyHops)
+    ip = parts[idx] ?? parts[0] ?? ip
+  }
   c.req.raw.headers.set(CLIENT_IP_HEADER, ip.replace(/^::ffff:/, ""))
   await next()
 })
@@ -151,16 +196,21 @@ app.route("/api/banks", sharing)
 app.route("/api/public", publicInvoices)
 
 // PayPal's instant updates. Each delivery is checked with PayPal before anything is done with it.
-app.post("/api/webhooks/paypal/:connectionId", async (c) => {
-  const result = await handlePaypalWebhook(
-    c.req.param("connectionId"),
-    c.req.raw.headers,
-    await c.req.text()
-  )
-  if (result.status !== 200)
-    console.warn(`PayPal webhook rejected: ${result.message}`)
-  return c.json({ message: result.message }, result.status)
-})
+app.post(
+  "/api/webhooks/paypal/:connectionId",
+  validate("param", z.object({ connectionId: id })),
+  async (c) => {
+    const { connectionId } = c.req.valid("param")
+    const result = await handlePaypalWebhook(
+      connectionId,
+      c.req.raw.headers,
+      await c.req.text()
+    )
+    if (result.status !== 200)
+      console.warn(`PayPal webhook rejected: ${result.message}`)
+    return c.json({ message: result.message }, result.status)
+  }
+)
 
 // Instance settings for admins. User management itself goes through Better Auth's /api/auth/admin/*.
 app.use("/api/admin/*", async (c, next) => {
@@ -180,25 +230,35 @@ const adminSettings = () => ({
 })
 app.get("/api/admin/update", async (c) => c.json(await getUpdateInfo()))
 app.get("/api/admin/settings", (c) => c.json(adminSettings()))
-app.put("/api/admin/settings", async (c) => {
-  const body = (await c.req.json().catch(() => ({}))) as {
-    registrationOpen?: unknown
-  }
-  if (typeof body.registrationOpen !== "boolean")
-    return c.json({ error: "Invalid request" }, 400)
-  if (body.registrationOpen !== registrationOpen()) {
-    setSetting("registration_open", String(body.registrationOpen))
-    const user = c.var.user
-    audit({
-      kind: "admin",
-      ip: c.req.header(CLIENT_IP_HEADER),
-      actorId: user.id,
-      actorEmail: user.email,
-      action: body.registrationOpen ? "Opened sign-ups" : "Closed sign-ups",
-    })
-  }
-  return c.json(adminSettings())
+const adminSettingsBody = z.object({ registrationOpen: z.boolean() })
+const backupNoteBody = z.object({ note: boundedString(200).optional() })
+const taskParam = z.object({
+  id: z.enum(["bank-refresh", "fx-rates", "backup", "tidy-up"]),
 })
+const backupNameParam = z.object({ name: boundedString(120) })
+const auditQuery = z.object({
+  kind: z.enum(["admin", "auth"]).optional(),
+})
+
+app.put(
+  "/api/admin/settings",
+  validate("json", adminSettingsBody),
+  async (c) => {
+    const body = c.req.valid("json")
+    if (body.registrationOpen !== registrationOpen()) {
+      setSetting("registration_open", String(body.registrationOpen))
+      const user = c.var.user
+      audit({
+        kind: "admin",
+        ip: c.req.header(CLIENT_IP_HEADER),
+        actorId: user.id,
+        actorEmail: user.email,
+        action: body.registrationOpen ? "Opened sign-ups" : "Closed sign-ups",
+      })
+    }
+    return c.json(adminSettings())
+  }
+)
 app.post("/api/admin/demo/reseed", (c) => {
   reseedDemoData()
   const user = c.var.user
@@ -212,13 +272,15 @@ app.post("/api/admin/demo/reseed", (c) => {
   return c.json({ ok: true })
 })
 app.get("/api/admin/tasks", (c) => c.json({ tasks: listTasks() }))
-app.post("/api/admin/tasks/:id/run", (c) => {
-  const id = c.req.param("id")
-  if (!hasTask(id)) return c.json({ error: "Not found" }, 404)
-  if (listTasks().find((t) => t.id === id)?.running)
+app.post("/api/admin/tasks/:id/run", validate("param", taskParam), (c) => {
+  const { id: taskId } = c.req.valid("param")
+  if (taskId === "backup" && !isInstanceOwner(c.var.user.id))
+    return c.json({ error: "Only the instance owner can run backups." }, 403)
+  if (!hasTask(taskId)) return c.json({ error: "Not found" }, 404)
+  if (listTasks().find((t) => t.id === taskId)?.running)
     return c.json({ error: "That task is already running." }, 409)
   const user = c.var.user
-  const label = listTasks().find((t) => t.id === id)?.label ?? id
+  const label = listTasks().find((t) => t.id === taskId)?.label ?? taskId
   audit({
     kind: "admin",
     ip: c.req.header(CLIENT_IP_HEADER),
@@ -228,15 +290,19 @@ app.post("/api/admin/tasks/:id/run", (c) => {
     detail: label,
   })
   // It can take minutes (a browser per bank); the page polls for the result.
-  void runTask(id, "manual", { by: user.name || user.email })
+  void runTask(taskId, "manual", { by: user.name || user.email })
   return c.json({ tasks: listTasks() }, 202)
 })
-app.get("/api/admin/backups", (c) => c.json({ backups: listBackups() }))
+app.get("/api/admin/backups", (c) => {
+  if (!isInstanceOwner(c.var.user.id))
+    return c.json({ error: "Only the instance owner can view backups." }, 403)
+  return c.json({ backups: listBackups() })
+})
 /** Back up now, with an optional note on why. Quick (one VACUUM INTO), so it waits for the copy. */
-app.post("/api/admin/backups", async (c) => {
-  const body = (await c.req.json().catch(() => ({}))) as { note?: unknown }
-  const note =
-    typeof body.note === "string" ? body.note.trim().slice(0, 200) : ""
+app.post("/api/admin/backups", validate("json", backupNoteBody), async (c) => {
+  if (!isInstanceOwner(c.var.user.id))
+    return c.json({ error: "Only the instance owner can create backups." }, 403)
+  const note = c.req.valid("json").note?.trim().slice(0, 200) ?? ""
   const user = c.var.user
   const run = await runTask("backup", "manual", {
     by: user.name || user.email,
@@ -255,8 +321,13 @@ app.post("/api/admin/backups", async (c) => {
   })
   return c.json({ backups: listBackups(), summary: run.summary })
 })
-app.get("/api/admin/backups/:name", (c) => {
-  const name = c.req.param("name")
+app.get("/api/admin/backups/:name", validate("param", backupNameParam), (c) => {
+  if (!isInstanceOwner(c.var.user.id))
+    return c.json(
+      { error: "Only the instance owner can download backups." },
+      403
+    )
+  const { name } = c.req.valid("param")
   // Only names the backup task writes, so the path can't leave the backups folder.
   if (!listBackups().some((b) => b.name === name))
     return c.json({ error: "Not found" }, 404)
@@ -275,13 +346,10 @@ app.get("/api/admin/backups/:name", (c) => {
     "Content-Disposition": `attachment; filename="${name}"`,
   })
 })
-app.get("/api/admin/audit", (c) => {
-  const kind = c.req.query("kind")
+app.get("/api/admin/audit", validate("query", auditQuery), (c) => {
+  const { kind } = c.req.valid("query")
   return c.json({
-    entries: recentAudit({
-      kind: kind === "admin" || kind === "auth" ? kind : undefined,
-      limit: 200,
-    }),
+    entries: recentAudit({ kind, limit: 200 }),
   })
 })
 app.all("/api/*", (c) => c.json({ error: "Not found" }, 404))

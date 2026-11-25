@@ -1,6 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query"
 import { lazy, type ReactNode, Suspense, useEffect } from "react"
-import { domAnimation, LazyMotion } from "motion/react"
 import { ThemeProvider } from "next-themes"
 import { NuqsAdapter } from "nuqs/adapters/react-router/v8"
 import {
@@ -13,19 +12,32 @@ import {
   useLocation,
 } from "react-router"
 import { AppLoader } from "@/components/layout/app-loader"
-import { AppShell } from "@/components/layout/app-shell"
-import { ConfirmHost } from "@/components/common/confirm-dialog"
 import { ErrorBoundary } from "@/components/layout/error-boundary"
 import { useNoNativeContextMenu } from "@/components/layout/app-context-menu"
-import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { useSession } from "@/lib/auth-client"
 import { demoMode } from "@/lib/demo"
-import { THEME_CLASSES } from "@/lib/theme"
+import { THEME_CLASSES } from "@/lib/theme-classes"
 import { THEME_IDS } from "../shared/themes.ts"
 import { queryClient } from "@/lib/queries"
 import { AuthPage } from "@/pages/auth-page"
-import { ChangeTemporaryPasswordPage } from "@/pages/temporary-password-page"
+
+const AppShell = lazy(() =>
+  import("@/components/layout/app-shell").then((m) => ({ default: m.AppShell }))
+)
+const ConfirmHost = lazy(() =>
+  import("@/components/common/confirm-dialog").then((m) => ({
+    default: m.ConfirmHost,
+  }))
+)
+const Toaster = lazy(() =>
+  import("@/components/ui/sonner").then((m) => ({ default: m.Toaster }))
+)
+const ChangeTemporaryPasswordPage = lazy(() =>
+  import("@/pages/temporary-password-page").then((m) => ({
+    default: m.ChangeTemporaryPasswordPage,
+  }))
+)
 
 // Pages load on demand so the sign-in screen doesn't pull in the charting code.
 const DashboardPage = lazy(() =>
@@ -137,7 +149,12 @@ function RequireAuth() {
   if (isPending) return probablySignedIn() ? <Outlet /> : <AppLoader />
   if (!data) return <Navigate to="/login" replace />
   // An admin set this password: the person picks their own before seeing anything else.
-  if (data.user.mustChangePassword) return <ChangeTemporaryPasswordPage />
+  if (data.user.mustChangePassword)
+    return (
+      <Suspense fallback={<AppLoader />}>
+        <ChangeTemporaryPasswordPage />
+      </Suspense>
+    )
   return <Outlet />
 }
 
@@ -180,7 +197,13 @@ const router = createBrowserRouter(
         <Route path="/register" element={<AuthPage mode="register" />} />
       </Route>
       <Route element={<RequireAuth />}>
-        <Route element={<AppShell />}>
+        <Route
+          element={
+            <Suspense fallback={<AppLoader inPage />}>
+              <AppShell />
+            </Suspense>
+          }
+        >
           <Route
             index
             element={
@@ -334,13 +357,13 @@ export default function App() {
           enableSystem
           disableTransitionOnChange
         >
-          <LazyMotion features={domAnimation} strict>
-            <TooltipProvider delay={300}>
-              <RouterProvider router={router} />
-            </TooltipProvider>
-          </LazyMotion>
-          <ConfirmHost />
-          <Toaster />
+          <TooltipProvider delay={300}>
+            <RouterProvider router={router} />
+          </TooltipProvider>
+          <Suspense fallback={null}>
+            <ConfirmHost />
+            <Toaster />
+          </Suspense>
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>

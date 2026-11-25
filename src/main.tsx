@@ -1,8 +1,7 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
+// oxlint-disable-next-line import/no-unassigned-import -- global stylesheet side effect
 import "./index.css"
-import { configureBoneyard } from "boneyard-js/react"
-import "./bones/registry"
 import App from "./App.tsx"
 import { clearReloadFlag, reloadForNewVersion } from "@/lib/chunk-reload"
 
@@ -15,18 +14,23 @@ clearReloadFlag()
 // index.html painted the theme's background inline until the stylesheet arrived; it has now.
 document.documentElement.style.removeProperty("background-color")
 
-// Skeleton bones use the theme's colours, with a soft sweep instead of a blink.
-configureBoneyard({
-  color: "var(--muted)",
-  darkColor: "var(--muted)",
-  animate: "shimmer",
-  shimmerColor: "color-mix(in oklab, var(--muted), var(--foreground) 7%)",
-  darkShimmerColor: "color-mix(in oklab, var(--muted), var(--foreground) 9%)",
-  speed: "1.8s",
-})
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />
   </StrictMode>
 )
+
+// Skeleton bones use the theme's colours; load after first paint so sign-in stays lean.
+void Promise.all([
+  import("boneyard-js/react"),
+  import("./bones/registry"),
+]).then(([{ configureBoneyard }]) => {
+  configureBoneyard({
+    color: "var(--muted)",
+    darkColor: "var(--muted)",
+    animate: "shimmer",
+    shimmerColor: "color-mix(in oklab, var(--muted), var(--foreground) 7%)",
+    darkShimmerColor: "color-mix(in oklab, var(--muted), var(--foreground) 9%)",
+    speed: "1.8s",
+  })
+})

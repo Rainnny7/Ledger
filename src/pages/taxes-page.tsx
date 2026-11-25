@@ -65,14 +65,14 @@ export function TaxesPage() {
 
   const { original, converted, report, mixed } = useMemo(() => {
     const ids = new Set(shownAccounts.map((a) => a.id))
-    const original = transactions.filter(
+    const periodTx = transactions.filter(
       (t) => ids.has(t.accountId) && t.date >= from && t.date <= to
     )
-    const home = inHomeCurrency(shownAccounts, original, converter)
-    const converted = new Map(home.transactions.map((t) => [t.id, t]))
+    const home = inHomeCurrency(shownAccounts, periodTx, converter)
+    const homeById = new Map(home.transactions.map((t) => [t.id, t]))
     return {
-      original,
-      converted,
+      original: periodTx,
+      converted: homeById,
       report: buildTaxReport(home.transactions),
       mixed: home.mixed,
     }

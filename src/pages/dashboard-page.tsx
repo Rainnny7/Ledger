@@ -38,6 +38,49 @@ import {
 import { useIntent } from "@/lib/url-state"
 import { useNow } from "@/lib/use-now"
 
+async function removeConnection(c: Connection) {
+  if (
+    !(await confirmDialog({
+      title: `Remove ${c.label}?`,
+      description:
+        "Its accounts, transactions and saved sign-in are deleted from Ledger. Your bank account itself isn’t touched.",
+      action: "Remove",
+      destructive: true,
+    }))
+  )
+    return
+  await api.deleteConnection(c.id)
+  toast.success("Connection removed")
+}
+
+async function toggleInstant(c: Connection) {
+  if (demoMode)
+    return toast.error(
+      "Demo mode is read-only. Exit demo mode to make changes."
+    )
+  try {
+    if (c.instantUpdates) {
+      await api.disableInstantUpdates(c.id)
+      toast.success("Instant updates turned off")
+    } else {
+      await api.enableInstantUpdates(c.id)
+      toast.success("Instant updates on", {
+        description:
+          "PayPal will notify Ledger about payments made through your PayPal app, like invoice checkouts.",
+      })
+    }
+  } catch (e) {
+    toast.error(
+      e instanceof Error ? e.message : "Could not change instant updates"
+    )
+  }
+}
+
+async function forgetCredentials(c: Connection) {
+  await api.forgetCredentials(c.id)
+  toast.success("Saved credentials deleted")
+}
+
 export function DashboardPage() {
   const { data, loading, error } = useOverview()
   const [range, setRange] = useState<RangeKey>("90d")
@@ -140,49 +183,6 @@ export function DashboardPage() {
     [subq.data]
   )
 
-  async function remove(c: Connection) {
-    if (
-      !(await confirmDialog({
-        title: `Remove ${c.label}?`,
-        description:
-          "Its accounts, transactions and saved sign-in are deleted from Ledger. Your bank account itself isn’t touched.",
-        action: "Remove",
-        destructive: true,
-      }))
-    )
-      return
-    await api.deleteConnection(c.id)
-    toast.success("Connection removed")
-  }
-
-  async function toggleInstant(c: Connection) {
-    if (demoMode)
-      return toast.error(
-        "Demo mode is read-only. Exit demo mode to make changes."
-      )
-    try {
-      if (c.instantUpdates) {
-        await api.disableInstantUpdates(c.id)
-        toast.success("Instant updates turned off")
-      } else {
-        await api.enableInstantUpdates(c.id)
-        toast.success("Instant updates on", {
-          description:
-            "PayPal will notify Ledger about payments made through your PayPal app, like invoice checkouts.",
-        })
-      }
-    } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : "Could not change instant updates"
-      )
-    }
-  }
-
-  async function forget(c: Connection) {
-    await api.forgetCredentials(c.id)
-    toast.success("Saved credentials deleted")
-  }
-
   return (
     <div className="grid gap-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -251,8 +251,8 @@ export function DashboardPage() {
               setUpload({ open: true, connectionId })
             }
             onToggleInstant={toggleInstant}
-            onForget={forget}
-            onRemove={remove}
+            onForget={forgetCredentials}
+            onRemove={removeConnection}
           />
         )}
       </Bones>

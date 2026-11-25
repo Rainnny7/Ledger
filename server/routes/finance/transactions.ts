@@ -1,7 +1,15 @@
 import { z } from "zod"
+import {
+  boundedString,
+  id,
+  isoDate,
+  limit,
+  validate,
+} from "../../validation.ts"
 import { classify } from "../../finance/categorize.ts"
 import { CATEGORIES, isCategory } from "../../../shared/categories.ts"
 import { isTaxTag, TAX_TAGS, type TaxTag } from "../../../shared/categories.ts"
+import { fromCents, fromCentsOrNull } from "../../../shared/money.ts"
 import { db } from "../../db.ts"
 import { orderWithinDays } from "../../finance/order.ts"
 import type { Hono } from "hono"
@@ -45,13 +53,19 @@ function paidBillTransactions(userId: string) {
   return new Set(rows.map((r) => r.id))
 }
 
-/** Every transaction the user owns (optionally one account), with merchant + category resolved. */
-export function loadTransactions(
-  userId: string,
-  opts: { accountId?: string; from?: string; id?: string } = {}
-): EnrichedTx[] {
+type TxFetchOpts = {
+  accountId?: string
+  from?: string
+  until?: string
+  id?: string
+  /** Keyset page boundary: only days strictly before this date. */
+  before?: string
+  limit?: number
+}
+
+function fetchTxRows(userId: string, opts: TxFetchOpts = {}): TxRow[] {
   const where = ["c.user_id = ?"]
-  const args: string[] = [userId]
+  const args: (string | number)[] = [userId]
   if (opts.id) {
     where.push("t.id = ?")
     args.push(opts.id)
@@ -64,7 +78,16 @@ export function loadTransactions(
     where.push("t.date >= ?")
     args.push(opts.from)
   }
-  const rows = db
+  if (opts.until) {
+    where.push("t.date <= ?")
+    args.push(opts.until)
+  }
+  if (opts.before) {
+    where.push("t.date < ?")
+    args.push(opts.before)
+  }
+  const lim = opts.limit ?? 50_000
+  return db
     .prepare(
       `SELECT t.id, t.account_id AS accountId, t.date, t.description, t.amount, t.running_balance AS runningBalance,
               t.pending, t.category_override AS categoryOverride, t.tax_tag AS taxTagRaw, t.note, t.created_at AS createdAt, c.institution
@@ -73,26 +96,44 @@ export function loadTransactions(
          JOIN bank_connection c ON c.id = a.connection_id
         WHERE ${where.join(" AND ")}
         ORDER BY t.date DESC, t.created_at DESC, t.rowid ASC
-        LIMIT 50000`
+        LIMIT ?`
     )
-    .all(...args) as unknown as TxRow[]
-  // Within a day: rows from a newer sync first, then each account's running balances settle the rest.
-  const ordered = orderWithinDays(rows)
+    .all(...args, lim + 1) as unknown as TxRow[]
+}
 
-  const rules = rulesFor(userId)
-  const taxRules = taxRulesFor(userId)
-  const billPayments = paidBillTransactions(userId)
-  const hasPaypal = Boolean(
-    db
-      .prepare(
-        `SELECT 1 FROM bank_connection WHERE user_id = ? AND institution = 'paypal' LIMIT 1`
-      )
-      .get(userId)
-  )
+type TxEnrichContext = {
+  rules: Map<string, string>
+  taxRules: Map<string, string>
+  billPayments: Set<string>
+  hasPaypal: boolean
+}
+
+function enrichContext(userId: string): TxEnrichContext {
+  return {
+    rules: rulesFor(userId),
+    taxRules: taxRulesFor(userId),
+    billPayments: paidBillTransactions(userId),
+    hasPaypal: Boolean(
+      db
+        .prepare(
+          `SELECT 1 FROM bank_connection WHERE user_id = ? AND institution = 'paypal' LIMIT 1`
+        )
+        .get(userId)
+    ),
+  }
+}
+
+function enrichRows(rows: TxRow[], ctx: TxEnrichContext): EnrichedTx[] {
+  const ordered = orderWithinDays(rows)
   return ordered.map(
-    ({ categoryOverride, taxTagRaw, pending, institution, ...t }) => {
+    ({ categoryOverride, taxTagRaw, pending, institution, ...row }) => {
+      const t = {
+        ...row,
+        amount: fromCents(row.amount),
+        runningBalance: fromCentsOrNull(row.runningBalance),
+      }
       const auto = classify(t.description, t.amount)
-      const rule = rules.get(auto.merchantKey)
+      const rule = ctx.rules.get(auto.merchantKey)
       let category = auto.category
       let categorySource: EnrichedTx["categorySource"] = "auto"
       if (isCategory(categoryOverride)) {
@@ -103,7 +144,7 @@ export function loadTransactions(
         categorySource = "rule"
       }
       const fundsPaypal =
-        hasPaypal &&
+        ctx.hasPaypal &&
         institution !== "paypal" &&
         t.amount < 0 &&
         categorySource !== "manual" &&
@@ -112,7 +153,7 @@ export function loadTransactions(
         category = "transfers"
         categorySource = "auto"
       }
-      const taxRule = taxRules.get(auto.merchantKey)
+      const taxRule = ctx.taxRules.get(auto.merchantKey)
       let taxTag: TaxTag | null = null
       let taxTagSource: EnrichedTx["taxTagSource"] = null
       if (isTaxTag(taxTagRaw)) {
@@ -121,7 +162,7 @@ export function loadTransactions(
       } else if (isTaxTag(taxRule)) {
         taxTag = taxRule
         taxTagSource = "rule"
-      } else if (billPayments.has(t.id)) {
+      } else if (ctx.billPayments.has(t.id)) {
         taxTag = "business"
         taxTagSource = "auto"
       }
@@ -140,13 +181,107 @@ export function loadTransactions(
   )
 }
 
+/** Every transaction the user owns (optionally one account), with merchant + category resolved. */
+export function loadTransactions(
+  userId: string,
+  opts: {
+    accountId?: string
+    from?: string
+    until?: string
+    id?: string
+    limit?: number
+  } = {}
+): EnrichedTx[] {
+  const rows = fetchTxRows(userId, opts)
+  return enrichRows(rows, enrichContext(userId))
+}
+
+/** `applyToMerchant` paths: ids with a manual override tagged to one merchant key. */
+function manualOverrideIdsForMerchant(
+  userId: string,
+  merchantKey: string,
+  column: "category_override" | "tax_tag"
+) {
+  const rows = db
+    .prepare(
+      `SELECT t.id, t.description, t.amount, t.category_override AS categoryOverride, t.tax_tag AS taxTagRaw
+         FROM bank_transaction t
+         JOIN bank_account a ON a.id = t.account_id
+         JOIN bank_connection c ON c.id = a.connection_id
+        WHERE c.user_id = ? AND t.${column} IS NOT NULL`
+    )
+    .all(userId) as {
+    id: string
+    description: string
+    amount: number
+    categoryOverride: string | null
+    taxTagRaw: string | null
+  }[]
+  return rows
+    .filter((r) => {
+      const key = classify(r.description, fromCents(r.amount)).merchantKey
+      if (key !== merchantKey) return false
+      if (column === "tax_tag") return isTaxTag(r.taxTagRaw)
+      return isCategory(r.categoryOverride)
+    })
+    .map((r) => r.id)
+}
+
+/** All transaction ids for one merchant (category clear path). */
+function idsForMerchant(userId: string, merchantKey: string) {
+  const rows = db
+    .prepare(
+      `SELECT t.id, t.description, t.amount
+         FROM bank_transaction t
+         JOIN bank_account a ON a.id = t.account_id
+         JOIN bank_connection c ON c.id = a.connection_id
+        WHERE c.user_id = ?`
+    )
+    .all(userId) as { id: string; description: string; amount: number }[]
+  return rows
+    .filter(
+      (r) =>
+        classify(r.description, fromCents(r.amount)).merchantKey === merchantKey
+    )
+    .map((r) => r.id)
+}
+
+const txListQuery = z.object({
+  from: isoDate.optional(),
+  until: isoDate.optional(),
+  limit: limit.optional(),
+  cursor: isoDate.optional(),
+})
+const idParam = z.object({ id: id })
+
 export function mountTransactions(finance: Hono<Vars>) {
-  finance.get("/transactions", (c) => {
-    const from = c.req.query("from")
+  finance.get("/transactions", validate("query", txListQuery), (c) => {
+    const q = c.req.valid("query")
+    const userId = c.var.user.id
+    const pageSize = q.limit ?? 100
+    const ctx = enrichContext(userId)
+    const filters = { from: q.from, until: q.until }
+    // Pages end on whole days so same-day ordering (running-balance chains) matches the full list.
+    // The cursor is the oldest day already sent; the next page starts the day before it.
+    const rows = fetchTxRows(userId, {
+      ...filters,
+      before: q.cursor,
+      limit: pageSize,
+    })
+    let page = rows
+    let nextCursor: string | null = null
+    if (rows.length > pageSize) {
+      const edge = rows[pageSize].date
+      page = [
+        ...rows.filter((r) => r.date > edge),
+        ...fetchTxRows(userId, { ...filters, from: edge, until: edge }),
+      ]
+      nextCursor = edge
+    }
+    const transactions = enrichRows(page, ctx)
     return c.json({
-      transactions: loadTransactions(c.var.user.id, {
-        from: from && /^\d{4}-\d{2}-\d{2}$/.test(from) ? from : undefined,
-      }),
+      transactions,
+      nextCursor,
       categories: CATEGORIES,
     })
   })
@@ -156,33 +291,30 @@ export function mountTransactions(finance: Hono<Vars>) {
     category: z.enum(CATEGORIES).nullable().optional(),
     /** Also file every transaction from this merchant under the category (now and in future syncs). */
     applyToMerchant: z.boolean().optional(),
-    note: z.string().max(500).nullable().optional(),
+    note: boundedString(500).nullable().optional(),
     /** Business / personal for the tax report; null clears it. */
     taxTag: z.enum(TAX_TAGS).nullable().optional(),
     /** Also tag every transaction from this merchant the same way (now and in future syncs). */
     applyTaxToMerchant: z.boolean().optional(),
   })
 
+  const bulkBody = z
+    .object({
+      ids: z.array(id).min(1).max(5000),
+      category: z.enum(CATEGORIES).nullable().optional(),
+      taxTag: z.enum(TAX_TAGS).nullable().optional(),
+    })
+    .refine(
+      (b) => (b.category !== undefined) !== (b.taxTag !== undefined),
+      "Send a category or a tax tag"
+    )
+
   /** Files several transactions under one category, or tags them for taxes (null resets either). */
-  finance.patch("/transactions/bulk", async (c) => {
-    const body = z
-      .object({
-        ids: z.array(z.string().min(1).max(80)).min(1).max(5000),
-        category: z.enum(CATEGORIES).nullable().optional(),
-        taxTag: z.enum(TAX_TAGS).nullable().optional(),
-      })
-      .refine(
-        (b) => (b.category !== undefined) !== (b.taxTag !== undefined),
-        "Send a category or a tax tag"
-      )
-      .safeParse(await c.req.json().catch(() => ({})))
-    if (!body.success) return c.json({ error: "Invalid request" }, 400)
-    const column =
-      body.data.category !== undefined ? "category_override" : "tax_tag"
+  finance.patch("/transactions/bulk", validate("json", bulkBody), async (c) => {
+    const body = c.req.valid("json")
+    const column = body.category !== undefined ? "category_override" : "tax_tag"
     const value =
-      body.data.category !== undefined
-        ? body.data.category
-        : (body.data.taxTag ?? null)
+      body.category !== undefined ? body.category : (body.taxTag ?? null)
     const update = db.prepare(
       `UPDATE bank_transaction SET ${column} = ?
       WHERE id = ? AND account_id IN (SELECT a.id FROM bank_account a JOIN bank_connection c ON c.id = a.connection_id WHERE c.user_id = ?)`
@@ -190,8 +322,8 @@ export function mountTransactions(finance: Hono<Vars>) {
     let updated = 0
     db.exec("BEGIN")
     try {
-      for (const id of new Set(body.data.ids))
-        updated += Number(update.run(value, id, c.var.user.id).changes)
+      for (const txId of new Set(body.ids))
+        updated += Number(update.run(value, txId, c.var.user.id).changes)
       db.exec("COMMIT")
     } catch (e) {
       db.exec("ROLLBACK")
@@ -200,96 +332,96 @@ export function mountTransactions(finance: Hono<Vars>) {
     return c.json({ updated })
   })
 
-  finance.patch("/transactions/:id", async (c) => {
-    const body = patchTx.safeParse(await c.req.json().catch(() => ({})))
-    if (!body.success) return c.json({ error: "Invalid request" }, 400)
-    const userId = c.var.user.id
-    const tx = db
-      .prepare(
-        `SELECT t.id, t.description, t.amount FROM bank_transaction t
+  finance.patch(
+    "/transactions/:id",
+    validate("param", idParam),
+    validate("json", patchTx),
+    async (c) => {
+      const body = c.req.valid("json")
+      const userId = c.var.user.id
+      const { id: txId } = c.req.valid("param")
+      const tx = db
+        .prepare(
+          `SELECT t.id, t.description, t.amount FROM bank_transaction t
          JOIN bank_account a ON a.id = t.account_id JOIN bank_connection c ON c.id = a.connection_id
         WHERE t.id = ? AND c.user_id = ?`
-      )
-      .get(c.req.param("id"), userId) as
-      | { id: string; description: string; amount: number }
-      | undefined
-    if (!tx) return c.json({ error: "Not found" }, 404)
-
-    const { category, applyToMerchant, note, taxTag, applyTaxToMerchant } =
-      body.data
-    if (note !== undefined)
-      db.prepare(`UPDATE bank_transaction SET note = ? WHERE id = ?`).run(
-        note?.trim() || null,
-        tx.id
-      )
-    if (taxTag !== undefined) {
-      if (applyTaxToMerchant) {
-        // Like categories: the rule carries the choice, so this merchant's own tags make way for it.
-        const key = classify(tx.description, tx.amount).merchantKey
-        if (taxTag === null)
-          db.prepare(
-            `DELETE FROM tax_rule WHERE user_id = ? AND merchant_key = ?`
-          ).run(userId, key)
-        else
-          db.prepare(
-            `INSERT INTO tax_rule (user_id, merchant_key, tag) VALUES (?, ?, ?)
-           ON CONFLICT (user_id, merchant_key) DO UPDATE SET tag = excluded.tag`
-          ).run(userId, key, taxTag)
-        const ids = loadTransactions(userId)
-          .filter((t) => t.merchantKey === key && t.taxTagSource === "manual")
-          .map((t) => t.id)
-        const clear = db.prepare(
-          `UPDATE bank_transaction SET tax_tag = NULL WHERE id = ?`
         )
-        db.exec("BEGIN")
-        try {
-          for (const id of ids) clear.run(id)
-          db.exec("COMMIT")
-        } catch (e) {
-          db.exec("ROLLBACK")
-          throw e
-        }
-      } else {
-        db.prepare(`UPDATE bank_transaction SET tax_tag = ? WHERE id = ?`).run(
-          taxTag,
+        .get(txId, userId) as
+        | { id: string; description: string; amount: number }
+        | undefined
+      if (!tx) return c.json({ error: "Not found" }, 404)
+
+      const { category, applyToMerchant, note, taxTag, applyTaxToMerchant } =
+        body
+      if (note !== undefined)
+        db.prepare(`UPDATE bank_transaction SET note = ? WHERE id = ?`).run(
+          note?.trim() || null,
           tx.id
         )
-      }
-    }
-    if (category !== undefined) {
-      const key = classify(tx.description, tx.amount).merchantKey
-      if (applyToMerchant) {
-        // The rule carries the choice; drop per-transaction overrides for that merchant so they follow it.
-        if (category === null)
+      if (taxTag !== undefined) {
+        if (applyTaxToMerchant) {
+          // Like categories: the rule carries the choice, so this merchant's own tags make way for it.
+          const key = classify(tx.description, tx.amount).merchantKey
+          if (taxTag === null)
+            db.prepare(
+              `DELETE FROM tax_rule WHERE user_id = ? AND merchant_key = ?`
+            ).run(userId, key)
+          else
+            db.prepare(
+              `INSERT INTO tax_rule (user_id, merchant_key, tag) VALUES (?, ?, ?)
+           ON CONFLICT (user_id, merchant_key) DO UPDATE SET tag = excluded.tag`
+            ).run(userId, key, taxTag)
+          const ids = manualOverrideIdsForMerchant(userId, key, "tax_tag")
+          const clear = db.prepare(
+            `UPDATE bank_transaction SET tax_tag = NULL WHERE id = ?`
+          )
+          db.exec("BEGIN")
+          try {
+            for (const rowId of ids) clear.run(rowId)
+            db.exec("COMMIT")
+          } catch (e) {
+            db.exec("ROLLBACK")
+            throw e
+          }
+        } else {
           db.prepare(
-            `DELETE FROM category_rule WHERE user_id = ? AND merchant_key = ?`
-          ).run(userId, key)
-        else
-          db.prepare(
-            `INSERT INTO category_rule (user_id, merchant_key, category) VALUES (?, ?, ?)
-           ON CONFLICT (user_id, merchant_key) DO UPDATE SET category = excluded.category`
-          ).run(userId, key, category)
-        const ids = loadTransactions(userId)
-          .filter((t) => t.merchantKey === key)
-          .map((t) => t.id)
-        const clear = db.prepare(
-          `UPDATE bank_transaction SET category_override = NULL WHERE id = ? AND category_override IS NOT NULL`
-        )
-        db.exec("BEGIN")
-        try {
-          for (const id of ids) clear.run(id)
-          db.exec("COMMIT")
-        } catch (e) {
-          db.exec("ROLLBACK")
-          throw e
+            `UPDATE bank_transaction SET tax_tag = ? WHERE id = ?`
+          ).run(taxTag, tx.id)
         }
-      } else {
-        db.prepare(
-          `UPDATE bank_transaction SET category_override = ? WHERE id = ?`
-        ).run(category, tx.id)
       }
+      if (category !== undefined) {
+        const key = classify(tx.description, tx.amount).merchantKey
+        if (applyToMerchant) {
+          // The rule carries the choice; drop per-transaction overrides for that merchant so they follow it.
+          if (category === null)
+            db.prepare(
+              `DELETE FROM category_rule WHERE user_id = ? AND merchant_key = ?`
+            ).run(userId, key)
+          else
+            db.prepare(
+              `INSERT INTO category_rule (user_id, merchant_key, category) VALUES (?, ?, ?)
+           ON CONFLICT (user_id, merchant_key) DO UPDATE SET category = excluded.category`
+            ).run(userId, key, category)
+          const ids = idsForMerchant(userId, key)
+          const clear = db.prepare(
+            `UPDATE bank_transaction SET category_override = NULL WHERE id = ? AND category_override IS NOT NULL`
+          )
+          db.exec("BEGIN")
+          try {
+            for (const rowId of ids) clear.run(rowId)
+            db.exec("COMMIT")
+          } catch (e) {
+            db.exec("ROLLBACK")
+            throw e
+          }
+        } else {
+          db.prepare(
+            `UPDATE bank_transaction SET category_override = ? WHERE id = ?`
+          ).run(category, tx.id)
+        }
+      }
+      const [updated] = loadTransactions(userId, { id: tx.id })
+      return c.json({ transaction: updated })
     }
-    const [updated] = loadTransactions(userId, { id: tx.id })
-    return c.json({ transaction: updated })
-  })
+  )
 }

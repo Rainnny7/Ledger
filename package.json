@@ -1,6 +1,6 @@
 {
   "name": "ledger",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -23,6 +23,7 @@
     "@tailwindcss/vite": "^4.3.5",
     "@takumi-rs/helpers": "^2.22.1",
     "@tanstack/react-query": "^5.108.4",
+    "@tanstack/react-virtual": "^3.14.28",
     "better-auth": "^1.7.27",
     "boneyard-js": "^1.10.0",
     "class-variance-authority": "^0.7.1",

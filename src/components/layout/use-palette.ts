@@ -237,7 +237,7 @@ export function usePalette({ onDone }: { onDone: () => void }) {
     const found = searchable
       .map((item) => ({ item, s: score(item, words) }))
       .filter((x) => x.s >= 0)
-      .sort(
+      .toSorted(
         (a, b) =>
           GROUP_ORDER.indexOf(a.item.group) -
             GROUP_ORDER.indexOf(b.item.group) || a.s - b.s

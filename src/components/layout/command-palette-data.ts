@@ -278,7 +278,7 @@ export function cachedTransactions() {
   }>({ queryKey: ["transactions"] })) {
     for (const t of data?.transactions ?? []) byId.set(t.id, t)
   }
-  return [...byId.values()].sort((a, b) => b.date.localeCompare(a.date))
+  return [...byId.values()].toSorted((a, b) => b.date.localeCompare(a.date))
 }
 
 export function merchantsOf(txs: Transaction[]) {
@@ -288,7 +288,7 @@ export function merchantsOf(txs: Transaction[]) {
     if (m) m.count++
     else byKey.set(t.merchantKey, { name: t.merchant, count: 1 })
   }
-  return [...byKey.values()].sort((a, b) => b.count - a.count)
+  return [...byKey.values()].toSorted((a, b) => b.count - a.count)
 }
 
 /** "42", "$42.50", "42,50" → 42 / 42.5; anything else → null. */

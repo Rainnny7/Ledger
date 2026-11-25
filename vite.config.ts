@@ -102,7 +102,36 @@ export default defineConfig(({ mode }) => {
             }),
           ]
         : []),
+      ...(env.VIZ_RAW === "1"
+        ? [
+            visualizer({
+              filename:
+                env.VIZ_RAW_OUT ??
+                "C:/Users/braydon/.claude/audit-ledger/stats.json",
+              template: "raw-data",
+              gzipSize: true,
+              open: false,
+            }),
+          ]
+        : []),
     ],
+    build: {
+      outDir: env.VIZ_OUT_DIR ?? "dist",
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (
+              id.includes("node_modules/react/") ||
+              id.includes("node_modules/react-dom/") ||
+              id.includes("node_modules/react-router") ||
+              id.includes("node_modules/scheduler/")
+            ) {
+              return "vendor-react"
+            }
+          },
+        },
+      },
+    },
     resolve: {
       alias: { "@": path.resolve(import.meta.dirname, "./src") },
       dedupe: ["react", "react-dom"],

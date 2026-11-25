@@ -18,11 +18,7 @@ import { authClient, useSession } from "./auth-client"
 import { demoMode } from "./demo"
 
 export { THEMES, type ThemeChoice, type ThemeId, themeMeta }
-
-/** For next-themes: each theme's name → the class it puts on <html>. */
-export const THEME_CLASSES: Record<string, string> = Object.fromEntries(
-  THEMES.map((t) => [t.id, t.className])
-)
+export { THEME_CLASSES } from "./theme-classes"
 
 const systemTheme = (): ThemeId =>
   matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
