@@ -9,15 +9,7 @@ import {
 	useIncludeOverdraft,
 } from "@/components/accounts/account-figures"
 import { BriefcaseBusiness, StickyNote } from "lucide-react"
-import {
-	type KeyboardEvent,
-	useCallback,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react"
-import { useWindowVirtualizer } from "@tanstack/react-virtual"
+import { type KeyboardEvent, useCallback, useMemo, useRef } from "react"
 import { CategoryBadge, CategoryIcon } from "@/components/transactions/tx-bits"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -50,15 +42,7 @@ type FlatRow =
 	| { kind: "day"; date: string; key: string }
 	| { kind: "tx"; date: string; transaction: Transaction; key: string }
 
-const DAY_ROW_PX = 34
-const TX_ROW_PX = 58
-
-function rowSize(row: FlatRow) {
-	return row.kind === "day" ? DAY_ROW_PX : TX_ROW_PX
-}
-
 /** Transactions grouped under a heading per day (newest first, as given). */
-/** Virtualized ledger table with optional multi-select and running balances. */
 export function TransactionsTable({
 	transactions,
 	accounts,
@@ -69,10 +53,6 @@ export function TransactionsTable({
 }: Props) {
 	const includeOverdraft = useIncludeOverdraft()
 	const tableRootRef = useRef<HTMLDivElement>(null)
-	const [scrollMargin, setScrollMargin] = useState(0)
-	useLayoutEffect(() => {
-		setScrollMargin(tableRootRef.current?.offsetTop ?? 0)
-	}, [transactions.length])
 	const byId = useMemo(
 		() => new Map(accounts.map((account) => [account.id, account])),
 		[accounts]
@@ -107,14 +87,6 @@ export function TransactionsTable({
 		[flat]
 	)
 
-	// eslint-disable-next-line react/incompatible-library -- TanStack Virtual manages window scroll.
-	const virtualizer = useWindowVirtualizer({
-		count: flat.length,
-		estimateSize: (index) => rowSize(flat[index]),
-		overscan: 12,
-		scrollMargin,
-	})
-
 	const focusTx = useCallback((id: string) => {
 		const element = tableRootRef.current?.querySelector<HTMLElement>(
 			`[data-tx-id="${id}"]`
@@ -142,10 +114,6 @@ export function TransactionsTable({
 	)
 
 	const cols = 3 + (showBalance ? 1 : 0) + (selection ? 1 : 0)
-	const items = virtualizer.getVirtualItems()
-	const padTop = items[0]?.start ?? 0
-	const padBottom =
-		virtualizer.getTotalSize() - (items[items.length - 1]?.end ?? 0)
 
 	return (
 		<div ref={tableRootRef}>
@@ -164,26 +132,11 @@ export function TransactionsTable({
 					</TableRow>
 				</TableHeader>
 				<TableBody>
-					{padTop > 0 && (
-						<TableRow
-							aria-hidden
-							className="border-0 hover:bg-transparent"
-						>
-							<TableCell
-								colSpan={cols}
-								className="p-0"
-								style={{ height: padTop }}
-							/>
-						</TableRow>
-					)}
-					{items.map((virtualItem) => {
-						const row = flat[virtualItem.index]
+					{flat.map((row) => {
 						if (row.kind === "day") {
 							return (
 								<TableRow
 									key={row.key}
-									data-index={virtualItem.index}
-									ref={virtualizer.measureElement}
 									className="border-b-0 bg-muted/40 hover:bg-muted/40"
 								>
 									<TableCell
@@ -219,8 +172,6 @@ export function TransactionsTable({
 								}
 							>
 								<TableRow
-									data-index={virtualItem.index}
-									ref={virtualizer.measureElement}
 									data-tx-id={rowTransaction.id}
 									tabIndex={0}
 									data-state={
@@ -321,7 +272,9 @@ export function TransactionsTable({
 											"text-right font-medium tabular-nums",
 											!showBalance && "pr-4",
 											rowTransaction.amount > 0 &&
-												"text-emerald-600 dark:text-emerald-400"
+												"text-emerald-600 dark:text-emerald-400",
+											rowTransaction.amount < 0 &&
+												"text-red-600 dark:text-red-400"
 										)}
 									>
 										<Money
@@ -346,18 +299,6 @@ export function TransactionsTable({
 							</WithContextMenu>
 						)
 					})}
-					{padBottom > 0 && (
-						<TableRow
-							aria-hidden
-							className="border-0 hover:bg-transparent"
-						>
-							<TableCell
-								colSpan={cols}
-								className="p-0"
-								style={{ height: padBottom }}
-							/>
-						</TableRow>
-					)}
 				</TableBody>
 			</Table>
 		</div>
