@@ -79,7 +79,7 @@ function AccountView({ account: a, transactions }: { account: Account; transacti
   const [query, setQuery] = useUrlState<string>('q', '')
   const [flow, setFlow] = useUrlState<Flow>('flow', 'all', ['all', 'in', 'out'])
   const [category, setCategory] = useUrlState<Category | 'all'>('category', 'all', ['all', ...CATEGORY_LIST])
-  const [period, setPeriod] = useUrlState<RangeKey>('period', 'all', ranges)
+  const [period, setPeriod] = useUrlState<RangeKey>('period', '90d', ranges)
   const [chartRange, setChartRange] = useUrlState<RangeKey>('chart', '90d', ranges)
   const [limit, setLimit] = useState(PAGE)
   const [selected, setSelected] = useState<Transaction | null>(null)
