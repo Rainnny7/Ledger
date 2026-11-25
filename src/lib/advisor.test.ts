@@ -109,6 +109,8 @@ test('a category running hot links to that category this month', () => {
   assert.equal(url.pathname, '/transactions')
   assert.equal(url.searchParams.get('category'), 'transport')
   assert.equal(url.searchParams.get('from'), '2026-11-01')
+  // The tip's figure is net of refunds, so the link keeps them in view for the totals to match.
+  assert.equal(url.searchParams.get('flow'), null)
 })
 
 test('warns about overdraft and a thin cushion, ahead of savings ideas', () => {

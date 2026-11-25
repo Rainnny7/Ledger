@@ -205,6 +205,11 @@ export function TransactionsPage() {
               <span className="flex items-center gap-1 text-muted-foreground tabular-nums">
                 <ArrowUpRight className="size-4" /> {formatMoney(totals.moneyOut)}
               </span>
+              {totals.moneyIn > 0 && totals.moneyOut > 0 && (
+                <span className="font-medium tabular-nums" title="Money in minus money out, so refunds cancel the charges they undo">
+                  Net {formatMoney(totals.moneyIn - totals.moneyOut, converter.home, { sign: true })}
+                </span>
+              )}
               <Button variant="outline" size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
                 <Download /> CSV
               </Button>

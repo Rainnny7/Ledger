@@ -281,7 +281,7 @@ function paceTips(ctx: Ctx): Tip[] {
       body:
         `You’ve spent ${money(h.spent)} on ${lower(h.c)} so far this month. By the ${ordinal(day)} you’d usually be at about ${about(h.usual)}` +
         (h.month > 0 ? `, and the rest of the month typically adds ${about(Math.max(0, h.month - h.usual))}, so you’re heading for roughly ${about(landing)} against a usual ${about(h.month)}.` : '.'),
-      action: { label: `See ${lower(h.c)} this month`, to: link('/transactions', { category: h.c, from: `${ctx.thisMonth}-01`, flow: 'out' }) },
+      action: { label: `See ${lower(h.c)} this month`, to: link('/transactions', { category: h.c, from: `${ctx.thisMonth}-01` }) },
       priority: 300 + Math.min(90, h.over / 10),
     })
   }
@@ -363,7 +363,7 @@ function habitTips(ctx: Ctx): Tip[] {
       title: `${m.name} is a regular stop`,
       body: `${plural(m.count, 'purchase')} at ${m.name} in the last 30 days, ${money(m.total)} in total. Small, frequent buys are the easiest to trim: cutting them by a third saves about ${about((m.total * scale) / 3)} a year.`,
       yearly: (m.total * scale) / 3,
-      action: { label: 'See purchases', to: link('/transactions', { merchants: key, from: addDays(ctx.today, -29), flow: 'out' }) },
+      action: { label: 'See purchases', to: link('/transactions', { merchants: key, from: addDays(ctx.today, -29) }) },
       priority: 180 + Math.min(60, m.total / 5),
     })
   }
