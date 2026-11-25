@@ -5,6 +5,7 @@ import { parseAsString, useQueryStates } from "nuqs"
 import { useParams } from "@tanstack/react-router"
 import { URL_OPTIONS } from "@/lib/url-state"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { publicApi } from "@/lib/api"
 import { PublicInvoiceShell } from "@/components/invoices/public/shell"
 import { PublicInvoiceView } from "@/components/invoices/public/invoice-view"
@@ -33,7 +34,7 @@ export function PublicInvoicePage() {
 			}
 			toast.success("Payment received. Thank you!")
 		},
-		onError: (captureError: Error) => toast.error(captureError.message),
+		onError: (captureError: Error) => toastError(captureError.message),
 	})
 	const { mutate: startCapture } = capture
 	const handled = useRef(false)

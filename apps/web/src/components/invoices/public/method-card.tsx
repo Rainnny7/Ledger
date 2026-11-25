@@ -1,6 +1,6 @@
 import { ExternalLink, Loader2, QrCode as QrIcon } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { QrCode } from "@/components/common/qr-code"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,7 +31,7 @@ export function PublicMethodCard({
 				const { url } = await publicApi.startPaypal(token)
 				window.location.assign(url)
 			} catch (error) {
-				toast.error((error as Error).message)
+				toastError((error as Error).message)
 				setStarting(false)
 			}
 		}

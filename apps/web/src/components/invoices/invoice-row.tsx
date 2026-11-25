@@ -15,6 +15,7 @@ import {
 	Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { notifyFailure } from "@/components/invoices/notify"
 import {
 	dueLabel,
@@ -37,7 +38,7 @@ import { demoMode } from "@/lib/demo"
 import { invoiceMoney } from "@/lib/invoice"
 
 const readOnly = () =>
-	toast.error("Demo mode is read-only. Exit demo mode to make changes.")
+	toastError("Demo mode is read-only. Exit demo mode to make changes.")
 
 /** React/UI entry: `InvoiceRow`. */
 export function InvoiceRow({

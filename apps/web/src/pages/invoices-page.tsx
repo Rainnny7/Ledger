@@ -25,6 +25,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card"
 import { Bones } from "@/components/common/bones"
+import { QueryError } from "@/components/ui/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { api, type Invoice, type PaymentMethod } from "@/lib/api"
@@ -53,7 +54,7 @@ async function removeMethod(m: PaymentMethod) {
 
 /** Sent invoices: status, filters, PDF links, and record payments. */
 export function InvoicesPage() {
-	const { data, loading, error } = useInvoices()
+	const { data, loading, error, reload } = useInvoices()
 	const navigate = useNavigate()
 	const [filter, setFilter] = useState<InvoiceFilter>("all")
 	const [sharing, setSharing] = useState<Invoice | null>(null)
@@ -100,8 +101,11 @@ export function InvoicesPage() {
 				<NewInvoiceLink>New invoice</NewInvoiceLink>
 			</div>
 
-			{error && (
-				<p className="text-sm text-destructive">{error.message}</p>
+			{error && !data && (
+				<QueryError
+					message={error.message}
+					onRetry={() => void reload()}
+				/>
 			)}
 
 			<Bones

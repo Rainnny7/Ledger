@@ -7,6 +7,7 @@ import {
 	startDraft,
 	type Draft,
 } from "@/components/invoices/editor/draft"
+import { QueryError } from "@/components/ui/query-error"
 import { useInvoices, useWork } from "@/lib/queries"
 
 /** Create or edit an invoice: line items, theme, PDF preview, and payment methods. */
@@ -14,14 +15,27 @@ export function InvoiceEditorPage() {
 	const { id } = useParams({ strict: false })
 	const [fromBill] = useQueryState("fromBill")
 	const [copy] = useQueryState("copy")
-	const { data, error } = useInvoices()
+	const { data, error, reload } = useInvoices()
 	const work = useWork()
 	const existing = id
 		? data?.invoices.find((invoice) => invoice.id === id)
 		: undefined
 
-	if (error) {
-		return <p className="text-sm text-destructive">{error.message}</p>
+	if (error && !data) {
+		return (
+			<QueryError
+				message={error.message}
+				onRetry={() => void reload()}
+			/>
+		)
+	}
+	if (work.error && !work.data && fromBill) {
+		return (
+			<QueryError
+				message={work.error.message}
+				onRetry={() => void work.reload()}
+			/>
+		)
 	}
 	if (!data || (fromBill && !work.data)) {
 		return <EditorSkeleton />

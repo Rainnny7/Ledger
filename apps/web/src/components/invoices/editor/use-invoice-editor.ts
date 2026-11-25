@@ -25,6 +25,7 @@ import { useQueryState } from "nuqs"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useBlocker, useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 
 /**
  * Invoice editor state, validation, save/send flow, and unsaved-navigation guards.
@@ -116,10 +117,10 @@ export function useInvoiceEditor({
 
 	async function save(then: "stay" | "send") {
 		if (demoMode) {
-			return toast.error(DEMO_READ_ONLY)
+			return toastError(DEMO_READ_ONLY)
 		}
 		if (!valid) {
-			return toast.error(
+			return toastError(
 				items.length
 					? "Every line item needs a description."
 					: "Add at least one line item."

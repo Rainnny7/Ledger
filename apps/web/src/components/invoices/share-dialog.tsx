@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import {
 	Dialog,
@@ -81,7 +82,7 @@ export function ShareDialog({
 
 	async function copyLink() {
 		if (!(await copyText(url))) {
-			return toast.error("Couldn’t copy to the clipboard")
+			return toastError("Couldn’t copy to the clipboard")
 		}
 		setCopiedId(inv.id)
 		toast.success("Link copied", {

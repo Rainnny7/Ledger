@@ -1,6 +1,7 @@
 import { Check, Copy } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import type { PublicInvoice } from "@/lib/api"
 import { partyLines } from "@/lib/invoice"
@@ -79,7 +80,7 @@ export function CopyButton({ value, what }: { value: string; what: string }) {
 			aria-label={`Copy ${what}`}
 			onClick={async () => {
 				if (!(await copyText(value))) {
-					return toast.error("Couldn’t copy to the clipboard")
+					return toastError("Couldn’t copy to the clipboard")
 				}
 				setDone(true)
 				toast.success(`${what} copied`)
