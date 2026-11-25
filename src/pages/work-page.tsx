@@ -8,6 +8,7 @@ import {
   Clock,
   Copy,
   ExternalLink,
+  FileText,
   HandCoins,
   Link2,
   MoreHorizontal,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react'
 import { AnimatedMoney } from '@/components/count-up'
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { accentStyle, tintStyle } from '@/components/goal-bits'
 import { Button } from '@/components/ui/button'
@@ -415,6 +417,9 @@ function InvoiceCard({ job: j, invoice: inv, onBill, onPay }: { job: WorkJob; in
                   <HandCoins /> Record payment
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem render={<Link to={`/invoices/new?fromBill=${inv.id}`} />}>
+                <FileText /> Make an invoice
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onBill(j, inv)}>
                 <Pencil /> Edit bill
               </DropdownMenuItem>
