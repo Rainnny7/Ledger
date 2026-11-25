@@ -1,2 +1,0 @@
-[test]
-preload = ["./server/test/setup.ts"]
