@@ -624,6 +624,7 @@ function useHomeCurrencySetup(user: { id: string } | undefined) {
 /** Theme picker in the account menu: follow the device, or one of the themes. */
 function ThemeMenu() {
 	const { choice, resolved, change } = useAppTheme()
+	const menuRef = useRef<HTMLDivElement>(null)
 	return (
 		<DropdownMenuSub>
 			<DropdownMenuSubTrigger>
@@ -632,11 +633,11 @@ function ThemeMenu() {
 					{choice === "system" ? "System" : resolved.label}
 				</span>
 			</DropdownMenuSubTrigger>
-			<DropdownMenuSubContent className="w-48">
+			<DropdownMenuSubContent ref={menuRef} className="w-48">
 				<DropdownMenuRadioGroup
 					value={choice}
 					onValueChange={(selected) =>
-						change(selected as ThemeChoice)
+						change(selected as ThemeChoice, menuRef.current)
 					}
 				>
 					<DropdownMenuRadioItem value="system">

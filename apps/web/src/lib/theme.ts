@@ -20,6 +20,9 @@ import { demoMode } from "./demo.ts"
 export { THEMES, type ThemeChoice, type ThemeId, themeMeta }
 export { THEME_CLASSES } from "./theme-classes.ts"
 
+const reducedMotion = () =>
+	window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+
 const systemTheme = (): ThemeId =>
 	matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
 
@@ -31,7 +34,10 @@ function applyClass(choice: ThemeChoice) {
 	root.classList.add(themeMeta(id)!.className)
 }
 
-/** The current theme and a setter. */
+/**
+ * The current theme and a setter. `from` is the element the change came from: where supported, the
+ * new theme spreads out from it in a circle instead of swapping in at once.
+ */
 export function useAppTheme() {
 	const { theme, resolvedTheme, setTheme } = useTheme()
 	const { data } = useSession()
@@ -40,14 +46,17 @@ export function useAppTheme() {
 
 	const signedIn = Boolean(data)
 	const change = useCallback(
-		(next: ThemeChoice) => {
+		async (next: ThemeChoice, from?: Element | null) => {
 			if (next === choice) {
 				return
 			}
-			flushSync(() => {
-				applyClass(next)
-				setTheme(next)
-			})
+			// Measured now: a menu item may be gone by the time the transition starts.
+			const origin = from?.getBoundingClientRect()
+			const apply = () =>
+				flushSync(() => {
+					applyClass(next)
+					setTheme(next)
+				})
 
 			// Saved to the account too (not in demo mode: that's a look around, not your account).
 			if (signedIn && !demoMode) {
@@ -61,6 +70,31 @@ export function useAppTheme() {
 						}
 					})
 			}
+
+			if (!origin || reducedMotion() || !("startViewTransition" in document)) {
+				apply()
+				return
+			}
+			await document.startViewTransition(apply).ready
+			const x = origin.left + origin.width / 2
+			const y = origin.top + origin.height / 2
+			const radius = Math.hypot(
+				Math.max(x, innerWidth - x),
+				Math.max(y, innerHeight - y)
+			)
+			document.documentElement.animate(
+				{
+					clipPath: [
+						`circle(0px at ${x}px ${y}px)`,
+						`circle(${radius}px at ${x}px ${y}px)`,
+					],
+				},
+				{
+					duration: 450,
+					easing: "ease-in-out",
+					pseudoElement: "::view-transition-new(root)",
+				}
+			)
 		},
 		[choice, signedIn, setTheme]
 	)
