@@ -1,0 +1,357 @@
+import {
+	type ReactNode,
+	useEffect,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react"
+import uPlot from "uplot"
+// oxlint-disable-next-line import/no-unassigned-import -- stylesheet side effect
+import "uplot/dist/uPlot.min.css"
+// oxlint-disable-next-line import/no-unassigned-import -- stylesheet side effect
+import "@/components/common/uplot-chart.css"
+import { Button } from "@/components/ui/button"
+import { cn } from "cn"
+
+/** Colours and font a chart needs, read from the active theme's CSS variables. */
+export type ChartTheme = {
+	/** Money in / balance hue. */
+	primary: string
+	/** Money out hue. */
+	secondary: string
+	/** Hairline grid colour. */
+	grid: string
+	/** Muted tick-label colour. */
+	label: string
+	/** Card surface, used to ring hover markers. */
+	surface: string
+	/** Font stack of the app, so canvas text matches the page. */
+	fontFamily: string
+}
+
+/** Everything `buildOptions` supplies; the wrapper owns size, hooks and legend. */
+export type ChartOptions = Omit<
+	uPlot.Options,
+	"width" | "height" | "hooks" | "legend"
+>
+
+/** One line of the hover tooltip. */
+export type TooltipRow = {
+	/** Dot colour (any CSS colour); omit for an indented, dot-less note row. */
+	color?: string
+	label: string
+	value: string
+}
+
+/** Content of the hover tooltip for one data index. */
+export type TooltipContent = { title: string; rows: TooltipRow[] }
+
+/** A legend entry rendered above the plot. */
+export type LegendItem = { color: string; label: string }
+
+/** Reads the chart palette from the CSS variables in effect on `element`. */
+function readChartTheme(element: HTMLElement): ChartTheme {
+	const styles = getComputedStyle(element)
+	const read = (name: string) => styles.getPropertyValue(name).trim()
+	return {
+		primary: read("--chart-1"),
+		secondary: read("--chart-2"),
+		grid: read("--border"),
+		label: read("--muted-foreground"),
+		surface: read("--card"),
+		fontFamily: styles.fontFamily,
+	}
+}
+
+/** Subscribes to theme switches, which next-themes performs by changing the class list on <html>. */
+function subscribeToThemeClass(onChange: () => void) {
+	const observer = new MutationObserver(onChange)
+	observer.observe(document.documentElement, {
+		attributes: true,
+		attributeFilter: ["class", "data-theme"],
+	})
+	return () => observer.disconnect()
+}
+
+const readThemeClass = () => document.documentElement.className
+
+/** Changes value whenever the app theme changes, so canvas colours get re-read. */
+function useThemeKey() {
+	return useSyncExternalStore(subscribeToThemeClass, readThemeClass, () => "")
+}
+
+const MINIMUM_ZOOM_WIDTH = 6
+const TOOLTIP_OFFSET = 14
+
+/**
+ * Thin React wrapper around uPlot. The chart is created once per `buildOptions`/theme change and
+ * destroyed on unmount; new `data` goes through `setData`; a ResizeObserver keeps it fitted to its
+ * box. It adds a cursor-following HTML tooltip, drag-to-zoom with a reset button, an optional
+ * hover band (for bar charts) and an accessible text summary.
+ *
+ * `buildOptions` must be referentially stable (memoise it) because a new function rebuilds the chart.
+ */
+export function UPlotChart({
+	buildOptions,
+	data,
+	renderTooltip,
+	hover,
+	ariaLabel,
+	legend,
+	className,
+}: {
+	/** Builds the uPlot config from the current theme (axes, scales, series). */
+	buildOptions: (theme: ChartTheme) => ChartOptions
+	data: uPlot.AlignedData
+	/** Tooltip content for a data index. */
+	renderTooltip: (index: number) => TooltipContent
+	/** "point" keeps the crosshair/markers the options configure; "band" shades the hovered slot. */
+	hover: "point" | "band"
+	/** Text summary read by screen readers in place of the canvas. */
+	ariaLabel: string
+	legend?: LegendItem[]
+	/** Sizing classes for the whole chart box, e.g. `h-64`. */
+	className?: string
+}) {
+	const themeKey = useThemeKey()
+	const hostRef = useRef<HTMLDivElement>(null)
+	const tooltipRef = useRef<HTMLDivElement>(null)
+	const chartRef = useRef<uPlot | null>(null)
+	const dataRef = useRef(data)
+	const fullRangeRef = useRef<[number, number] | null>(null)
+	const [hoverIndex, setHoverIndex] = useState<number | null>(null)
+	const [zoomed, setZoomed] = useState(false)
+
+	useEffect(() => {
+		dataRef.current = data
+	}, [data])
+
+	// The chart itself: rebuilt only when its config or the theme changes.
+	// themeKey is not read inside: a theme switch must rebuild the chart so it re-reads the CSS colours.
+	useEffect(() => {
+		const host = hostRef.current
+		if (!host) {
+			return
+		}
+		const options = buildOptions(readChartTheme(host))
+		let bandElement: HTMLDivElement | null = null
+		let lastIndex: number | null = null
+
+		const showHover = (chart: uPlot) => {
+			const index = chart.cursor.idx
+			const active =
+				index != null &&
+				(chart.cursor.left ?? -1) >= 0 &&
+				chart.select.width === 0
+			const nextIndex = active ? index : null
+			if (nextIndex !== lastIndex) {
+				lastIndex = nextIndex
+				setHoverIndex(nextIndex)
+			}
+			if (bandElement) {
+				bandElement.style.display = active ? "block" : "none"
+			}
+			if (!active) {
+				return
+			}
+			const positions = chart.data[0]
+			const anchorX = chart.valToPos(positions[index], "x")
+			if (bandElement) {
+				const slot =
+					positions.length > 1
+						? Math.abs(
+								chart.valToPos(positions[1], "x") -
+									chart.valToPos(positions[0], "x")
+							)
+						: chart.bbox.width / uPlot.pxRatio
+				bandElement.style.width = `${slot}px`
+				bandElement.style.left = `${anchorX - slot / 2}px`
+			}
+			const tooltip = tooltipRef.current
+			if (tooltip) {
+				const originX = anchorX + chart.over.offsetLeft
+				const flipped =
+					originX + TOOLTIP_OFFSET + tooltip.offsetWidth >
+					host.clientWidth
+				const positionX = flipped
+					? originX - TOOLTIP_OFFSET - tooltip.offsetWidth
+					: originX + TOOLTIP_OFFSET
+				const positionY = Math.max(
+					0,
+					Math.min(
+						(chart.cursor.top ?? 0) +
+							chart.over.offsetTop -
+							tooltip.offsetHeight / 2,
+						host.clientHeight - tooltip.offsetHeight
+					)
+				)
+				tooltip.style.transform = `translate(${Math.max(0, positionX)}px, ${positionY}px)`
+			}
+		}
+
+		const chart = new uPlot(
+			{
+				...options,
+				width: host.clientWidth,
+				height: host.clientHeight,
+				legend: { show: false },
+				cursor: {
+					...options.cursor,
+					drag: { x: true, y: false, setScale: false },
+				},
+				hooks: {
+					setCursor: [showHover],
+					setSelect: [
+						(selecting) => {
+							const { left, width } = selecting.select
+							if (width < MINIMUM_ZOOM_WIDTH) {
+								return
+							}
+							selecting.setSelect(
+								{ left: 0, top: 0, width: 0, height: 0 },
+								false
+							)
+							selecting.setScale("x", {
+								min: selecting.posToVal(left, "x"),
+								max: selecting.posToVal(left + width, "x"),
+							})
+							setZoomed(true)
+						},
+					],
+				},
+			},
+			dataRef.current,
+			host
+		)
+		chartRef.current = chart
+		fullRangeRef.current = [
+			chart.scales.x.min ?? 0,
+			chart.scales.x.max ?? 0,
+		]
+		// oxlint-disable-next-line react/set-state-in-effect -- a rebuilt chart starts unzoomed
+		setZoomed(false)
+		if (hover === "band") {
+			bandElement = document.createElement("div")
+			bandElement.className = "u-hover-band"
+			chart.over.appendChild(bandElement)
+		}
+
+		const observer = new ResizeObserver(() => {
+			if (
+				host.clientWidth !== chart.width ||
+				host.clientHeight !== chart.height
+			) {
+				chart.setSize({
+					width: host.clientWidth,
+					height: host.clientHeight,
+				})
+			}
+		})
+		observer.observe(host)
+
+		return () => {
+			observer.disconnect()
+			chart.destroy()
+			chartRef.current = null
+		}
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies
+	}, [buildOptions, themeKey, hover])
+
+	// New data goes through setData (which also resets zoom) instead of rebuilding.
+	useEffect(() => {
+		const chart = chartRef.current
+		if (!chart || chart.data === data) {
+			return
+		}
+		chart.setData(data)
+		fullRangeRef.current = [
+			chart.scales.x.min ?? 0,
+			chart.scales.x.max ?? 0,
+		]
+		// oxlint-disable-next-line react/set-state-in-effect -- new data resets the zoom window
+		setZoomed(false)
+	}, [data])
+
+	const resetZoom = () => {
+		const chart = chartRef.current
+		const fullRange = fullRangeRef.current
+		if (chart && fullRange) {
+			chart.setScale("x", { min: fullRange[0], max: fullRange[1] })
+		}
+		setZoomed(false)
+	}
+
+	const tooltip: TooltipContent | null =
+		hoverIndex == null ? null : renderTooltip(hoverIndex)
+
+	return (
+		<div className={cn("flex h-56 w-full flex-col", className)}>
+			{legend && (
+				<ul className="mb-2 flex shrink-0 justify-end gap-4 text-xs text-muted-foreground">
+					{legend.map((item) => (
+						<li
+							key={item.label}
+							className="flex items-center gap-1.5"
+						>
+							<span
+								className="size-2 rounded-full"
+								style={{ background: item.color }}
+							/>
+							{item.label}
+						</li>
+					))}
+				</ul>
+			)}
+			<div className="relative min-h-0 flex-1">
+				<div
+					ref={hostRef}
+					role="img"
+					aria-label={ariaLabel}
+					className="ledger-chart absolute inset-0 select-none"
+				/>
+				{zoomed && (
+					<Button
+						type="button"
+						variant="ghost"
+						size="xs"
+						className="absolute top-0 right-0 z-10"
+						onClick={resetZoom}
+					>
+						Reset zoom
+					</Button>
+				)}
+				<div
+					ref={tooltipRef}
+					aria-hidden="true"
+					className={cn(
+						"pointer-events-none absolute top-0 left-0 z-20 min-w-40 rounded-lg border bg-popover/95 px-3 py-2 text-xs text-popover-foreground opacity-0 shadow-lg backdrop-blur-sm transition-opacity duration-100",
+						tooltip && "opacity-100"
+					)}
+				>
+					{tooltip && <TooltipBody content={tooltip} />}
+				</div>
+			</div>
+		</div>
+	)
+}
+
+/** Title plus one row per series, with coloured dots and tabular numbers. */
+function TooltipBody({ content }: { content: TooltipContent }): ReactNode {
+	return (
+		<div className="grid gap-1.5">
+			<div className="font-medium">{content.title}</div>
+			{content.rows.map((row) => (
+				<div key={row.label} className="flex items-center gap-2">
+					<span
+						className="size-2 shrink-0 rounded-full"
+						style={{ background: row.color ?? "transparent" }}
+					/>
+					<span className="text-muted-foreground">{row.label}</span>
+					<span className="ml-auto pl-4 font-mono font-medium tabular-nums">
+						{row.value}
+					</span>
+				</div>
+			))}
+		</div>
+	)
+}

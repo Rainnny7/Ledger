@@ -1,0 +1,19 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"lib": ["ES2023", "DOM", "DOM.Iterable"],
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"types": ["vite/client", "bun"],
+		"allowArbitraryExtensions": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
+		"moduleDetection": "force",
+		"jsx": "react-jsx",
+		"paths": {
+			"@/*": ["./src/*"]
+		}
+	},
+	"include": ["src", "tests", "vite.config.ts"]
+}

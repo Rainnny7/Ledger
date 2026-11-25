@@ -1,0 +1,24 @@
+/* uPlot overrides: the chart draws its own tooltip, grid and legend, so only the cursor and selection are styled here. */
+.ledger-chart .u-legend {
+	display: none;
+}
+
+.ledger-chart .u-select {
+	background: color-mix(in srgb, var(--chart-1) 14%, transparent);
+	border-radius: 4px;
+}
+
+.ledger-chart .u-cursor-x {
+	border-right: 1px dashed
+		color-mix(in srgb, var(--muted-foreground) 55%, transparent) !important;
+}
+
+.ledger-chart .u-hover-band {
+	position: absolute;
+	top: 0;
+	height: 100%;
+	display: none;
+	pointer-events: none;
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--foreground) 6%, transparent);
+}
