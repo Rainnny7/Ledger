@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card"
 import { Bones } from "@/components/common/bones"
 import { Skeleton } from "@/components/ui/skeleton"
+import { QueryError } from "@/components/ui/query-error"
 import { formatMoney } from "@/lib/format"
 
 /** Personalized money tips from your recent spending and account health. */
@@ -23,6 +24,7 @@ export function AdvisorPage() {
 		hiddenTips,
 		loading,
 		error,
+		retry,
 		dismiss,
 		restore,
 	} = useAdvice()
@@ -46,8 +48,11 @@ export function AdvisorPage() {
 				</p>
 			</div>
 
-			{error ? (
-				<p className="text-sm text-destructive">{error.message}</p>
+			{error && !report ? (
+				<QueryError
+					message={error.message}
+					onRetry={() => void retry()}
+				/>
 			) : (
 				<Bones
 					name="advisor"

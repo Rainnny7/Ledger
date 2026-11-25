@@ -1,6 +1,7 @@
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import { CategoryIcon } from "@/components/transactions/tx-bits"
 import { Button } from "@/components/ui/button"
 import {
@@ -257,7 +258,7 @@ function BudgetDialog({
 
 	async function run(action: () => Promise<unknown>, message: string) {
 		if (demoMode) {
-			return toast.error(
+			return toastError(
 				"Demo mode is read-only. Exit demo mode to make changes."
 			)
 		}
@@ -267,7 +268,7 @@ function BudgetDialog({
 			toast.success(message)
 			onClose()
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		} finally {
 			setBusy(false)
 		}

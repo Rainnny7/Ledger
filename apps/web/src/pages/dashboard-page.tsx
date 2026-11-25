@@ -2,6 +2,7 @@ import { confirmDialog } from "@/lib/confirm"
 import { Plus } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 import {
 	overdraftAllowance,
 	signedBalance,
@@ -15,6 +16,7 @@ import { type RangeKey, rangeStart } from "@/lib/ranges"
 import { StatementUploadDialog } from "@/components/accounts/statement-upload-dialog"
 import { TransactionSheet } from "@/components/transactions/transaction-sheet"
 import { Button } from "@/components/ui/button"
+import { QueryError } from "@/components/ui/query-error"
 import { Bones } from "@/components/common/bones"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api, type Connection, type Transaction } from "@/lib/api"
@@ -56,7 +58,7 @@ async function removeConnection(c: Connection) {
 
 async function toggleInstant(c: Connection) {
 	if (demoMode) {
-		return toast.error(
+		return toastError(
 			"Demo mode is read-only. Exit demo mode to make changes."
 		)
 	}
@@ -72,7 +74,7 @@ async function toggleInstant(c: Connection) {
 			})
 		}
 	} catch (error) {
-		toast.error(
+		toastError(
 			error instanceof Error
 				? error.message
 				: "Could not change instant updates"
@@ -87,7 +89,7 @@ async function forgetCredentials(connection: Connection) {
 
 /** Home: balances, cash flow, budgets, and quick ways to connect or import. */
 export function DashboardPage() {
-	const { data, loading, error } = useOverview()
+	const { data, loading, error, reload } = useOverview()
 	const [range, setRange] = useState<RangeKey>("90d")
 	const txq = useDashboardTransactions(range)
 	const subq = useSubscriptions()
@@ -237,8 +239,11 @@ export function DashboardPage() {
 				</Button>
 			</div>
 
-			{error && (
-				<p className="text-sm text-destructive">{error.message}</p>
+			{error && !data && (
+				<QueryError
+					message={error.message}
+					onRetry={() => void reload()}
+				/>
 			)}
 
 			<Bones

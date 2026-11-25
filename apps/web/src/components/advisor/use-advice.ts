@@ -12,6 +12,7 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { useMemo, useSyncExternalStore } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/toast"
 
 // Demo mode is read-only on the server, so hidden tips live in this tab until it reloads.
 type Hidden = { id: string; until: string | null }[]
@@ -123,12 +124,12 @@ export function useAdvice() {
 					label: "Undo",
 					onClick: () =>
 						void undo().catch((error: Error) =>
-							toast.error(error.message)
+							toastError(error.message)
 						),
 				},
 			})
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		}
 	}
 
@@ -146,8 +147,18 @@ export function useAdvice() {
 			}
 			toast.success(id ? "Tip is back" : "Hidden tips are back")
 		} catch (error) {
-			toast.error((error as Error).message)
+			toastError((error as Error).message)
 		}
+	}
+
+	async function retry() {
+		await Promise.all([
+			overview.reload(),
+			txq.reload(),
+			subq.reload(),
+			goalq.reload(),
+			server.refetch(),
+		])
 	}
 
 	return {
@@ -156,7 +167,8 @@ export function useAdvice() {
 		hiddenCount,
 		hiddenTips,
 		loading: !ready,
-		error: overview.error ?? txq.error,
+		error: overview.error ?? txq.error ?? subq.error ?? goalq.error,
+		retry,
 		dismiss,
 		restore,
 	}
