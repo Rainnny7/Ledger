@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   QueryClient,
   useQuery,
   type UseQueryResult,
@@ -11,6 +12,7 @@ import {
   type Transaction,
 } from "@/lib/api"
 import { addDays, isoDate } from "@/lib/format"
+import { type RangeKey, rangeStart } from "@/lib/ranges"
 
 /**
  * One shared cache for all server data. Pages and the nav ask for the same keys, so a page load
@@ -144,20 +146,26 @@ export const useInvoices = () =>
 export const useBudgets = () =>
   view(useQuery({ queryKey: queryKeys.budgets, queryFn: api.budgets }))
 
-/** Dashboard window: enough history for every chart range (the 1-year view plus a month of slack). */
+/** Dashboard base window: the 1-year view plus a month of slack; longer ranges widen it. */
 export const DASHBOARD_FROM_DAYS = 400
 
 export function useTransactions(from: string | null) {
   return view(
     useQuery({
       queryKey: queryKeys.transactions(from),
+      placeholderData: keepPreviousData,
       queryFn: () => api.transactions(from ?? undefined),
     })
   )
 }
 
-export const useDashboardTransactions = () =>
-  useTransactions(addDays(isoDate(), -DASHBOARD_FROM_DAYS))
+/** The default window, widened to reach back as far as the selected chart range. */
+export function useDashboardTransactions(range: RangeKey = "1y") {
+  const base = addDays(isoDate(), -DASHBOARD_FROM_DAYS)
+  const start = rangeStart(range)
+  const from = range === "all" ? null : start && start < base ? start : base
+  return useTransactions(from)
+}
 
 export const useAccount = (id: string) =>
   view(

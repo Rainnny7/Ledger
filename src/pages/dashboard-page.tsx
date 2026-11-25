@@ -40,7 +40,8 @@ import { useNow } from "@/lib/use-now"
 
 export function DashboardPage() {
   const { data, loading, error } = useOverview()
-  const txq = useDashboardTransactions()
+  const [range, setRange] = useState<RangeKey>("90d")
+  const txq = useDashboardTransactions(range)
   const subq = useSubscriptions()
   const [dialog, setDialog] = useState<{
     open: boolean
@@ -54,7 +55,6 @@ export function DashboardPage() {
     open: boolean
     connectionId?: string
   }>({ open: false })
-  const [range, setRange] = useState<RangeKey>("90d")
   // From the command palette.
   useIntent("connect", () => setDialog({ open: true, connection: null }))
   useIntent("upload", () => setUpload({ open: true }))

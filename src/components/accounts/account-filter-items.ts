@@ -5,6 +5,9 @@ export const accountPeriodItems = [
   { value: "90d", label: "Last 90 days" },
   { value: "6m", label: "Last 6 months" },
   { value: "1y", label: "Last year" },
+  { value: "2y", label: "Last 2 years" },
+  { value: "3y", label: "Last 3 years" },
+  { value: "4y", label: "Last 4 years" },
   { value: "all", label: "All time" },
 ] as const
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { RANGES, type RangeKey, rangeStart } from "@/lib/ranges"
+import { rangeDays, rangeLabel, rangeStart, useRangeState } from "@/lib/ranges"
 import type { Category, Transaction } from "@/lib/api"
 import { CATEGORY_LIST } from "@/lib/categories"
 import { inHomeCurrency, useConverter } from "@/lib/currency"
@@ -22,11 +22,7 @@ export const INSIGHTS_PAGE_SIZE = 50
 export function useInsightsPage() {
   const overview = useOverview()
   const txq = useTransactions(null)
-  const [range, setRange] = useUrlState<RangeKey>(
-    "range",
-    "30d",
-    Object.keys(RANGES) as RangeKey[]
-  )
+  const [range, setRange] = useRangeState("range", "30d")
   const [categoryParam, setCategoryParam] = useUrlState<Category | "">(
     "category",
     "",
@@ -84,7 +80,7 @@ export function useInsightsPage() {
   }, [inPeriod, from])
 
   const previous = useMemo(() => {
-    const days = RANGES[range].days
+    const days = rangeDays(range)
     if (!days || !from) return null
     const prevFrom = addDays(from, -days)
     if (!all.length || all[all.length - 1].date > prevFrom) return null
@@ -92,7 +88,7 @@ export function useInsightsPage() {
     return {
       spent: totalSpent(txs),
       income: totalIncome(txs),
-      label: `vs previous ${RANGES[range].label}`,
+      label: `vs previous ${rangeLabel(range)}`,
     }
   }, [all, from, range])
 

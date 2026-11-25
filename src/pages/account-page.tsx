@@ -12,7 +12,7 @@ import {
 } from "@/components/accounts/account-figures"
 import { BalanceChart, CategoryBars } from "@/components/common/charts"
 import { RangePicker } from "@/components/common/range-picker"
-import { RANGES, type RangeKey, rangeStart } from "@/lib/ranges"
+import { RANGES, type RangeKey, rangeStart, useRangeState } from "@/lib/ranges"
 import { TransactionSheet } from "@/components/transactions/transaction-sheet"
 import {
   Card,
@@ -83,11 +83,7 @@ function AccountView({
     ["all", ...CATEGORY_LIST]
   )
   const [period, setPeriod] = useUrlState<RangeKey>("period", "90d", ranges)
-  const [chartRange, setChartRange] = useUrlState<RangeKey>(
-    "chart",
-    "90d",
-    ranges
-  )
+  const [chartRange, setChartRange] = useRangeState("chart", "90d")
   const [limit, setLimit] = useState(PAGE)
   const [selected, setSelected] = useState<Transaction | null>(null)
   const includeOverdraft = useIncludeOverdraft()
