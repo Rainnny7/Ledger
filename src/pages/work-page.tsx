@@ -189,18 +189,24 @@ export function WorkPage() {
             </div>
           )}
 
-          {active.map((j) => (
-            <JobSection key={j.id} job={j} {...actions} />
-          ))}
+          {active.length > 0 && (
+            <div className="grid items-start gap-4 grid-cols-[repeat(auto-fit,minmax(min(100%,30rem),1fr))]">
+              {active.map((j) => (
+                <JobSection key={j.id} job={j} {...actions} />
+              ))}
+            </div>
+          )}
 
           {sharedActive.length > 0 && (
             <section className="grid gap-4">
               <h2 className="flex items-center gap-2 text-sm font-semibold">
                 <Users className="size-4 text-primary" /> Shared with you
               </h2>
-              {sharedActive.map((j) => (
-                <JobSection key={j.id} job={j} {...actions} />
-              ))}
+              <div className="grid items-start gap-4 grid-cols-[repeat(auto-fit,minmax(min(100%,30rem),1fr))]">
+                {sharedActive.map((j) => (
+                  <JobSection key={j.id} job={j} {...actions} />
+                ))}
+              </div>
             </section>
           )}
 
@@ -215,7 +221,7 @@ export function WorkPage() {
                 Archived jobs ({archived.length})
               </button>
               {showArchived && (
-                <div className="grid gap-4 opacity-80 animate-in fade-in-0 duration-200">
+                <div className="grid items-start gap-4 grid-cols-[repeat(auto-fit,minmax(min(100%,30rem),1fr))] opacity-80 animate-in fade-in-0 duration-200">
                   {archived.map((j) => (
                     <JobSection key={j.id} job={j} {...actions} />
                   ))}
@@ -294,7 +300,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
 
   return (
     <WithContextMenu menu={!demoMode && menuItems}>
-    <Card className="gap-0">
+    <Card className="@container min-w-0 gap-0">
       <CardHeader className="flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl" style={tintStyle(j.color)}>
           <Briefcase className="size-5" />
@@ -382,7 +388,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
         )}
 
         {openBills.length > 0 && (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 @2xl:grid-cols-2">
             {openBills.map((inv) => (
               <InvoiceCard key={inv.id} job={j} invoice={inv} {...actions} />
             ))}
@@ -406,7 +412,7 @@ function JobSection({ job: j, ...actions }: { job: WorkJob } & JobActions) {
               Paid bills ({paidBills.length}) · <Money value={paidBills.reduce((s, i) => s + i.total, 0)} currency={j.currency} />
             </button>
             {showPaid && (
-              <div className="grid gap-3 md:grid-cols-2 animate-in fade-in-0 duration-200">
+              <div className="grid gap-3 @2xl:grid-cols-2 animate-in fade-in-0 duration-200">
                 {paidBills.map((inv) => (
                   <InvoiceCard key={inv.id} job={j} invoice={inv} {...actions} />
                 ))}
