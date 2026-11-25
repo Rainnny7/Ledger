@@ -203,6 +203,6 @@ Review release notes before auto-upgrading production; database migrations are f
 | Everyone logged out / saved bank passwords invalid | Usually a new or changed `APP_SECRET`. Restore `data/.secret` or the previous env value; otherwise re-enter bank credentials.                                        |
 | PayPal webhooks never arrive                       | `PUBLIC_URL` must be a reachable public `https://` URL; reverse proxy must forward to Ledger.                                                                        |
 | Rate limits wrong behind a proxy                   | Set `TRUST_PROXY=true` only when clients cannot bypass the proxy.                                                                                                    |
-| Update check never shows a release                 | GitHub must allow the request. Use `UPDATE_CHECK=false` to silence failures.                                   |
+| Update check never shows a release                 | GitHub must allow the request. Use `UPDATE_CHECK=false` to silence failures.                                                                                         |
 
 For app behaviour and bank connections, see the main [README](README.md).

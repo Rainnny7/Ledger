@@ -17,6 +17,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card"
+import { QueryError } from "@/components/ui/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import { BackUpDialog } from "@/components/admin/backup-dialog"
 import {
@@ -31,7 +32,8 @@ import { formatRelative, formatTimestamp } from "@/lib/format"
 export function BackupsCard() {
 	const backups = useQuery({
 		queryKey: backupsKey,
-		queryFn: () => adminFetch<{ backups: BackupInfo[]; kept: number }>("backups"),
+		queryFn: () =>
+			adminFetch<{ backups: BackupInfo[]; kept: number }>("backups"),
 	})
 	const list = backups.data?.backups ?? []
 	const [open, setOpen] = useState(false)
@@ -44,8 +46,8 @@ export function BackupsCard() {
 				</CardTitle>
 				<CardDescription>
 					A copy of the whole database is made every day; the most
-					recent {backups.data?.kept ?? ""} are kept. Download one to keep it somewhere else
-					too.
+					recent {backups.data?.kept ?? ""} are kept. Download one to
+					keep it somewhere else too.
 				</CardDescription>
 				<CardAction>
 					<Button size="sm" onClick={() => setOpen(true)}>
@@ -56,10 +58,11 @@ export function BackupsCard() {
 			<BackUpDialog open={open} onOpenChange={setOpen} />
 			<CardContent>
 				{backups.isPending && <Skeleton className="h-16 w-full" />}
-				{backups.error && (
-					<p className="text-sm text-destructive">
-						{backups.error.message}
-					</p>
+				{backups.error && !backups.data && (
+					<QueryError
+						message={backups.error.message}
+						onRetry={() => void backups.refetch()}
+					/>
 				)}
 				{backups.data && list.length === 0 && (
 					<p className="text-sm text-muted-foreground">
