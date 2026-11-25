@@ -63,7 +63,9 @@ export function TransactionSheetHistory({
 								className={cn(
 									"tabular-nums",
 									entry.amount > 0 &&
-										"text-emerald-600 dark:text-emerald-400"
+										"text-emerald-600 dark:text-emerald-400",
+									entry.amount < 0 &&
+										"text-red-600 dark:text-red-400"
 								)}
 							>
 								<Money

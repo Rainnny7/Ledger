@@ -108,7 +108,9 @@ export function TransactionSheet({
 										className={cn(
 											"text-3xl font-semibold tracking-tight tabular-nums",
 											transaction.amount > 0 &&
-												"text-emerald-600 dark:text-emerald-400"
+												"text-emerald-600 dark:text-emerald-400",
+											transaction.amount < 0 &&
+												"text-red-600 dark:text-red-400"
 										)}
 									>
 										<Money

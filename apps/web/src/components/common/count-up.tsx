@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from "react"
-import { ForeignMoney } from "@/components/common/money"
+import { ForeignMoney, negativeMoneyClass } from "@/components/common/money"
 import { formatMoney, getDisplayCurrency } from "@/lib/format"
 import { cn } from "cn"
 
@@ -87,7 +87,7 @@ export function AnimatedMoney({
 			<CountUp
 				value={value}
 				format={(amount) => formatMoney(amount, currency, { sign })}
-				className={className}
+				className={negativeMoneyClass(value, className)}
 			/>
 		</ForeignMoney>
 	)

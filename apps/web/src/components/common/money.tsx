@@ -17,6 +17,16 @@ const rateFormat = new Intl.NumberFormat("en-CA", {
 	maximumSignificantDigits: 5,
 })
 
+/** Negative figures are red everywhere, mirroring the green used for positive ones; an explicit colour in `className` wins. */
+export function negativeMoneyClass(
+	value: number | null | undefined,
+	className?: string
+) {
+	return value !== null && value !== undefined && value < 0
+		? cn("text-red-600 dark:text-red-400", className)
+		: className
+}
+
 /**
  * Wraps a figure in a foreign currency so hovering it shows what it comes to in the person's own
  * currency, with the rate used. Figures already in their currency are left as they are.
@@ -136,7 +146,7 @@ export function Money({
 			value={value}
 			currency={cur}
 			sign={sign}
-			className={className}
+			className={negativeMoneyClass(value, className)}
 		>
 			{formatMoney(value, cur, { sign })}
 		</ForeignMoney>
