@@ -1,14 +1,14 @@
+import { LinkMenuItems, WithContextMenu } from "@/components/app-context-menu";
 import { Brand } from "@/components/brand";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { BriefcaseBusinessIcon } from "@/components/icons/briefcase-business";
 import { ChartPieIcon } from "@/components/icons/chart-pie";
 import { FileTextIcon } from "@/components/icons/file-text";
 import { LogoutIcon } from "@/components/icons/logout";
-import { MoonIcon } from "@/components/icons/moon";
 import { RefreshCWIcon } from "@/components/icons/refresh-cw";
 import { RocketIcon } from "@/components/icons/rocket";
 import { SettingsIcon } from "@/components/icons/settings";
 import { ShieldCheckIcon } from "@/components/icons/shield-check";
-import { SunIcon } from "@/components/icons/sun";
 import {
   type AnimatedIconHandle,
   useAnimatedIcon,
@@ -44,7 +44,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { MonitorPlay, X } from "lucide-react";
-import { useTheme } from "next-themes";
 import {
   type ForwardRefExoticComponent,
   type RefAttributes,
@@ -90,7 +89,11 @@ function NavItem({
   active: boolean;
 }) {
   const icon = useAnimatedIcon<HTMLAnchorElement>();
+  const navigate = useNavigate();
   return (
+    <WithContextMenu
+      menu={<LinkMenuItems to={to} label={`Go to ${label}`} onOpen={() => void navigate(to)} />}
+    >
     <NavLink
       to={to}
       aria-label={count !== null ? `${label} (${count})` : label}
@@ -113,6 +116,7 @@ function NavItem({
         </Badge>
       )}
     </NavLink>
+    </WithContextMenu>
   );
 }
 
@@ -135,24 +139,6 @@ function MenuItem({
     >
       <Icon ref={icon.ref} size={16} className="flex shrink-0" /> {children}
     </DropdownMenuItem>
-  );
-}
-
-function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
-  const icon = useAnimatedIcon<HTMLButtonElement>();
-  const dark = resolvedTheme === "dark";
-  const Icon = dark ? SunIcon : MoonIcon;
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      aria-label="Toggle theme"
-      {...icon.handlers}
-      onClick={() => setTheme(dark ? "light" : "dark")}
-    >
-      <Icon key={String(dark)} ref={icon.ref} size={16} className="flex" />
-    </Button>
   );
 }
 

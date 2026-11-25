@@ -4,6 +4,8 @@ import { lazy, type ReactNode, Suspense } from 'react'
 import { ThemeProvider } from 'next-themes'
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
 import { AppShell } from '@/components/app-shell'
+import { ConfirmHost } from '@/components/confirm-dialog'
+import { useNoNativeContextMenu } from '@/components/app-context-menu'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useSession } from '@/lib/auth-client'
@@ -75,6 +77,7 @@ function GuestOnly() {
 }
 
 export default function App() {
+  useNoNativeContextMenu()
   return (
     <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
@@ -111,6 +114,7 @@ export default function App() {
         </Routes>
       </BrowserRouter>
       </TooltipProvider>
+      <ConfirmHost />
       <Toaster richColors position="top-center" />
     </ThemeProvider>
     </QueryClientProvider>
