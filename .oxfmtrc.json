@@ -1,27 +1,28 @@
 {
-  "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "endOfLine": "lf",
-  "semi": false,
-  "singleQuote": false,
-  "tabWidth": 2,
-  "trailingComma": "es5",
-  "printWidth": 80,
-  "sortTailwindcss": {
-    "stylesheet": "./src/index.css",
-    "functions": ["cn", "cva"]
-  },
-  "ignorePatterns": [
-    "dist",
-    "node_modules",
-    ".turbo",
-    ".output",
-    ".nitro",
-    ".tanstack",
-    ".vinxi",
-    "coverage",
-    "routeTree.gen.ts",
-    "data",
-    "bun.lock",
-    "src/bones"
-  ]
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"endOfLine": "lf",
+	"semi": false,
+	"singleQuote": false,
+	"useTabs": true,
+	"tabWidth": 4,
+	"trailingComma": "es5",
+	"printWidth": 80,
+	"sortTailwindcss": {
+		"stylesheet": "./src/index.css",
+		"functions": ["cn", "cva"]
+	},
+	"ignorePatterns": [
+		"dist",
+		"node_modules",
+		".turbo",
+		".output",
+		".nitro",
+		".tanstack",
+		".vinxi",
+		"coverage",
+		"routeTree.gen.ts",
+		"data",
+		"bun.lock",
+		"src/bones"
+	]
 }

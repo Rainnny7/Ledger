@@ -81,7 +81,7 @@ For GitLab CI, `--warning-exit-code 123` returns `123` for non-blocking warnings
 - Run from the repo root on Windows/Git Bash: `npx -y react-doctor@latest . --verbose` (or `--scope changed` for a regression check).
 - After fixing findings, also run `bun run format`, `bun run typecheck`, `bun run lint` and `bun test server src`, since react-doctor doesn't type-check.
 - Findings left alone on purpose (don't "fix" them):
-  - `no-array-index-key` in the PDF line items and chart tooltips: those lists never reorder.
-  - Sequential `await` in loops under `server/`: each bank sync holds a browser open, and PayPal pages depend on the previous page.
-  - The invoice preview `<iframe>` without `sandbox`: any sandbox stops the browser PDF viewer from showing it.
-  - `autoFocus` on the command palette search box.
+    - `no-array-index-key` in the PDF line items and chart tooltips: those lists never reorder.
+    - Sequential `await` in loops under `server/`: each bank sync holds a browser open, and PayPal pages depend on the previous page.
+    - The invoice preview `<iframe>` without `sandbox`: any sandbox stops the browser PDF viewer from showing it.
+    - `autoFocus` on the command palette search box.

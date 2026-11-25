@@ -1,160 +1,165 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta
-      name="theme-color"
-      content="#111013"
-      media="(prefers-color-scheme: dark)"
-    />
-    <meta
-      name="theme-color"
-      content="#fbfaf9"
-      media="(prefers-color-scheme: light)"
-    />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ledger</title>
-    <!-- %THEME_BOOT% -->
-    <style>
-      /*
+	<head>
+		<meta charset="UTF-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta
+			name="theme-color"
+			content="#111013"
+			media="(prefers-color-scheme: dark)"
+		/>
+		<meta
+			name="theme-color"
+			content="#fbfaf9"
+			media="(prefers-color-scheme: light)"
+		/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Ledger</title>
+		<!-- %THEME_BOOT% -->
+		<style>
+			/*
        * The full-page loader (src/components/layout/app-loader.tsx). It lives here so it styles the copy in
        * #root below, which shows until the app's code has loaded. Every animation is a fraction of one
        * 3.2s loop and starts at --loader-phase, so the app's own copy picks up where this one is.
        */
-      .app-loader {
-        --loader-phase: 0ms;
-        position: fixed;
-        inset: 0;
-        z-index: 5;
-        display: grid;
-        place-items: center;
-        pointer-events: none;
-        /* The app's page colour (bg-muted/40 over the background). Before the stylesheet loads the
+			.app-loader {
+				--loader-phase: 0ms;
+				position: fixed;
+				inset: 0;
+				z-index: 5;
+				display: grid;
+				place-items: center;
+				pointer-events: none;
+				/* The app's page colour (bg-muted/40 over the background). Before the stylesheet loads the
            variables don't exist, this is invalid, and the theme colour index.html set shows instead. */
-        background: color-mix(in oklab, var(--muted) 40%, var(--background));
-      }
-      /* Inside the app the header stays on top of it. */
-      .app-loader-in-page {
-        z-index: 20;
-      }
-      .app-loader-delayed {
-        animation: app-loader-in 300ms ease-out both;
-      }
-      .app-loader-mark {
-        position: relative;
-        display: grid;
-        place-items: center;
-        width: 56px;
-        height: 56px;
-        border-radius: 16px;
-        background: linear-gradient(
-          135deg,
-          #f9b27c 0%,
-          #f17aa6 55%,
-          #9d7cf0 100%
-        );
-        animation: app-loader-float 3200ms ease-in-out var(--loader-phase)
-          infinite;
-      }
-      .app-loader-mark svg {
-        width: 30px;
-        height: 30px;
-        overflow: visible;
-        fill: none;
-        stroke: #fff;
-        stroke-width: 2.25;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-      /* The columns draw upward one after another, hold, then clear for the next loop. */
-      .app-loader-col {
-        stroke-dasharray: 7 8;
-        animation: app-loader-col 1600ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
-      }
-      .app-loader-col:nth-of-type(2) {
-        animation-delay: var(--loader-phase);
-      }
-      .app-loader-col:nth-of-type(3) {
-        animation-delay: calc(var(--loader-phase) + 90ms);
-      }
-      .app-loader-col:nth-of-type(4) {
-        animation-delay: calc(var(--loader-phase) + 180ms);
-      }
-      .app-loader-col:nth-of-type(5) {
-        animation-delay: calc(var(--loader-phase) + 270ms);
-      }
-      .app-loader-roof {
-        animation: app-loader-roof 1600ms cubic-bezier(0.65, 0, 0.35, 1)
-          var(--loader-phase) infinite;
-      }
-      .app-loader-base {
-        opacity: 0.9;
-      }
-      @keyframes app-loader-in {
-        from {
-          opacity: 0;
-        }
-      }
-      @keyframes app-loader-float {
-        50% {
-          transform: translateY(-3px);
-        }
-      }
-      @keyframes app-loader-col {
-        0% {
-          stroke-dashoffset: 7;
-        }
-        35%,
-        75% {
-          stroke-dashoffset: 0;
-        }
-        100% {
-          stroke-dashoffset: -7;
-        }
-      }
-      @keyframes app-loader-roof {
-        0% {
-          transform: translateY(-4px);
-          opacity: 0;
-        }
-        30%,
-        80% {
-          transform: none;
-          opacity: 1;
-        }
-        100% {
-          transform: translateY(-2px);
-          opacity: 0;
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .app-loader *,
-        .app-loader *::before {
-          animation: none !important;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="root">
-      <!-- Shown until the app loads; React swaps in the same loader (src/components/layout/app-loader.tsx). -->
-      <div class="app-loader" role="status" aria-label="Loading">
-        <div class="app-loader-mark">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              class="app-loader-roof"
-              d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z"
-            />
-            <path class="app-loader-col" d="M6 18v-7" />
-            <path class="app-loader-col" d="M10 18v-7" />
-            <path class="app-loader-col" d="M14 18v-7" />
-            <path class="app-loader-col" d="M18 18v-7" />
-            <path class="app-loader-base" d="M3 22h18" />
-          </svg>
-        </div>
-      </div>
-    </div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+				background: color-mix(
+					in oklab,
+					var(--muted) 40%,
+					var(--background)
+				);
+			}
+			/* Inside the app the header stays on top of it. */
+			.app-loader-in-page {
+				z-index: 20;
+			}
+			.app-loader-delayed {
+				animation: app-loader-in 300ms ease-out both;
+			}
+			.app-loader-mark {
+				position: relative;
+				display: grid;
+				place-items: center;
+				width: 56px;
+				height: 56px;
+				border-radius: 16px;
+				background: linear-gradient(
+					135deg,
+					#f9b27c 0%,
+					#f17aa6 55%,
+					#9d7cf0 100%
+				);
+				animation: app-loader-float 3200ms ease-in-out
+					var(--loader-phase) infinite;
+			}
+			.app-loader-mark svg {
+				width: 30px;
+				height: 30px;
+				overflow: visible;
+				fill: none;
+				stroke: #fff;
+				stroke-width: 2.25;
+				stroke-linecap: round;
+				stroke-linejoin: round;
+			}
+			/* The columns draw upward one after another, hold, then clear for the next loop. */
+			.app-loader-col {
+				stroke-dasharray: 7 8;
+				animation: app-loader-col 1600ms cubic-bezier(0.65, 0, 0.35, 1)
+					infinite;
+			}
+			.app-loader-col:nth-of-type(2) {
+				animation-delay: var(--loader-phase);
+			}
+			.app-loader-col:nth-of-type(3) {
+				animation-delay: calc(var(--loader-phase) + 90ms);
+			}
+			.app-loader-col:nth-of-type(4) {
+				animation-delay: calc(var(--loader-phase) + 180ms);
+			}
+			.app-loader-col:nth-of-type(5) {
+				animation-delay: calc(var(--loader-phase) + 270ms);
+			}
+			.app-loader-roof {
+				animation: app-loader-roof 1600ms cubic-bezier(0.65, 0, 0.35, 1)
+					var(--loader-phase) infinite;
+			}
+			.app-loader-base {
+				opacity: 0.9;
+			}
+			@keyframes app-loader-in {
+				from {
+					opacity: 0;
+				}
+			}
+			@keyframes app-loader-float {
+				50% {
+					transform: translateY(-3px);
+				}
+			}
+			@keyframes app-loader-col {
+				0% {
+					stroke-dashoffset: 7;
+				}
+				35%,
+				75% {
+					stroke-dashoffset: 0;
+				}
+				100% {
+					stroke-dashoffset: -7;
+				}
+			}
+			@keyframes app-loader-roof {
+				0% {
+					transform: translateY(-4px);
+					opacity: 0;
+				}
+				30%,
+				80% {
+					transform: none;
+					opacity: 1;
+				}
+				100% {
+					transform: translateY(-2px);
+					opacity: 0;
+				}
+			}
+			@media (prefers-reduced-motion: reduce) {
+				.app-loader *,
+				.app-loader *::before {
+					animation: none !important;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div id="root">
+			<!-- Shown until the app loads; React swaps in the same loader (src/components/layout/app-loader.tsx). -->
+			<div class="app-loader" role="status" aria-label="Loading">
+				<div class="app-loader-mark">
+					<svg viewBox="0 0 24 24" aria-hidden="true">
+						<path
+							class="app-loader-roof"
+							d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z"
+						/>
+						<path class="app-loader-col" d="M6 18v-7" />
+						<path class="app-loader-col" d="M10 18v-7" />
+						<path class="app-loader-col" d="M14 18v-7" />
+						<path class="app-loader-col" d="M18 18v-7" />
+						<path class="app-loader-base" d="M3 22h18" />
+					</svg>
+				</div>
+			</div>
+		</div>
+		<script type="module" src="/src/main.tsx"></script>
+	</body>
 </html>
