@@ -11,7 +11,7 @@ import {
 	sumMoney,
 	toCents,
 	toCentsOrNull,
-} from "./money.ts"
+} from "../src/money.ts"
 
 test("toCents rounds half away from zero and strips float noise", () => {
 	assert.equal(toCents(1.005), 101)
