@@ -54,9 +54,25 @@ import {
   type ForwardRefExoticComponent,
   type RefAttributes,
   useEffect,
+  useLayoutEffect,
   useRef,
 } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
+
+/** Clicking a link to the page you're already on takes you back to its top. */
+function scrollUpIfHere(to: string, pathname: string) {
+  if (to === pathname) window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/** Every new page starts at the top (the browser would otherwise keep, or restore, the old scroll). */
+function useScrollTopOnPageChange(pathname: string) {
+  useEffect(() => {
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+  }, []);
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+}
 
 type AnimatedIcon = ForwardRefExoticComponent<
   { size?: number; className?: string } & RefAttributes<AnimatedIconHandle>
@@ -99,9 +115,11 @@ function NavItem({
 }) {
   const icon = useAnimatedIcon<HTMLAnchorElement>();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const link = (
     <NavLink
       to={to}
+      onClick={() => scrollUpIfHere(to, pathname)}
       aria-label={count !== null ? `${label} (${count})` : label}
       aria-current={active ? "page" : undefined}
       {...icon.handlers}
@@ -304,6 +322,7 @@ export function AppShell() {
   const { pathname } = useLocation();
   const counts = useNavCounts();
   useRouteTitle(pathname);
+  useScrollTopOnPageChange(pathname);
   const user = demoMode ? DEMO_IDENTITY : data?.user;
   const isAdmin = data?.user.role === "admin";
   const initials = (user?.name || user?.email || "?")
@@ -337,7 +356,12 @@ export function AppShell() {
       )}
       <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-[90rem] items-center gap-2 px-3 sm:gap-4 sm:px-4">
-          <Link to="/" aria-label="Ledger home" className="shrink-0">
+          <Link
+            to="/"
+            aria-label="Ledger home"
+            className="shrink-0"
+            onClick={() => scrollUpIfHere("/", pathname)}
+          >
             <Brand hideNameOnMobile />
           </Link>
           <ScrollNav pathname={pathname}>
