@@ -127,7 +127,8 @@ export interface Subscription extends Shared {
   monthly: number
   lastCharge: { date: string; amount: number } | null
   /** accountId is null on someone else's subscription. */
-  payments: { id: string; date: string; amount: number; accountId: string | null; pending: boolean }[]
+  /** Charges counted toward it, newest first; `linked` ones were counted by hand. */
+  payments: { id: string; date: string; amount: number; accountId: string | null; pending: boolean; linked: boolean }[]
 }
 
 export interface RecurringSuggestion {
@@ -612,6 +613,9 @@ export const api = {
   updateSubscription: (id: string, body: Partial<SubscriptionInput>) =>
     request<{ ok: true }>(`/subscriptions/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteSubscription: (id: string) => request<{ ok: true }>(`/subscriptions/${id}`, { method: 'DELETE' }),
+  /** Count a transaction toward a subscription, or (null) stop counting it by hand. */
+  linkSubscriptionCharge: (transactionId: string, subscriptionId: string | null) =>
+    request<{ ok: true }>(`/subscriptions/charges/${transactionId}`, { method: 'PUT', body: JSON.stringify({ subscriptionId }) }),
   dismissSuggestion: (id: string) =>
     request<{ ok: true }>('/subscriptions/dismiss', { method: 'POST', body: JSON.stringify({ id }) }),
 

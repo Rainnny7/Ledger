@@ -80,6 +80,16 @@ export function migrateAppTables() {
     );
     CREATE INDEX IF NOT EXISTS idx_sub_user ON subscription(user_id);
 
+    -- Charges the user counted toward a subscription by hand (a different merchant name or price
+    -- than the plan's). Each one also teaches the plan to match later charges like it.
+    CREATE TABLE IF NOT EXISTS subscription_charge (
+      subscription_id TEXT NOT NULL REFERENCES subscription(id) ON DELETE CASCADE,
+      transaction_id TEXT NOT NULL REFERENCES bank_transaction(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (subscription_id, transaction_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_sub_charge_tx ON subscription_charge(transaction_id);
+
     -- Merchants the user dismissed from "detected recurring charges".
     CREATE TABLE IF NOT EXISTS subscription_dismissed (
       user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,

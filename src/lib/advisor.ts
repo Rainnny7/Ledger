@@ -514,7 +514,7 @@ function subscriptionTips(ctx: Ctx, subs: OwnSub[], yearlyTotal: number): Tip[] 
   // Tracked as active, but the charges stopped.
   for (const x of subs) {
     const { s } = x
-    if (!s.merchantKey || !s.lastCharge || chargesPerYear(s.cycle) < 1) continue
+    if (!s.lastCharge || chargesPerYear(s.cycle) < 1) continue
     const expected = shiftCycle(s.lastCharge.date, s.cycle, 1)
     if (addDays(expected, 10) >= ctx.today) continue
     tips.push({
@@ -522,7 +522,7 @@ function subscriptionTips(ctx: Ctx, subs: OwnSub[], yearlyTotal: number): Tip[] 
       kind: 'info',
       area: 'subscriptions',
       title: `No charge from ${s.name} since ${formatShortDate(s.lastCharge.date)}`,
-      body: `The next one was due around ${formatShortDate(expected)}. If you cancelled it, pause it so your totals stay right; if the price changed, update the amount so Ledger can match the charges again.`,
+      body: `The next one was due around ${formatShortDate(expected)}. If you cancelled it, pause it so your totals stay right; if the price changed, update the amount, or open the latest charge and count it toward this subscription, so Ledger can match the charges again.`,
       action: open(s),
       priority: 150,
     })

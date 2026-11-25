@@ -1,6 +1,6 @@
 import { Money } from '@/components/money'
 import { shownRunningBalance, useIncludeOverdraft } from '@/components/account-figures'
-import { Loader2, Repeat, Target } from 'lucide-react'
+import { Check, Loader2, Plus, Repeat, Target, Unlink } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
@@ -10,7 +10,15 @@ import { CategoryIcon, RelativeDate } from '@/components/tx-bits'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
@@ -20,7 +28,7 @@ import { type Account, api, type Category, type Transaction } from '@/lib/api'
 import { CATEGORY_LIST, CATEGORY_META } from '@/lib/categories'
 import { demoMode } from '@/lib/demo'
 import { formatLongDate, formatTimestamp } from '@/lib/format'
-import { useGoals } from '@/lib/queries'
+import { queryClient, useGoals, useSubscriptions } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
 const categoryItems = CATEGORY_LIST.map((c) => ({ value: c, label: CATEGORY_META[c].label }))
@@ -47,6 +55,11 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
   const openGoals = (goals ?? []).filter((g) => !g.archived && g.status !== 'done' && g.access !== 'view')
   // Goals this transaction has already been counted toward.
   const linked = t ? (goals ?? []).filter((g) => g.payments.some((p) => p.transactionId === t.id)) : []
+  // Your own subscriptions (a shared one's charges live in its owner's bank), and the one this charge counts toward.
+  const subs = (useSubscriptions().data?.subscriptions ?? []).filter((s) => s.access === 'owner')
+  const countedFor = t ? subs.find((s) => s.payments.some((p) => p.id === t.id)) : undefined
+  const countedByHand = !!t && !!countedFor?.payments.find((p) => p.id === t.id)?.linked
+  const [linking, setLinking] = useState(false)
 
   const [filledFrom, setFilledFrom] = useState<typeof t>(null)
   if (t !== filledFrom) {
@@ -91,6 +104,34 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
     } finally {
       setSaving(false)
     }
+  }
+
+  async function countToward(subscriptionId: string | null) {
+    if (!t) return
+    setLinking(true)
+    try {
+      await api.linkSubscriptionCharge(t.id, subscriptionId)
+      // Subscriptions, the Advisor and the nav badges all read from these.
+      await queryClient.invalidateQueries()
+      const name = subs.find((s) => s.id === subscriptionId)?.name
+      toast.success(name ? `Counted toward ${name}` : 'No longer counted toward a subscription')
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setLinking(false)
+    }
+  }
+
+  function trackAsSubscription() {
+    if (!t) return
+    const q = new URLSearchParams({
+      track: t.merchantKey,
+      name: t.merchant,
+      amount: String(Math.abs(t.amount)),
+      date: t.date,
+      account: t.accountId,
+    })
+    navigate(`/subscriptions?${q}`)
   }
 
   async function resetCategory() {
@@ -206,23 +247,45 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
                   {saving && <Loader2 className="animate-spin" />}
                   Save changes
                 </Button>
-                {t.amount < 0 && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      const q = new URLSearchParams({
-                        track: t.merchantKey,
-                        name: t.merchant,
-                        amount: String(Math.abs(t.amount)),
-                        date: t.date,
-                        account: t.accountId,
-                      })
-                      navigate(`/subscriptions?${q}`)
-                    }}
-                  >
-                    <Repeat /> Track as subscription
-                  </Button>
-                )}
+                {t.amount < 0 &&
+                  (demoMode || subs.length === 0 ? (
+                    <Button variant="outline" onClick={trackAsSubscription}>
+                      <Repeat /> Track as subscription
+                    </Button>
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger render={<Button variant="outline" disabled={linking} />}>
+                        {linking ? <Loader2 className="animate-spin" /> : <Repeat />} Subscription
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="max-h-80 min-w-60">
+                        <DropdownMenuGroup>
+                          <DropdownMenuLabel>Count this charge toward…</DropdownMenuLabel>
+                          {subs.map((s) => (
+                            <DropdownMenuItem
+                              key={s.id}
+                              disabled={countedFor?.id === s.id && countedByHand}
+                              onClick={() => void countToward(s.id)}
+                            >
+                              <Check className={cn(countedFor?.id !== s.id && 'invisible')} />
+                              <span className="flex-1 truncate">{s.name}</span>
+                              <span className="text-xs text-muted-foreground tabular-nums">
+                                <Money value={s.amount} currency={s.currency} />
+                              </span>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator />
+                        {countedByHand && (
+                          <DropdownMenuItem onClick={() => void countToward(null)}>
+                            <Unlink /> Stop counting it
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={trackAsSubscription}>
+                          <Plus /> Track as a new subscription
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ))}
                 {!demoMode && openGoals.length > 0 && (
                   <DropdownMenu>
                     <DropdownMenuTrigger render={<Button variant="outline" />}>
@@ -245,10 +308,20 @@ export function TransactionSheet({ transaction: t, transactions, accounts, onClo
                   </DropdownMenu>
                 )}
               </div>
-              {linked.length > 0 && (
-                <p className="-mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Target className="size-3.5" /> Counted toward {linked.map((g) => g.name).join(', ')}
-                </p>
+              {(linked.length > 0 || countedFor) && (
+                <div className="-mt-2 grid gap-1 text-xs text-muted-foreground">
+                  {countedFor && (
+                    <p className="flex items-center gap-1.5">
+                      <Repeat className="size-3.5" /> A charge for {countedFor.name}
+                      {countedByHand ? ' (counted by hand)' : ''}
+                    </p>
+                  )}
+                  {linked.length > 0 && (
+                    <p className="flex items-center gap-1.5">
+                      <Target className="size-3.5" /> Counted toward {linked.map((g) => g.name).join(', ')}
+                    </p>
+                  )}
+                </div>
               )}
 
               <Separator />

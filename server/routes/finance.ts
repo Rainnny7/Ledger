@@ -276,14 +276,51 @@ function loadSubscriptions(userId: string, only?: string) {
 
   const sameAmount = (a: number, b: number) => Math.abs(Math.abs(a) - Math.abs(b)) <= amountTolerance(Math.abs(b))
 
+  // Charges counted toward a plan by hand, and which plan each one belongs to.
+  const linkRows = db
+    .prepare(
+      `SELECT sc.subscription_id AS subId, sc.transaction_id AS txId
+         FROM subscription_charge sc JOIN subscription s ON s.id = sc.subscription_id
+        WHERE s.user_id = ?`,
+    )
+    .all(userId) as { subId: string; txId: string }[]
+  const linkedTo = new Map(linkRows.map((r) => [r.txId, r.subId]))
+  const txById = new Map(txs.map((t) => [t.id, t]))
+  /** What each plan's charges look like: its own merchant and price, plus every charge linked to it. */
+  const patternsOf = (s: SubRow) => {
+    const out: { merchantKey: string; amount: number }[] = []
+    if (s.merchantKey) out.push({ merchantKey: s.merchantKey, amount: s.amount })
+    for (const r of linkRows) {
+      const t = r.subId === s.id ? txById.get(r.txId) : undefined
+      if (t) out.push({ merchantKey: t.merchantKey, amount: t.amount })
+    }
+    return out
+  }
+
   const subscriptions = subs.map((s) => {
-    // Charges from the merchant at roughly this plan's price (one merchant can bill several plans).
-    const payments = s.merchantKey
-      ? txs
-          .filter((t) => t.merchantKey === s.merchantKey && t.amount < 0 && !t.fundsPaypal && sameAmount(t.amount, s.amount))
-          .slice(0, 24)
-          .map((t) => ({ id: t.id, date: t.date, amount: t.amount, accountId: t.accountId as string | null, pending: t.pending }))
-      : []
+    // Charges from the merchant at roughly this plan's price (one merchant can bill several plans),
+    // or like one linked to it, plus the linked ones themselves. A charge linked to another plan is
+    // that plan's alone.
+    const patterns = patternsOf(s)
+    const payments = txs
+      .filter((t) => {
+        const owner = linkedTo.get(t.id)
+        if (owner) return owner === s.id
+        return (
+          t.amount < 0 &&
+          !t.fundsPaypal &&
+          patterns.some((p) => p.merchantKey === t.merchantKey && sameAmount(t.amount, p.amount))
+        )
+      })
+      .slice(0, 24)
+      .map((t) => ({
+        id: t.id,
+        date: t.date,
+        amount: t.amount,
+        accountId: t.accountId as string | null,
+        pending: t.pending,
+        linked: linkedTo.get(t.id) === s.id,
+      }))
     const last = payments[0]
     // A charge on/after the anchor proves that cycle was billed; the next one follows it.
     const base = last && last.date >= s.anchorDate ? addCycle(last.date, s.cycle) : s.anchorDate
@@ -310,11 +347,13 @@ function loadSubscriptions(userId: string, only?: string) {
     today,
   )
   const isTracked = (g: (typeof guesses)[number]) =>
-    subs.some(
-      (s) =>
-        s.merchantKey === g.merchantKey &&
-        // With a single guess for the merchant, any tracked plan covers it (its price may have moved).
-        (sameAmount(g.amount, s.amount) || guesses.filter((o) => o.merchantKey === g.merchantKey).length === 1),
+    subs.some((s) =>
+      patternsOf(s).some(
+        (p) =>
+          p.merchantKey === g.merchantKey &&
+          // With a single guess for the merchant, any tracked plan covers it (its price may have moved).
+          (sameAmount(g.amount, p.amount) || guesses.filter((o) => o.merchantKey === g.merchantKey).length === 1),
+      ),
     )
   const suggestions = guesses
     .filter((g) => !isTracked(g) && !dismissed.has(g.id) && !dismissed.has(g.merchantKey))
@@ -431,6 +470,33 @@ finance.delete('/subscriptions/:id', (c) => {
   const r = db.prepare(`DELETE FROM subscription WHERE id = ? AND user_id = ?`).run(c.req.param('id'), c.var.user.id)
   if (r.changes) forgetItem('subscription', c.req.param('id'))
   return r.changes ? c.json({ ok: true }) : c.json({ error: 'Not found' }, 404)
+})
+
+/** Count a charge toward one of your subscriptions (moving it off any other), or stop counting it. */
+finance.put('/subscriptions/charges/:txId', async (c) => {
+  const userId = c.var.user.id
+  const body = z.object({ subscriptionId: z.string().min(1).nullable() }).safeParse(await c.req.json().catch(() => ({})))
+  if (!body.success) return c.json({ error: 'Invalid request' }, 400)
+  const tx = loadTransactions(userId, { id: c.req.param('txId') })[0]
+  if (!tx) return c.json({ error: 'Not found' }, 404)
+  const { subscriptionId } = body.data
+  let sub: { id: string; merchantKey: string | null } | undefined
+  if (subscriptionId) {
+    sub = db
+      .prepare(`SELECT id, merchant_key AS merchantKey FROM subscription WHERE id = ? AND user_id = ?`)
+      .get(subscriptionId, userId) as typeof sub
+    if (!sub) return c.json({ error: 'Unknown subscription' }, 400)
+  }
+  db.prepare(
+    `DELETE FROM subscription_charge WHERE transaction_id = ?
+       AND subscription_id IN (SELECT id FROM subscription WHERE user_id = ?)`,
+  ).run(tx.id, userId)
+  if (sub) {
+    db.prepare(`INSERT INTO subscription_charge (subscription_id, transaction_id) VALUES (?, ?)`).run(sub.id, tx.id)
+    // A plan that wasn't tied to a merchant yet follows this one from now on.
+    if (!sub.merchantKey) db.prepare(`UPDATE subscription SET merchant_key = ? WHERE id = ?`).run(tx.merchantKey, sub.id)
+  }
+  return c.json({ ok: true })
 })
 
 finance.post('/subscriptions/dismiss', async (c) => {
