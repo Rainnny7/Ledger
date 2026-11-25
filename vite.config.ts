@@ -12,6 +12,7 @@ export default defineConfig({
   optimizeDeps: { entries: ['index.html'] },
   server: {
     port: 5173,
+    host: '0.0.0.0',
     proxy: { '/api': 'http://localhost:3001' },
     // The API writes the SQLite db and sessions here; never watch or reload on them.
     watch: { ignored: ['**/data/**', '**/server/**'] },
