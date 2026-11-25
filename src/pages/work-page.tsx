@@ -38,6 +38,34 @@ import { formatDuration } from "@/lib/work"
 
 const fail = (err: unknown) => toast.error((err as Error).message)
 
+async function removeJob(j: WorkJob) {
+  const bills = j.invoices.length
+  if (
+    !(await confirmDialog({
+      title: `Delete ${j.name}?`,
+      description: `${bills ? `Its ${bills} bill${bills === 1 ? "" : "s"}, payments and logged hours are deleted too. ` : ""}This can’t be undone.`,
+      action: "Delete job",
+      destructive: true,
+    }))
+  )
+    return
+  try {
+    await api.deleteWorkJob(j.id)
+    toast.success(`${j.name} deleted`)
+  } catch (err) {
+    fail(err)
+  }
+}
+
+async function setJobArchived(j: WorkJob, value: boolean) {
+  try {
+    await api.updateWorkJob(j.id, { archived: value })
+    toast.success(value ? `${j.name} archived` : `${j.name} restored`)
+  } catch (err) {
+    fail(err)
+  }
+}
+
 export function WorkPage() {
   const { data, loading, error } = useWork()
   const [jobDialog, setJobDialog] = useState<{ job: WorkJob | null } | null>(
@@ -76,11 +104,11 @@ export function WorkPage() {
   const paidThisMonth = fx.sum(monthPayments)
   const next = active
     .filter((j) => j.nextPaymentDate)
-    .sort((a, b) => a.nextPaymentDate!.localeCompare(b.nextPaymentDate!))[0]
+    .toSorted((a, b) => a.nextPaymentDate!.localeCompare(b.nextPaymentDate!))[0]
   const payoff = active
     .map((j) => j.payoffDate)
     .filter((d): d is string => !!d)
-    .sort()
+    .toSorted()
     .at(-1)
 
   useIntent("new", () => setJobDialog({ job: null }))
@@ -93,40 +121,12 @@ export function WorkPage() {
     !!data
   )
 
-  async function removeJob(j: WorkJob) {
-    const bills = j.invoices.length
-    if (
-      !(await confirmDialog({
-        title: `Delete ${j.name}?`,
-        description: `${bills ? `Its ${bills} bill${bills === 1 ? "" : "s"}, payments and logged hours are deleted too. ` : ""}This can’t be undone.`,
-        action: "Delete job",
-        destructive: true,
-      }))
-    )
-      return
-    try {
-      await api.deleteWorkJob(j.id)
-      toast.success(`${j.name} deleted`)
-    } catch (err) {
-      fail(err)
-    }
-  }
-
-  async function setArchived(j: WorkJob, value: boolean) {
-    try {
-      await api.updateWorkJob(j.id, { archived: value })
-      toast.success(value ? `${j.name} archived` : `${j.name} restored`)
-    } catch (err) {
-      fail(err)
-    }
-  }
-
   const actions: JobActions = {
     onLog: (j) => setLogging(j),
     onBill: (j, invoice) => setBilling({ job: j, invoice }),
     onPay: (j, invoiceId) => setPaying({ job: j, invoiceId }),
     onEdit: (j) => setJobDialog({ job: j }),
-    onArchive: (j) => void setArchived(j, !j.archived),
+    onArchive: (j) => void setJobArchived(j, !j.archived),
     onDelete: (j) => void removeJob(j),
     onShare: (j) => setSharing(j),
     onLeave: (j) => void leaveShared("job", j),

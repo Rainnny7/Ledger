@@ -32,6 +32,24 @@ import { isoDate } from "@/lib/format"
 import { useNow } from "@/lib/use-now"
 import { useInvoices } from "@/lib/queries"
 
+async function removeMethod(m: PaymentMethod) {
+  if (
+    !(await confirmDialog({
+      title: `Remove ${m.label}?`,
+      description: "Invoices that offered it stop showing it.",
+      action: "Remove",
+      destructive: true,
+    }))
+  )
+    return
+  try {
+    await api.deletePaymentMethod(m.id)
+    toast.success(`${m.label} removed`)
+  } catch (err) {
+    fail(err)
+  }
+}
+
 export function InvoicesPage() {
   const { data, loading, error } = useInvoices()
   const navigate = useNavigate()
@@ -63,24 +81,6 @@ export function InvoicesPage() {
 
   const live = (inv: Invoice | null) =>
     inv ? (invoices.find((i) => i.id === inv.id) ?? inv) : null
-
-  async function removeMethod(m: PaymentMethod) {
-    if (
-      !(await confirmDialog({
-        title: `Remove ${m.label}?`,
-        description: "Invoices that offered it stop showing it.",
-        action: "Remove",
-        destructive: true,
-      }))
-    )
-      return
-    try {
-      await api.deletePaymentMethod(m.id)
-      toast.success(`${m.label} removed`)
-    } catch (err) {
-      fail(err)
-    }
-  }
 
   return (
     <div className="grid gap-8">
