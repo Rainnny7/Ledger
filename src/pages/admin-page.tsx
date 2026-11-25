@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { isStrongPassword, PASSWORD_MAX, PasswordRules } from '@/components/password-rules'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -407,11 +408,18 @@ function UsersCard() {
   )
 }
 
-/** 14 easy-to-read characters (no 0/O or 1/l/I), for passwords you'll read out or paste to someone. */
+/**
+ * 14 easy-to-read characters (no 0/O or 1/l/I), for passwords you'll read out or paste to someone.
+ * Drawn until it meets the password rules (a symbol and a digit usually turn up in a draw or two).
+ */
 function randomPassword() {
-  const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  const bytes = crypto.getRandomValues(new Uint8Array(14))
-  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('')
+  const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!#$%&*+-=?@'
+  for (;;) {
+    // Bytes past the last whole multiple of the alphabet's length are dropped, so every character is equally likely.
+    const bytes = Array.from(crypto.getRandomValues(new Uint8Array(32))).filter((b) => b < 256 - (256 % alphabet.length))
+    const pw = bytes.slice(0, 14).map((b) => alphabet[b % alphabet.length]).join('')
+    if (pw.length === 14 && isStrongPassword(pw)) return pw
+  }
 }
 
 /** A visible password field with a generator: it's temporary, and you'll need to pass it on. */
@@ -437,8 +445,8 @@ function TemporaryPasswordField({
           autoComplete="off"
           spellCheck={false}
           className="font-mono"
-          minLength={8}
-          maxLength={128}
+          maxLength={PASSWORD_MAX}
+          aria-describedby={`${id}-rules`}
           autoFocus={autoFocus}
           required
         />
@@ -446,9 +454,9 @@ function TemporaryPasswordField({
           <Dices /> Generate
         </Button>
       </div>
+      <PasswordRules id={`${id}-rules`} password={value} />
       <p className="text-xs text-muted-foreground">
-        At least 8 characters. They have to choose their own password the next time they sign in, and this one stops working
-        then.
+        They have to choose their own password the next time they sign in, and this one stops working then.
       </p>
     </div>
   )
@@ -552,7 +560,7 @@ function AddUserDialog({
             <Button type="button" variant="outline" onClick={close}>
               Cancel
             </Button>
-            <Button type="submit" disabled={busy || !name.trim() || !email.trim() || password.length < 8}>
+            <Button type="submit" disabled={busy || !name.trim() || !email.trim() || !isStrongPassword(password)}>
               {busy && <Loader2 className="animate-spin" />} Add user
             </Button>
           </DialogFooter>
@@ -611,7 +619,7 @@ function SetPasswordDialog({ user, onClose, onDone }: { user: AdminUser | null; 
             <Button type="button" variant="outline" onClick={close}>
               Cancel
             </Button>
-            <Button type="submit" disabled={busy || password.length < 8}>
+            <Button type="submit" disabled={busy || !isStrongPassword(password)}>
               {busy && <Loader2 className="animate-spin" />} Set temporary password
             </Button>
           </DialogFooter>

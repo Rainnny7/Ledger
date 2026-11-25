@@ -8,7 +8,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { isStrongPassword, PASSWORD_MAX, PasswordRules } from '@/components/password-rules'
 import { signIn, signUp, twoFactor } from '@/lib/auth-client'
+import { detectCurrency } from '@/lib/currency'
+import { usePageTitle } from '@/lib/page-title'
 import { useAppConfig } from '@/lib/queries'
 
 export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
@@ -26,6 +29,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const isRegister = mode === 'register'
   const config = useAppConfig()
   const closed = isRegister && config?.registrationOpen === false
+  usePageTitle(needsCode ? 'Two-factor sign-in' : isRegister ? 'Create account' : 'Sign in')
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -41,7 +45,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       return
     }
     const { data, error } = isRegister
-      ? await signUp.email({ name, email, password })
+      ? await signUp.email({ name, email, password, currency: detectCurrency() })
       : await signIn.email({ email, password })
     setPending(false)
     if (error) setError(error.message ?? 'Something went wrong')
@@ -137,9 +141,11 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete={isRegister ? 'new-password' : 'current-password'}
-                minLength={8}
+                maxLength={PASSWORD_MAX}
+                aria-describedby={isRegister ? 'password-rules' : undefined}
                 required
               />
+              {isRegister && <PasswordRules id="password-rules" password={password} className="sm:grid-cols-1" />}
             </div>
             </>
             )}
@@ -150,7 +156,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 <AlertDescription>Sign-ups are closed on this server. Ask its admin to add you, or sign in if you already have an account.</AlertDescription>
               </Alert>
             )}
-            <Button type="submit" className="w-full" disabled={pending || closed}>
+            <Button type="submit" className="w-full" disabled={pending || closed || (isRegister && !needsCode && !isStrongPassword(password))}>
               {pending && <Loader2 className="animate-spin" />}
               {needsCode ? 'Verify' : isRegister ? 'Create account' : 'Sign in'}
             </Button>

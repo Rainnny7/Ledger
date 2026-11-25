@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { authClient, signOut, useSession } from '@/lib/auth-client'
+import { usePageTitle } from '@/lib/page-title'
+import { isStrongPassword, PASSWORD_MAX, PasswordRules } from '@/components/password-rules'
 
 /**
  * Shown instead of the app while the account is on a temporary password an admin set. The person
@@ -21,10 +23,11 @@ export function ChangeTemporaryPasswordPage() {
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  usePageTitle('Choose a password')
 
   const mismatch = confirm.length > 0 && next !== confirm
   const sameAsOld = next.length > 0 && next === current
-  const valid = current.length > 0 && next.length >= 8 && next === confirm && !sameAsOld
+  const valid = current.length > 0 && isStrongPassword(next) && next === confirm && !sameAsOld
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -87,13 +90,15 @@ export function ChangeTemporaryPasswordPage() {
                 value={next}
                 onChange={(e) => setNext(e.target.value)}
                 aria-invalid={sameAsOld || undefined}
-                minLength={8}
-                maxLength={128}
+                aria-describedby="new-password-rules"
+                maxLength={PASSWORD_MAX}
                 required
               />
-              <p className={sameAsOld ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>
-                {sameAsOld ? 'Pick something different from the temporary password.' : 'At least 8 characters.'}
-              </p>
+              {sameAsOld ? (
+                <p className="text-xs text-destructive">Pick something different from the temporary password.</p>
+              ) : (
+                <PasswordRules id="new-password-rules" password={next} className="sm:grid-cols-1" />
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="confirm-new-password">Confirm new password</Label>

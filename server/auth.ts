@@ -7,6 +7,7 @@ import { endUserSessions } from './banks/sessions.ts'
 import { db, getSetting } from './db.ts'
 import { DEMO_EMAIL, DEMO_USER_ID } from './demo.ts'
 import { env } from './env.ts'
+import { PASSWORD_MAX, PASSWORD_MIN, passwordProblem } from '../shared/password.ts'
 
 /** index.ts puts the caller's real address here, replacing anything the client sent. */
 export const CLIENT_IP_HEADER = 'x-ledger-client-ip'
@@ -19,6 +20,15 @@ const DISABLED_PATHS = new Set(['/admin/impersonate-user', '/admin/stop-imperson
 
 /** What someone on a temporary password can still do: sign in, see who they are, change it, leave. */
 const PASSWORD_CHANGE_ALLOWED = new Set(['/get-session', '/sign-out', '/change-password', '/sign-in/email', '/ok', '/error'])
+
+/** Endpoints that set a new password, and the body field that carries it. */
+const NEW_PASSWORD_FIELD = new Map([
+  ['/sign-up/email', 'password'],
+  ['/change-password', 'newPassword'],
+  ['/reset-password', 'newPassword'],
+  ['/admin/create-user', 'password'],
+  ['/admin/set-user-password', 'newPassword'],
+])
 
 /** Admin actions written to the audit log, with the label shown in Admin → Recent activity. */
 const AUDITED = new Map([
@@ -142,8 +152,8 @@ export const auth = betterAuth({
   trustedOrigins: [env.appUrl],
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 8,
-    maxPasswordLength: 128,
+    minPasswordLength: PASSWORD_MIN,
+    maxPasswordLength: PASSWORD_MAX,
   },
   session: {
     expiresIn: 60 * 60 * 24 * 7,
@@ -169,7 +179,18 @@ export const auth = betterAuth({
       if (ctx.path.startsWith('/admin/') && body?.userId === DEMO_USER_ID) {
         throw new APIError('BAD_REQUEST', { message: 'The demo account can’t be changed.' })
       }
+      if ((ctx.path === '/update-user' || ctx.path === '/sign-up/email') && (ctx.body as { currency?: unknown } | undefined)?.currency != null) {
+        const currency = (ctx.body as { currency?: unknown }).currency
+        if (typeof currency !== 'string' || !/^[A-Z]{3}$/.test(currency)) throw new APIError('BAD_REQUEST', { message: 'Unknown currency.' })
+      }
       if (DISABLED_PATHS.has(ctx.path)) throw new APIError('NOT_FOUND', { message: 'Not available.' })
+      // New passwords must meet the complexity rules, wherever they're set from.
+      const newPasswordField = NEW_PASSWORD_FIELD.get(ctx.path)
+      if (newPasswordField) {
+        const value = (ctx.body as Record<string, unknown> | undefined)?.[newPasswordField]
+        const problem = typeof value === 'string' ? passwordProblem(value) : null
+        if (problem) throw new APIError('BAD_REQUEST', { message: problem, code: 'WEAK_PASSWORD' })
+      }
 
       if (PASSWORD_CHANGE_ALLOWED.has(ctx.path) || ctx.path.startsWith('/two-factor/')) return
       const session = await getSessionFromCtx(ctx)
@@ -232,6 +253,8 @@ export const auth = betterAuth({
       mustChangePassword: { type: 'boolean', defaultValue: false, input: false, required: false },
       // Settings → Preferences: count the overdraft you can draw on as part of your balances.
       includeOverdraft: { type: 'boolean', defaultValue: true, input: true, required: false },
+      // Settings → Preferences: the currency totals are shown in. Guessed from the browser at sign-up.
+      currency: { type: 'string', input: true, required: false },
     },
   },
   databaseHooks: {
