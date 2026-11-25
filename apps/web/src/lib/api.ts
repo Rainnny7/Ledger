@@ -1078,7 +1078,7 @@ export async function fetchAllTransactions(
 	let cursor: string | undefined
 	let categories: Category[] = []
 	for (;;) {
-		const page = await api.transactions({ ...params, limit: 500, cursor })
+		const page = await api.transactions({ ...params, limit: 5000, cursor })
 		categories = page.categories
 		all.push(...page.transactions)
 		if (!page.nextCursor) {

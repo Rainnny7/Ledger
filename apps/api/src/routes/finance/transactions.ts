@@ -6,7 +6,6 @@ import {
 	id,
 	isoDate,
 	jsonBody,
-	limit,
 } from "../../http/validation.ts"
 import { classify } from "../../finance/categorize.ts"
 import { CATEGORIES, isCategory } from "@ledger/shared/categories"
@@ -325,10 +324,13 @@ function idsForMerchant(userId: string, merchantKey: string) {
 		.map((row) => row.id)
 }
 
+/** Rows per page: big enough that the dashboard's year of history arrives in one request, not a chain of them. */
+export const MAX_TX_PAGE = 5000
+
 const txListQuery = z.object({
 	from: isoDate.optional(),
 	until: isoDate.optional(),
-	limit: limit.optional(),
+	limit: z.coerce.number().int().min(1).max(MAX_TX_PAGE).optional(),
 	cursor: isoDate.optional(),
 })
 const idParam = z.object({ id: id })
