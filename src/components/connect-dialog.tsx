@@ -1,4 +1,4 @@
-import { ChevronRight, ExternalLink, Loader2, LockKeyhole, ShieldCheck, Smartphone } from 'lucide-react'
+import { ChevronRight, ExternalLink, Loader2, LockKeyhole, ShieldCheck, Smartphone, Upload } from 'lucide-react'
 import { REGEXP_ONLY_DIGITS } from 'input-otp'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -21,11 +21,13 @@ interface Props {
   /** Re-read the full history instead of only what's new since the last sync. */
   full?: boolean
   onConnected?: (connectionId: string) => void
+  /** Offered on the pick screen: add TD history from statement files instead of signing in. */
+  onUploadStatements?: () => void
 }
 
 type Phase = { type: 'pick' } | { type: 'form'; error?: string } | ConnectStep
 
-export function ConnectDialog({ open, onOpenChange, connection, full = false, onConnected }: Props) {
+export function ConnectDialog({ open, onOpenChange, connection, full = false, onConnected, onUploadStatements }: Props) {
   const [provider, setProvider] = useState<ProviderId>('td')
   const [phase, setPhase] = useState<Phase>({ type: 'pick' })
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -163,6 +165,23 @@ export function ConnectDialog({ open, onOpenChange, connection, full = false, on
                 <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               </button>
             ))}
+            {onUploadStatements && (
+              <button
+                type="button"
+                onClick={onUploadStatements}
+                className="group flex items-center gap-3 rounded-lg border border-dashed p-3 text-left transition-all animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both hover:border-primary/40 hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                style={{ animationDelay: `${Object.keys(PROVIDERS).length * 60}ms` }}
+              >
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                  <Upload className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">Upload TD statements</span>
+                  <span className="block text-xs text-muted-foreground">PDF statements or a .zip, for history past 18 months</span>
+                </span>
+                <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              </button>
+            )}
           </div>
         )}
 

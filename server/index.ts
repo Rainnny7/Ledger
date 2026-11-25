@@ -13,7 +13,7 @@ import { auth, CLIENT_IP_HEADER, migrateAuthTables, registrationOpen } from './a
 import { migrateAppTables, setSetting } from './db.ts'
 import { DEMO_USER_ID, ensureDemoData } from './demo.ts'
 import { DATA_DIR, env } from './env.ts'
-import { banks } from './routes/banks.ts'
+import { banks, STATEMENT_UPLOAD_PATH } from './routes/banks.ts'
 import { finance } from './routes/finance.ts'
 import { invoices, publicInvoices } from './routes/invoices.ts'
 import { handlePaypalWebhook } from './banks/paypal/webhooks.ts'
@@ -37,7 +37,8 @@ app.use(
       scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
       // Tailwind/Base UI set inline style attributes; charts use inline SVG styles.
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:', 'blob:'],
+      // Currency flags in the pickers.
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://flagcdn.com'],
       // The PDF preview is a blob: document in a frame.
       frameSrc: ["'self'", 'blob:'],
       fontSrc: ["'self'", 'data:'],
@@ -51,8 +52,9 @@ app.use(
   }),
 )
 app.use('/api/*', compress())
-// Every API body is small JSON; refuse anything large before it's parsed.
-app.use('/api/*', bodyLimit({ maxSize: 64 * 1024, onError: (c) => c.json({ error: 'Request too large' }, 413) }))
+// Every API body is small JSON; refuse anything large before it's parsed. Statement uploads set their own limit.
+const smallBody = bodyLimit({ maxSize: 64 * 1024, onError: (c) => c.json({ error: 'Request too large' }, 413) })
+app.use('/api/*', (c, next) => (c.req.path === STATEMENT_UPLOAD_PATH ? next() : smallBody(c, next)))
 // Rejects cross-site form posts (JSON requests are already blocked by CORS preflight).
 app.use('/api/*', csrf({ origin: env.appUrl }))
 

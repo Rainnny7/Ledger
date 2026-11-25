@@ -20,6 +20,19 @@ export function currencyName(code: string) {
   }
 }
 
+// Currency → the flag shown beside it (ISO 3166 region, or "eu" for the euro).
+const CURRENCY_FLAG: Record<string, string> = {
+  CAD: 'ca', USD: 'us', EUR: 'eu', GBP: 'gb', AUD: 'au', NZD: 'nz', CHF: 'ch', JPY: 'jp', CNY: 'cn', HKD: 'hk',
+  SGD: 'sg', KRW: 'kr', INR: 'in', ILS: 'il', MXN: 'mx', BRL: 'br', ZAR: 'za', SEK: 'se', NOK: 'no', DKK: 'dk',
+  ISK: 'is', PLN: 'pl', CZK: 'cz', HUF: 'hu', RON: 'ro', TRY: 'tr', THB: 'th', PHP: 'ph', IDR: 'id', MYR: 'my',
+}
+
+/** A flag image for a currency (most codes start with their country's), or null when there isn't one. */
+export function currencyFlagUrl(code: string): string | null {
+  const region = CURRENCY_FLAG[code] ?? (/^[A-Z]{3}$/.test(code) && !code.startsWith('X') ? code.slice(0, 2).toLowerCase() : null)
+  return region ? `https://flagcdn.com/${region}.svg` : null
+}
+
 /** Codes for a picker, always including `current` (an account or bill can be in anything). */
 export function currencyOptions(current?: string | null): string[] {
   const list: string[] = [...CURRENCIES]

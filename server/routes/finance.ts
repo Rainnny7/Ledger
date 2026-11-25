@@ -18,6 +18,7 @@ import {
 } from '../finance/categorize.ts'
 import { getRates } from '../fx.ts'
 import { access, canEdit, forgetItem, listWithShared, viewOne } from '../sharing.ts'
+import { orderWithinDays } from '../finance/order.ts'
 import { GOAL_KINDS, type GoalPaymentRow, type GoalRow, summarizeGoal } from '../finance/goals.ts'
 
 type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
@@ -97,16 +98,18 @@ export function loadTransactions(userId: string, opts: { accountId?: string; fro
          JOIN bank_account a ON a.id = t.account_id
          JOIN bank_connection c ON c.id = a.connection_id
         WHERE ${where.join(' AND ')}
-        ORDER BY t.date DESC, t.rowid ASC
+        ORDER BY t.date DESC, t.created_at DESC, t.rowid ASC
         LIMIT 50000`,
     )
     .all(...args) as unknown as TxRow[]
+  // Within a day: rows from a newer sync first, then each account's running balances settle the rest.
+  const ordered = orderWithinDays(rows)
 
   const rules = rulesFor(userId)
   const hasPaypal = Boolean(
     db.prepare(`SELECT 1 FROM bank_connection WHERE user_id = ? AND institution = 'paypal' LIMIT 1`).get(userId),
   )
-  return rows.map(({ categoryOverride, pending, institution, ...t }) => {
+  return ordered.map(({ categoryOverride, pending, institution, ...t }) => {
     const auto = classify(t.description, t.amount)
     const rule = rules.get(auto.merchantKey)
     let category = auto.category

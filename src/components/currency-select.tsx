@@ -1,8 +1,29 @@
+import { useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { currencyName, currencyOptions } from '@/lib/currency'
+import { currencyFlagUrl, currencyName, currencyOptions } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 
-/** A currency picker: "USD · US Dollar" in the list, the code alone once picked. */
+/** A small flag for a currency; an empty chip of the same size when there's none or it fails to load. */
+export function CurrencyFlag({ code, className }: { code: string; className?: string }) {
+  const url = currencyFlagUrl(code)
+  const [failed, setFailed] = useState<string | null>(null)
+  const box = cn('inline-block h-3.5 w-5 shrink-0 self-center rounded-[3px] ring-1 ring-foreground/10', className)
+  if (!url || failed === url) return <span aria-hidden className={cn(box, 'bg-muted')} />
+  return (
+    <img
+      src={url}
+      alt=""
+      aria-hidden
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(url)}
+      className={cn(box, 'object-cover')}
+    />
+  )
+}
+
+/** A currency picker: flag + "USD · US Dollar" in the list, flag + code once picked. */
 export function CurrencySelect({
   id,
   value,
@@ -20,11 +41,21 @@ export function CurrencySelect({
   return (
     <Select items={options.map((c) => ({ value: c, label: c }))} value={value} onValueChange={(v) => v && onChange(v)} disabled={disabled}>
       <SelectTrigger id={id} className={cn('w-full', className)}>
-        <SelectValue />
+        <SelectValue>
+          {(v: string | null) =>
+            v ? (
+              <>
+                <CurrencyFlag code={v} />
+                {v}
+              </>
+            ) : null
+          }
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.map((c) => (
           <SelectItem key={c} value={c}>
+            <CurrencyFlag code={c} />
             <span className="font-medium">{c}</span>
             <span className="text-muted-foreground">{currencyName(c)}</span>
           </SelectItem>

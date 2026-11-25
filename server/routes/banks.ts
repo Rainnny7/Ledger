@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { bodyLimit } from 'hono/body-limit'
 import { z } from 'zod'
 import type { auth } from '../auth.ts'
 import { decrypt } from '../crypto.ts'
@@ -7,6 +8,7 @@ import type { AccountDetails } from '../banks/td/parse.ts'
 import { loadTransactions } from './finance.ts'
 import { cancel, chooseMfa, getSession, isProvider, poll, startLogin, submitCode } from '../banks/sessions.ts'
 import { deleteWebhook, PaypalApiError, registerWebhook } from '../banks/paypal/api.ts'
+import { importStatements } from '../banks/statements.ts'
 import { env } from '../env.ts'
 
 type Vars = { Variables: { user: typeof auth.$Infer.Session.user } }
@@ -64,6 +66,25 @@ banks.delete('/connect/sessions/:id', async (c) => {
   if (s) await cancel(s)
   return c.json({ ok: true })
 })
+
+// ---------------------------------------------------------------- statement uploads
+
+export const STATEMENT_UPLOAD_PATH = '/api/banks/statements'
+
+/** TD statement PDFs, or .zip archives of them, for history older than EasyWeb's 18 months. */
+banks.post(
+  '/statements',
+  bodyLimit({ maxSize: 100 * 1024 * 1024, onError: (c) => c.json({ error: 'Upload is too large (100 MB at most).' }, 413) }),
+  async (c) => {
+    const form = await c.req.formData().catch(() => null)
+    if (!form) return c.json({ error: 'Invalid upload' }, 400)
+    const files = form.getAll('files').filter((f): f is File => f instanceof File)
+    if (!files.length) return c.json({ error: 'Choose at least one statement PDF or .zip file.' }, 400)
+    const connectionId = form.get('connectionId')
+    const uploads = await Promise.all(files.map(async (f) => ({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) })))
+    return c.json(await importStatements(c.var.user.id, uploads, typeof connectionId === 'string' && connectionId ? connectionId : undefined))
+  },
+)
 
 // ---------------------------------------------------------------- read data
 

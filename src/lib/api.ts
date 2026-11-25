@@ -486,6 +486,29 @@ export interface SessionView {
   step: ConnectStep
 }
 
+export interface StatementImport {
+  files: {
+    name: string
+    status: 'imported' | 'duplicate' | 'error'
+    message?: string
+    accountNumber?: string
+    from?: string
+    to?: string
+  }[]
+  accounts: {
+    accountId: string
+    name: string
+    numberMasked: string
+    created: boolean
+    statements: number
+    added: number
+    existing: number
+    from: string
+    to: string
+    gaps: { from: string; to: string }[]
+  }[]
+}
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -504,7 +527,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`/api/banks${path}`, {
     ...init,
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(demoMode ? { 'X-Ledger-Demo': '1' } : {}), ...init.headers },
+    // Multipart bodies need the browser's own Content-Type (it carries the boundary).
+    headers: {
+      ...(init.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(demoMode ? { 'X-Ledger-Demo': '1' } : {}),
+      ...init.headers,
+    },
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new ApiError(res.status, (data as { error?: string }).error ?? res.statusText)
@@ -531,6 +559,14 @@ export const api = {
   submitCode: (id: string, code: string) =>
     request<SessionView>(`/connect/sessions/${id}/code`, { method: 'POST', body: JSON.stringify({ code }) }),
   cancelSession: (id: string) => request<{ ok: true }>(`/connect/sessions/${id}`, { method: 'DELETE' }),
+
+  /** TD statement PDFs or .zip archives of them. */
+  importStatements: (files: File[], connectionId?: string) => {
+    const body = new FormData()
+    for (const f of files) body.append('files', f)
+    if (connectionId) body.append('connectionId', connectionId)
+    return request<StatementImport>('/statements', { method: 'POST', body })
+  },
 
   transactions: (from?: string) => request<{ transactions: Transaction[] }>(`/transactions${from ? `?from=${from}` : ''}`),
   updateTransaction: (

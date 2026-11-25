@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { RefreshCWIcon } from '@/components/icons/refresh-cw'
 import { useAnimatedIcon } from '@/components/icons/use-animated-icon'
-import { AlertTriangle, CalendarClock, ChevronDown, ChevronRight, History, KeyRound, MoreHorizontal, Plus, Trash2, Zap, ZapOff } from 'lucide-react'
+import { AlertTriangle, CalendarClock, ChevronDown, ChevronRight, History, KeyRound, MoreHorizontal, Plus, Trash2, Upload, Zap, ZapOff } from 'lucide-react'
 import { AnimatedMoney } from '@/components/count-up'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
@@ -13,6 +13,7 @@ import { GoalsSpotlight } from '@/components/goals-spotlight'
 import { AccountDetailsButton } from '@/components/account-details-dialog'
 import { InstitutionBadge, isProviderId, PROVIDERS } from '@/components/institution'
 import { RangePicker, type RangeKey, rangeStart } from '@/components/range-picker'
+import { StatementUploadDialog } from '@/components/statement-upload-dialog'
 import { TransactionSheet } from '@/components/transaction-sheet'
 import { CategoryIcon, RelativeDate } from '@/components/tx-bits'
 import { Badge } from '@/components/ui/badge'
@@ -61,6 +62,7 @@ export function DashboardPage() {
     open: false,
     connection: null,
   })
+  const [upload, setUpload] = useState<{ open: boolean; connectionId?: string }>({ open: false })
   const [range, setRange] = useState<RangeKey>('90d')
   const [selected, setSelected] = useState<Transaction | null>(null)
 
@@ -327,6 +329,15 @@ export function DashboardPage() {
                           </span>
                         </div>
                       </DropdownMenuItem>
+                      {c.institution === 'td' && (
+                        <DropdownMenuItem onClick={() => setUpload({ open: true, connectionId: c.id })}>
+                          <Upload />
+                          <div className="grid">
+                            <span>Upload statements</span>
+                            <span className="text-xs text-muted-foreground">Older history from PDF statements or a .zip</span>
+                          </div>
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -385,6 +396,16 @@ export function DashboardPage() {
         connection={dialog.connection}
         full={dialog.full}
         onOpenChange={(open) => setDialog((d) => ({ ...d, open }))}
+        onUploadStatements={() => {
+          setDialog((d) => ({ ...d, open: false }))
+          setUpload({ open: true })
+        }}
+      />
+
+      <StatementUploadDialog
+        open={upload.open}
+        connectionId={upload.connectionId}
+        onOpenChange={(open) => setUpload((u) => ({ ...u, open }))}
       />
 
       <TransactionSheet
@@ -463,17 +484,28 @@ function UpcomingList({ items, empty, suggestions }: { items: Subscription[]; em
 }
 
 function AccountCard({ account: a }: { account: Account }) {
-  // The whole card opens the account (a link stretched over it); the deposit-details button sits above that link.
+  // The whole card opens the account: the link sits underneath, the card lets clicks fall through to
+  // it, and only the deposit-details button takes clicks itself.
   return (
     <div className="group relative rounded-xl has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50">
-      <Card className="h-full transition-colors group-hover:bg-muted/50">
+      <Link to={`/accounts/${a.id}`} aria-label={`Open ${a.name}`} className="absolute inset-0 rounded-xl focus-visible:outline-none" />
+      <Card className="pointer-events-none relative h-full transition-colors group-hover:bg-muted/50">
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <CardTitle className="truncate text-sm">{a.name}</CardTitle>
               <CardDescription className="text-xs">{a.numberMasked ?? ACCOUNT_TYPE_LABEL[a.type]}</CardDescription>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
+              {a.type !== 'wallet' && (
+                <AccountDetailsButton
+                  account={a}
+                  size="xs"
+                  variant="ghost"
+                  className="pointer-events-auto text-muted-foreground hover:text-foreground"
+                  labelClassName="hidden @sm/card-header:inline"
+                />
+              )}
               <Badge variant="secondary">{ACCOUNT_TYPE_LABEL[a.type]}</Badge>
               <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
             </div>
@@ -496,14 +528,8 @@ function AccountCard({ account: a }: { account: Account }) {
           </div>
           <OverdraftMeter account={a} compact />
           <CreditMeter account={a} />
-          {a.type !== 'wallet' && (
-            <div className="relative z-10 -mb-1 flex">
-              <AccountDetailsButton account={a} size="xs" variant="ghost" className="-ml-2 text-muted-foreground hover:text-foreground" />
-            </div>
-          )}
         </CardContent>
       </Card>
-      <Link to={`/accounts/${a.id}`} aria-label={`Open ${a.name}`} className="absolute inset-0 rounded-xl focus-visible:outline-none" />
     </div>
   )
 }

@@ -14,17 +14,27 @@ export function AccountDetailsButton({
   size = 'sm',
   variant = 'outline',
   className,
+  labelClassName,
 }: {
   account: Account
   size?: 'sm' | 'xs'
   variant?: 'outline' | 'ghost' | 'secondary'
   className?: string
+  /** Lets a tight spot hide the words and keep just the icon (the button stays labelled either way). */
+  labelClassName?: string
 }) {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <Button variant={variant} size={size} className={className} onClick={() => setOpen(true)}>
-        <Landmark /> Direct deposit & limits
+      <Button
+        variant={variant}
+        size={size}
+        className={className}
+        aria-label="Direct deposit & limits"
+        title="Direct deposit & limits"
+        onClick={() => setOpen(true)}
+      >
+        <Landmark /> <span className={labelClassName}>Direct deposit & limits</span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">

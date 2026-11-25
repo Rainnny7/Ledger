@@ -24,9 +24,10 @@ export function saveScrape(input: SaveInput): string {
         `UPDATE bank_connection
            SET browser_state_enc = ?,
                credentials_enc = COALESCE(?, credentials_enc),
+               username_masked = ?,
                status = 'active', last_error = NULL, last_synced_at = datetime('now')
          WHERE id = ? AND user_id = ?`,
-      ).run(input.browserStateEnc, input.credentialsEnc, connectionId, input.userId)
+      ).run(input.browserStateEnc, input.credentialsEnc, input.usernameMasked, connectionId, input.userId)
     } else {
       connectionId = randomUUID()
       db.prepare(

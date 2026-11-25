@@ -48,7 +48,7 @@ import {
 } from '@/components/work-dialogs'
 import { api, type InvoiceStatus, type WorkInvoice, type WorkJob } from '@/lib/api'
 import { demoMode } from '@/lib/demo'
-import { formatDate, formatMoney, formatRelativeDate, formatShortDate, isoDate } from '@/lib/format'
+import { formatDate, formatMoney, formatMonth, formatRelativeDate, formatShortDate, isoDate } from '@/lib/format'
 import { useConverter } from '@/lib/currency'
 import { useWork } from '@/lib/queries'
 import { cn } from '@/lib/utils'
@@ -84,15 +84,15 @@ export function WorkPage() {
   const unbilledHours = active.reduce((s, j) => s + j.unbilledHours, 0)
   const unbilledValue = fx.sum(active.map((j) => [j.unbilledValue, j.currency]))
   const month = isoDate().slice(0, 7)
-  const paidThisMonth = fx.sum(
-      active.flatMap((j) =>
-        j.invoices.flatMap((inv) =>
-          inv.payments
-            .filter((p) => p.date.startsWith(month))
-            .map((p) => (p.receivedAmount && p.receivedCurrency ? ([p.receivedAmount, p.receivedCurrency] as const) : ([p.amount, j.currency] as const))),
-        ),
-      ),
+  // Counted by each payment's own date (not its bill's), so a late payment on an old bill counts here.
+  const monthPayments = active.flatMap((j) =>
+    j.invoices.flatMap((inv) =>
+      inv.payments
+        .filter((p) => p.date.startsWith(month))
+        .map((p) => (p.receivedAmount && p.receivedCurrency ? ([p.receivedAmount, p.receivedCurrency] as const) : ([p.amount, j.currency] as const))),
+    ),
   )
+  const paidThisMonth = fx.sum(monthPayments)
   const next = active
     .filter((j) => j.nextPaymentDate)
     .sort((a, b) => a.nextPaymentDate!.localeCompare(b.nextPaymentDate!))[0]
@@ -177,7 +177,11 @@ export function WorkPage() {
                 hint={next ? `${formatRelativeDate(next.nextPaymentDate!)} · ${formatShortDate(next.nextPaymentDate!)}` : 'Nothing scheduled'}
               />
               <Stat label="Not billed yet" value={<AnimatedMoney value={unbilledValue} />} hint={unbilledHours > 0 ? `${formatDuration(unbilledHours)} logged` : 'No unbilled hours'} />
-              <Stat label="Paid this month" value={<AnimatedMoney value={paidThisMonth} />} />
+              <Stat
+                label="Paid this month"
+                value={<AnimatedMoney value={paidThisMonth} />}
+                hint={monthPayments.length ? `${monthPayments.length} payment${monthPayments.length === 1 ? '' : 's'} dated in ${formatMonth(month, 'long')}` : 'No payments yet'}
+              />
             </div>
           )}
 
