@@ -245,10 +245,6 @@ function NavItem({
 		<Link
 			to={to}
 			onClick={() => scrollUpIfHere(to, pathname)}
-			aria-label={
-				(count !== null ? `${label} (${count})` : label) +
-				(alert ? `: ${alert}` : "")
-			}
 			aria-current={active ? "page" : undefined}
 			data-nav-active={active || undefined}
 			{...iconHandlers}
@@ -257,7 +253,9 @@ function NavItem({
 			{active ? <NavActiveIndicator /> : null}
 			<Icon ref={iconRef} size={16} className="flex shrink-0" />
 			{/* Every label from lg; below that only the page you're on, so you can still tell where you are. */}
-			<span className={cn("hidden lg:inline", active && "sm:inline")}>
+			<span
+				className={cn("sr-only lg:not-sr-only", active && "sm:not-sr-only")}
+			>
 				{label}
 			</span>
 			{count !== null && (
@@ -267,6 +265,7 @@ function NavItem({
 					alert={Boolean(alert)}
 				/>
 			)}
+			{alert ? <span className="sr-only">: {alert}</span> : null}
 		</Link>
 	)
 	// The link is the trigger for both its right-click menu and, while it shows only an icon, alert tooltip.
@@ -392,9 +391,6 @@ function NavGroup({
 					<NavigationMenuTrigger
 						{...iconHandlers}
 						data-nav-active={active || undefined}
-						aria-label={
-							current ? `${label}: ${current.label}` : label
-						}
 						className={cn(
 							navEntryClass(active),
 							"w-auto py-0 focus:bg-transparent data-popup-open:bg-muted data-popup-open:text-foreground",
@@ -410,8 +406,8 @@ function NavGroup({
 						/>
 						<span
 							className={cn(
-								"hidden lg:inline",
-								active && "sm:inline"
+								"sr-only lg:not-sr-only",
+								active && "sm:not-sr-only"
 							)}
 						>
 							{current?.label ?? label}
@@ -419,6 +415,9 @@ function NavGroup({
 						{total !== null && (
 							<NavCount count={total} active={active} />
 						)}
+						{current ? (
+							<span className="sr-only">, {label}</span>
+						) : null}
 					</NavigationMenuTrigger>
 					<NavigationMenuContent>
 						<ul className="grid w-[min(20rem,calc(100vw-2rem))] gap-0.5">
