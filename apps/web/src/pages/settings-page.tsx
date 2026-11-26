@@ -3,12 +3,15 @@ import { AppearanceCard } from "@/components/settings/appearance-card"
 import { ChangePasswordCard } from "@/components/settings/change-password-card"
 import { DeleteAccountCard } from "@/components/settings/delete-account-card"
 import { DevicesCard } from "@/components/settings/devices-card"
+import { McpAccessCard } from "@/components/settings/mcp-access-card"
 import { PreferencesCard } from "@/components/settings/preferences-card"
 import { TwoFactorCard } from "@/components/settings/two-factor-card"
 import { demoMode } from "@/lib/demo"
+import { useAppConfig } from "@/lib/queries"
 
 /** Profile, appearance, currency, demo mode, and account security. */
 export function SettingsPage() {
+	const config = useAppConfig()
 	return (
 		<div className="grid gap-8">
 			<div>
@@ -44,6 +47,7 @@ export function SettingsPage() {
 					<ChangePasswordCard />
 					<TwoFactorCard />
 					<DevicesCard />
+					{config?.mcp && <McpAccessCard />}
 					<DeleteAccountCard />
 				</>
 			)}

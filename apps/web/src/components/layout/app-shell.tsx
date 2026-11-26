@@ -20,6 +20,7 @@ import { WalletIcon } from "@/components/icons/wallet"
 import { LinkMenuItems } from "@/components/layout/app-context-menu"
 import { Brand } from "@/components/layout/brand"
 import { openCommandPalette } from "@/components/layout/command-palette-open"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 import { InvitesBanner } from "@/components/sharing/invites-banner"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -62,6 +63,7 @@ import { detectCurrency, savedCurrency, useHomeCurrency } from "@/lib/currency"
 import { DEMO_IDENTITY, demoMode, demoPersona, setDemoMode } from "@/lib/demo"
 import { setDisplayCurrency } from "@/lib/format"
 import { usePageTitle } from "@/lib/page-title"
+import { useUnreadIndicator } from "@/lib/use-unread-indicator"
 import {
 	queryClient,
 	queryKeys,
@@ -98,6 +100,11 @@ import {
 const CommandPalette = lazy(() =>
 	import("@/components/layout/command-palette").then((module) => ({
 		default: module.CommandPalette,
+	}))
+)
+const ChatWidget = lazy(() =>
+	import("@/components/chat/chat-widget").then((module) => ({
+		default: module.ChatWidget,
 	}))
 )
 
@@ -254,7 +261,10 @@ function NavItem({
 			<Icon ref={iconRef} size={16} className="flex shrink-0" />
 			{/* Every label from lg; below that only the page you're on, so you can still tell where you are. */}
 			<span
-				className={cn("sr-only lg:not-sr-only", active && "sm:not-sr-only")}
+				className={cn(
+					"sr-only lg:not-sr-only",
+					active && "sm:not-sr-only"
+				)}
 			>
 				{label}
 			</span>
@@ -724,6 +734,8 @@ export function AppShell() {
 	useScrollTopOnPageChange(pathname)
 	useAccountTheme()
 	const user = demoMode ? DEMO_IDENTITY : data?.user
+	const signedIn = Boolean(data?.user) && !demoMode
+	useUnreadIndicator(signedIn)
 	const isAdmin = data?.user.role === "admin"
 	const { data: updateInfo } = useUpdate(isAdmin && !demoMode)
 	const [updateOpen, setUpdateOpen] = useState(false)
@@ -811,6 +823,7 @@ export function AppShell() {
 							>
 								<Search />
 							</Button>
+							<NotificationBell enabled={signedIn} />
 							<DropdownMenu>
 								<DropdownMenuTrigger
 									render={
@@ -955,6 +968,7 @@ export function AppShell() {
 				) : null}
 				<Suspense fallback={null}>
 					<CommandPalette />
+					<ChatWidget />
 				</Suspense>
 				<main className="mx-auto max-w-[80rem] px-4 py-8">
 					<InvitesBanner enabled={!demoMode} />

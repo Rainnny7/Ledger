@@ -46,7 +46,9 @@ I wanted one place to see my transactions, how much I'm earning, what subscripti
 - **Advisor**: tips from your own numbers—where spending runs high, subscriptions worth a look, and a simple health score—with tips you can dismiss or bring back.
 - **Sharing & contacts**: share a goal, subscription or job with another Ledger user, as view-only or editable. Pick them from **Contacts** (in the user menu) or type their email. They need an account on the same server; only the owner can delete, archive or change who it's shared with, and the owner's bank accounts are never shown.
 - **Settings**: default currency, invoice defaults, password and two-factor login, and **colour themes** (a mode: system, light, dark or AMOLED; plus an accent colour).
-- **Admin**: manage users, open or close sign-ups, run background tasks, download database backups, read the audit log, and see **update notifications** when a newer release is on GitHub (with upgrade commands to copy).
+- **Admin**: manage users, **feature flags** (sign-ups and AI chat), run background tasks, download database backups, read the audit log, and see **update notifications** when a newer release is on GitHub (with upgrade commands to copy).
+- **AI chat**: a chat window in the bottom-right corner where you can ask questions about your own accounts, spending, budgets, subscriptions and goals. It's read-only, only looks at your data, and nothing is saved on the server. Needs an API key; see [AI chat](#ai-chat).
+- **MCP server**: plug your finances into Claude, Cursor or any MCP client. An admin turns it on, each person makes their own access token in Settings, and the client gets the same read-only tools the AI chat uses. See [MCP server](#mcp-server).
 - **Demo mode**: fills every page with made-up data, handy for showing it off (the screenshots here use it).
 - **Any currency**: accounts, goals, subscriptions and bills can each have their own currency. Totals are converted into your default currency (picked in Settings, or guessed from your time zone) using live mid-market rates (refreshed hourly, falling back to the ECB's daily reference rates).
 - **Automatic refresh**: saved connections are refreshed every 6 hours in the background.
@@ -162,9 +164,9 @@ All optional. See [`.env.example`](.env.example). For deployment details see [SE
 | `PUBLIC_URL`         | `APP_URL`                                                 | Address used for invoice share links and PayPal webhooks (must be public `https://` for webhooks) |
 | `APP_SECRET`         | generated in `DATA_DIR/.secret`                           | Signs sessions and encrypts saved credentials (32+ characters if you set it)                      |
 | `DATA_DIR`           | repo `data/`                                              | Where the database and backups live                                                               |
-| `TD_HEADLESS`        | `true`                                                    | `false` to watch the browser log in                                                              |
+| `TD_HEADLESS`        | `true`                                                    | `false` to watch the browser log in                                                               |
 | `TD_BROWSER_CHANNEL` |                                                           | e.g. `chrome` to use your installed Chrome                                                        |
-| `ALLOW_REGISTRATION` | `false`                                                   | Whether sign-ups start open after the first account                                               |
+| `ALLOW_REGISTRATION` | `false`                                                   | Whether sign-ups start open after the first account (overridable in Admin → Feature flags)        |
 | `TRUST_PROXY`        | `false`                                                   | `true` behind a reverse proxy, so rate limits see the real client IP                              |
 | `FX_LIVE_URL`        | `https://api.coinbase.com/v2/exchange-rates?currency=USD` | Where live exchange rates are fetched from (Coinbase-compatible; `off` to turn off)               |
 | `FX_RATES_URL`       | `https://api.frankfurter.dev/v1/latest`                   | Fallback daily ECB rates (Frankfurter-compatible)                                                 |
@@ -172,7 +174,46 @@ All optional. See [`.env.example`](.env.example). For deployment details see [SE
 | `UPDATE_CHECK`       | `true` (`false` disables)                                 | Poll GitHub for releases (~every 6 hours) for the admin update banner                             |
 | `LEDGER_INSTALL`     | `source` (`docker` in the image)                          | Whether the admin UI suggests Docker or source upgrade commands                                   |
 | `BACKUPS_KEPT`       | `14`                                                      | How many scheduled backup files to keep in `DATA_DIR/backups`                                     |
+| `AI_API_KEY`         |                                                           | API key for the AI chat; the chat is off without it (see [AI chat](#ai-chat))                     |
+| `AI_BASE_URL`        | `https://opencode.ai/inference/openai/v1`                 | Any OpenAI-compatible endpoint the chat talks to                                                  |
+| `AI_MODEL`           | `deepseek-v4.1-flash`                                     | Model ID on that endpoint                                                                         |
 | `ALLOWED_HOSTS`      |                                                           | Comma-separated extra hostnames for the Vite dev server only                                      |
+
+### AI chat
+
+Ledger can add a chat window to the bottom-right of every page. It works with any OpenAI-compatible provider; this example uses [OpenCode](https://opencode.ai/docs/zen/):
+
+1. Create an account at [opencode.ai/console](https://opencode.ai/console), add some credit, and copy an API key.
+2. Put it in `.env` and restart the API (it only reads `.env` on startup):
+
+    ```
+    AI_API_KEY=your-key-here
+    # optional, these are the defaults:
+    # AI_BASE_URL=https://opencode.ai/inference/openai/v1
+    # AI_MODEL=deepseek-v4.1-flash
+    ```
+
+3. A chat button now appears for signed-in users. Admins can turn it on or off, and see its limits, under **Admin → Feature flags**.
+
+To use another provider (OpenRouter, a local Ollama or LM Studio server, and so on), set `AI_BASE_URL` and `AI_MODEL` to match.
+
+**Privacy.** The model never gets your whole history. It asks a small set of read-only tools for just what a question needs (accounts, transactions, spending summaries, budgets, subscriptions, goals), scoped to the signed-in user, and only those results are sent to the provider you configured. Conversations live in the browser tab and are not stored or logged by Ledger. What the provider does with the requests is up to them, so pick one you trust.
+
+### MCP server
+
+Ledger can expose the same read-only finance tools to any [MCP](https://modelcontextprotocol.io) client (Claude Desktop, Claude Code, and so on) at `POST /api/mcp`. It is off by default.
+
+1. An admin turns on **Admin → Feature flags → MCP server**.
+2. Each user opens **Settings → MCP access**, names a token and creates it. The token (`ledger_mcp_...`) is shown once; only its hash is stored. Revoke it from the same card.
+3. Connect a client, using your own address:
+
+    ```
+    claude mcp add --transport http ledger https://ledger.example.com/api/mcp --header "Authorization: Bearer ledger_mcp_..."
+    ```
+
+    The dialog that shows a new token also has a ready-to-paste `mcpServers` JSON block for other clients.
+
+**Privacy.** Tools are read-only and every query is limited to the token's owner, so one user's token never sees another's data. Whatever a tool returns goes to the client (and the model behind it) you connected, so only connect clients you trust. Tokens are limited to 10 per user and 120 requests per 10 minutes each, are never logged, and stop working the moment they are revoked or the account is deleted. Use HTTPS so the token isn't sent in the clear.
 
 ## Built with
 

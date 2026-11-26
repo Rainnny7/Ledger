@@ -108,6 +108,15 @@ export interface Transaction {
 }
 
 /** A monthly spending limit for one category, in the user's home currency. */
+/** A personal API token for the MCP server (the secret itself is only returned when it is created). */
+export interface McpToken {
+	id: string
+	name: string
+	lastFour: string
+	createdAt: string
+	lastUsedAt: string | null
+}
+
 export interface Budget {
 	category: Category
 	amount: number
@@ -855,6 +864,15 @@ export const api = {
 			notifyDataChanged("/transactions/merchant")
 			return result
 		}),
+
+	mcpTokens: () => request<{ tokens: McpToken[] }>("/mcp-tokens"),
+	createMcpToken: (name: string) =>
+		request<{ token: string; row: McpToken }>("/mcp-tokens", {
+			method: "POST",
+			body: JSON.stringify({ name }),
+		}),
+	revokeMcpToken: (id: string) =>
+		request<{ ok: true }>(`/mcp-tokens/${id}`, { method: "DELETE" }),
 
 	budgets: () => request<{ budgets: Budget[] }>("/budgets"),
 	setBudget: (category: Category, amount: number, currency: string) =>

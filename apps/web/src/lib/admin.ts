@@ -6,6 +6,8 @@ export const auditKey = ["admin", "audit"] as const
 export const tasksKey = ["admin", "tasks"] as const
 /** React Query key for admin backup list and restore. */
 export const backupsKey = ["admin", "backups"] as const
+/** React Query key for outbound SMTP settings. */
+export const smtpKey = ["admin", "smtp"] as const
 
 /** Authenticated JSON fetch against `/api/admin/*` (throws on non-OK). */
 export async function adminFetch<T>(

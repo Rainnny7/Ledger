@@ -1,14 +1,19 @@
 import { Elysia } from "elysia"
 import { CLIENT_IP_HEADER } from "../auth/hooks.ts"
 import {
+	AI_CHAT_BODY_PATHS,
+	AI_CHAT_MAX_REQUEST_BYTES,
+} from "../chat/limits.ts"
+import {
 	STATEMENT_MAX_REQUEST_BYTES,
 	STATEMENT_UPLOAD_PATH,
 } from "../banks/upload-gate.ts"
 import { env } from "../config/env.ts"
+import { MCP_PATH } from "../mcp/path.ts"
 
 const API_PREFIX = "/api/"
 
-/** Every API body is small JSON; statement uploads get their own, larger limit. */
+/** Every API body is small JSON; chat and statement uploads get larger limits. */
 const SMALL_BODY_LIMIT_BYTES = 64 * 1024
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"])
@@ -65,9 +70,12 @@ export const apiGuards = new Elysia({ name: "api-guards" }).onRequest(
 		}
 
 		const isUpload = pathname === STATEMENT_UPLOAD_PATH
+		const isChat = AI_CHAT_BODY_PATHS.has(pathname)
 		const limit = isUpload
 			? STATEMENT_MAX_REQUEST_BYTES
-			: SMALL_BODY_LIMIT_BYTES
+			: isChat
+				? AI_CHAT_MAX_REQUEST_BYTES
+				: SMALL_BODY_LIMIT_BYTES
 		const contentLength = request.headers.get("content-length")
 		// A chunked upload can't be measured up front; the server's own max body size still caps it.
 		const isUnmeasured =
@@ -83,7 +91,9 @@ export const apiGuards = new Elysia({ name: "api-guards" }).onRequest(
 			})
 		}
 
+		// MCP clients are non-browser programs that authenticate with a bearer token, not a cookie.
 		if (
+			pathname !== MCP_PATH &&
 			!SAFE_METHODS.has(request.method) &&
 			FORM_CONTENT_TYPE.test(
 				request.headers.get("content-type") || "text/plain"

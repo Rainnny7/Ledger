@@ -8,7 +8,13 @@ import {
 	isInstanceOwner,
 	recentAudit,
 } from "./admin/store.ts"
-import { auth, registrationOpen } from "./auth/index.ts"
+import {
+	aiChatAvailable,
+	aiChatEnabled,
+	auth,
+	mcpEnabled,
+	registrationOpen,
+} from "./auth/index.ts"
 import { CLIENT_IP_HEADER } from "./auth/hooks.ts"
 import { handlePaypalWebhook } from "./banks/paypal/webhooks.ts"
 import { STATEMENT_MAX_REQUEST_BYTES } from "./banks/upload-gate.ts"
@@ -26,8 +32,14 @@ import { finance } from "./routes/finance/index.ts"
 import { invoices } from "./routes/invoices/index.ts"
 import { publicInvoices } from "./routes/invoices/public.ts"
 import { adminUser, sessionUser } from "./routes/session.ts"
+import { chatRoutes } from "./chat/chat-route.ts"
+import { aiChatLimits } from "./chat/limits.ts"
+import { mcpTokens } from "./routes/mcp-tokens.ts"
+import { mcpRoutes } from "./mcp/mcp-route.ts"
 import { sharing } from "./routes/sharing.ts"
 import { work } from "./routes/work.ts"
+import { notifications } from "./routes/notifications.ts"
+import { adminMail } from "./routes/admin-mail.ts"
 import {
 	BACKUP_DIR,
 	hasTask,
@@ -46,8 +58,27 @@ removeOldDebugDumps()
 const adminSettings = () => ({
 	registrationOpen: registrationOpen(),
 	ownerId: getOwnerId(),
+	aiChat: {
+		configured: Boolean(env.AI_API_KEY),
+		enabled: aiChatEnabled(),
+		model: env.AI_MODEL,
+		limits: aiChatLimits,
+	},
+	mcp: { enabled: mcpEnabled() },
 })
-const adminSettingsBody = z.object({ registrationOpen: z.boolean() })
+const adminSettingsBody = z
+	.object({
+		registrationOpen: z.boolean().optional(),
+		aiChatEnabled: z.boolean().optional(),
+		mcpEnabled: z.boolean().optional(),
+	})
+	.refine(
+		(body) =>
+			body.registrationOpen !== undefined ||
+			body.aiChatEnabled !== undefined ||
+			body.mcpEnabled !== undefined,
+		{ message: "At least one setting is required" }
+	)
 const backupNoteBody = z.object({ note: boundedString(200).optional() })
 const taskParam = z.object({
 	id: z.enum(["bank-refresh", "fx-rates", "backup", "tidy-up"]),
@@ -56,12 +87,7 @@ const backupNameParam = z.object({ name: boundedString(120) })
 const AUDIT_PAGE_SIZE = 25
 const auditQuery = z.object({
 	kind: z.enum(["admin", "auth"]).optional(),
-	limit: z.coerce
-		.number()
-		.int()
-		.min(1)
-		.max(200)
-		.default(AUDIT_PAGE_SIZE),
+	limit: z.coerce.number().int().min(1).max(200).default(AUDIT_PAGE_SIZE),
 	offset: z.coerce.number().int().min(0).default(0),
 })
 
@@ -74,7 +100,10 @@ admin.get("/settings", () => adminSettings())
 admin.put(
 	"/settings",
 	({ user, body, request }) => {
-		if (body.registrationOpen !== registrationOpen()) {
+		if (
+			body.registrationOpen !== undefined &&
+			body.registrationOpen !== registrationOpen()
+		) {
 			setSetting("registration_open", String(body.registrationOpen))
 			audit({
 				kind: "admin",
@@ -84,6 +113,33 @@ admin.put(
 				action: body.registrationOpen
 					? "Opened sign-ups"
 					: "Closed sign-ups",
+			})
+		}
+		if (
+			body.aiChatEnabled !== undefined &&
+			body.aiChatEnabled !== aiChatEnabled()
+		) {
+			setSetting("ai_chat_enabled", String(body.aiChatEnabled))
+			audit({
+				kind: "admin",
+				ip: request.headers.get(CLIENT_IP_HEADER) ?? undefined,
+				actorId: user.id,
+				actorEmail: user.email,
+				action: body.aiChatEnabled
+					? "Enabled AI chat"
+					: "Disabled AI chat",
+			})
+		}
+		if (body.mcpEnabled !== undefined && body.mcpEnabled !== mcpEnabled()) {
+			setSetting("mcp_enabled", String(body.mcpEnabled))
+			audit({
+				kind: "admin",
+				ip: request.headers.get(CLIENT_IP_HEADER) ?? undefined,
+				actorId: user.id,
+				actorEmail: user.email,
+				action: body.mcpEnabled
+					? "Enabled MCP server"
+					: "Disabled MCP server",
 			})
 		}
 		return adminSettings()
@@ -213,6 +269,7 @@ admin.get(
 		}),
 	{ query: auditQuery }
 )
+admin.use(adminMail)
 
 /**
  * The answer for any /api path no route claims. GET needs its own registration: the static site's
@@ -227,11 +284,13 @@ const apiNotFound = ({
 /** Everything under /api/banks needs a logged-in user; unknown paths there answer 401 before 404. */
 const signedIn = new Elysia({ name: "logged-in-routes", prefix: "/api/banks" })
 	.use(sessionUser)
+	.use(chatRoutes)
 	.use(banks)
 	.use(finance)
 	.use(work)
 	.use(invoices)
 	.use(sharing)
+	.use(mcpTokens)
 	.get("/*", apiNotFound)
 	.all("/*", apiNotFound)
 
@@ -249,7 +308,11 @@ if (existsSync(dist)) {
 }
 
 app.use(apiErrors)
-	.get("/api/config", () => ({ registrationOpen: registrationOpen() }))
+	.get("/api/config", () => ({
+		registrationOpen: registrationOpen(),
+		aiChat: aiChatAvailable(),
+		mcp: mcpEnabled(),
+	}))
 	// Better Auth reads the raw request itself, so Elysia must leave the body alone.
 	.get("/api/auth/*", ({ request }) => auth.handler(request), {
 		parse: "none",
@@ -270,6 +333,8 @@ app.use(apiErrors)
 		{ parse: "none" }
 	)
 	.use(signedIn)
+	.use(mcpRoutes)
+	.use(notifications)
 	// Share links: anyone with the link can see that one invoice (and pay it), no login.
 	.group("/api/public", (group) => group.use(publicInvoices))
 	// PayPal's instant updates. Each delivery is checked with PayPal before anything is done with it.
@@ -294,7 +359,7 @@ app.use(apiErrors)
 	.listen(
 		{
 			port: env.PORT,
-			// Statement uploads are the one large body; everything else is held to 64 KB by apiGuards.
+			// Statement uploads are the largest body; chat JSON is capped at 512 KB in apiGuards.
 			maxRequestBodySize: STATEMENT_MAX_REQUEST_BYTES,
 			// Bank refreshes and backups can take minutes; Bun's default would drop them after 10 s.
 			idleTimeout: 255,

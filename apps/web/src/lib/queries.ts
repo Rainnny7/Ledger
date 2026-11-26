@@ -2,6 +2,7 @@ import {
 	keepPreviousData,
 	QueryCache,
 	QueryClient,
+	useMutation,
 	useQuery,
 	type UseQueryResult,
 } from "@tanstack/react-query"
@@ -62,6 +63,7 @@ const AFFECTS: [RegExp, readonly string[]][] = [
 	[/^\/goals/, ["goals"]],
 	[/^\/advice/, ["advice"]],
 	[/^\/budgets/, ["budgets"]],
+	[/^\/mcp-tokens/, ["mcp-tokens"]],
 	// A bill and the invoice made from it share their payments.
 	[/^\/work/, ["work", "invoices"]],
 	[/^\/(invoices|invoice-profile|payment-methods)/, ["invoices", "work"]],
@@ -135,11 +137,55 @@ export const queryKeys = {
 	contacts: ["contacts"] as const,
 	invites: ["invites"] as const,
 	budgets: ["budgets"] as const,
+	mcpTokens: ["mcp-tokens"] as const,
 	transactions: (from: string | null) =>
 		["transactions", from ?? "all"] as const,
 	account: (id: string) => ["account", id] as const,
 	accountDetails: (id: string) => ["account", id, "details"] as const,
 	update: ["admin", "update"] as const,
+	notifications: ["notifications"] as const,
+}
+
+/** Notification severity shown in the bell and admin send form. */
+export type NotificationKind = "info" | "success" | "warning" | "alert"
+
+/** One in-app notification row from GET /api/notifications. */
+export type NotificationItem = {
+	id: string
+	kind: NotificationKind
+	title: string
+	body: string
+	href: string | null
+	readAt: string | null
+	createdAt: string
+}
+
+/** Response payload for GET /api/notifications. */
+export type NotificationsData = {
+	items: NotificationItem[]
+	unreadCount: number
+}
+
+async function notificationsRequest<T>(
+	path: string,
+	init?: RequestInit
+): Promise<T> {
+	const response = await fetch(`/api/notifications${path}`, {
+		...init,
+		credentials: "include",
+		headers: { "Content-Type": "application/json", ...init?.headers },
+	})
+	if (!response.ok) {
+		const data = await response.json().catch(() => ({}))
+		throw new Error((data as { error?: string }).error ?? "Request failed")
+	}
+	return (await response.json().catch(() => ({}))) as T
+}
+
+function invalidateNotifications() {
+	return queryClient.invalidateQueries({
+		queryKey: queryKeys.notifications,
+	})
 }
 
 /** The `{ data, error, loading, reload }` shape pages use; `loading` is true while any fetch runs. */
@@ -184,6 +230,15 @@ export const useInvites = (enabled: boolean) =>
 /** Invoices you've sent and payment methods on file. */
 export const useInvoices = () =>
 	view(useQuery({ queryKey: queryKeys.invoices, queryFn: api.invoices }))
+/** The signed-in user's MCP API tokens (only fetched while the MCP card is shown). */
+export const useMcpTokens = (enabled: boolean) =>
+	view(
+		useQuery({
+			queryKey: queryKeys.mcpTokens,
+			queryFn: api.mcpTokens,
+			enabled,
+		})
+	)
 /** Monthly category spending limits. */
 export const useBudgets = () =>
 	view(useQuery({ queryKey: queryKeys.budgets, queryFn: api.budgets }))
@@ -246,6 +301,13 @@ export const useUpdate = (enabled: boolean) =>
 		retry: false,
 	})
 
+/** Public settings from GET /api/config (no login required). */
+export type AppConfig = {
+	registrationOpen: boolean
+	aiChat: boolean
+	mcp: boolean
+}
+
 /** Whether open registration is enabled (from a public config endpoint). */
 export const useAppConfig = () =>
 	useQuery({
@@ -255,7 +317,53 @@ export const useAppConfig = () =>
 			if (!response.ok) {
 				throw new Error("Could not reach the server")
 			}
-			return (await response.json()) as { registrationOpen: boolean }
+			return (await response.json()) as AppConfig
 		},
 		staleTime: 5 * 60_000,
 	}).data ?? null
+
+/** In-app notifications for the signed-in user (polls every 30s). */
+export const useNotifications = (enabled = true) =>
+	view(
+		useQuery({
+			queryKey: queryKeys.notifications,
+			queryFn: () => notificationsRequest<NotificationsData>(""),
+			enabled,
+			refetchInterval: 30_000,
+			refetchOnWindowFocus: true,
+		})
+	)
+
+/** Marks one notification as read. */
+export const useMarkNotificationRead = () =>
+	useMutation({
+		mutationFn: (id: string) =>
+			notificationsRequest<{ ok: true }>(`/${id}/read`, {
+				method: "POST",
+			}),
+		onSuccess: () => void invalidateNotifications(),
+	})
+
+/** Marks every notification as read. */
+export const useMarkAllNotificationsRead = () =>
+	useMutation({
+		mutationFn: () =>
+			notificationsRequest<{ ok: true }>("/read-all", { method: "POST" }),
+		onSuccess: () => void invalidateNotifications(),
+	})
+
+/** Removes one notification. */
+export const useDeleteNotification = () =>
+	useMutation({
+		mutationFn: (id: string) =>
+			notificationsRequest<{ ok: true }>(`/${id}`, { method: "DELETE" }),
+		onSuccess: () => void invalidateNotifications(),
+	})
+
+/** Removes every notification. */
+export const useClearAllNotifications = () =>
+	useMutation({
+		mutationFn: () =>
+			notificationsRequest<{ ok: true }>("", { method: "DELETE" }),
+		onSuccess: () => void invalidateNotifications(),
+	})

@@ -358,7 +358,7 @@ export const auth = betterAuth({
 
 /**
  * Whether people may sign themselves up. The first account can always be created; after that an
- * admin decides (Admin → Sign-ups), starting from ALLOW_REGISTRATION. Admins can add users either way.
+ * admin decides (Admin → Feature flags), starting from ALLOW_REGISTRATION. Admins can add users either way.
  */
 export function registrationOpen() {
 	if (!hasRealUsers()) {
@@ -366,6 +366,24 @@ export function registrationOpen() {
 	}
 	const setting = getSetting("registration_open")
 	return setting === null ? env.ALLOW_REGISTRATION : setting === "true"
+}
+
+/**
+ * Whether admins have left AI chat on. Defaults to enabled; an API key is still required for chat to work.
+ */
+export function aiChatEnabled() {
+	const setting = getSetting("ai_chat_enabled")
+	return setting === null ? true : setting === "true"
+}
+
+/** Whether the MCP server is switched on. Off by default: admins opt in because it lets users hand their finances to outside AI clients. */
+export function mcpEnabled() {
+	return getSetting("mcp_enabled") === "true"
+}
+
+/** Whether signed-in users may use AI chat (gateway key present and the feature flag is on). */
+export function aiChatAvailable() {
+	return Boolean(env.AI_API_KEY) && aiChatEnabled()
 }
 
 /** Whether anyone besides the built-in demo user has an account. */

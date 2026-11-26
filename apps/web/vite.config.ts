@@ -222,6 +222,11 @@ export default defineConfig(({ mode }) => {
 								priority: 2,
 								test: /node_modules\/@base-ui\//,
 							},
+							{
+								name: "vendor-ai",
+								priority: 2,
+								test: /node_modules\/(ai|@ai-sdk\/react|streamdown|use-stick-to-bottom|shiki|@shikijs)\//,
+							},
 						],
 					},
 				},

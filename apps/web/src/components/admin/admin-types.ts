@@ -19,11 +19,31 @@ export const usersKey = ["admin", "users"] as const
 /** settingsKey. */
 export const settingsKey = ["admin", "settings"] as const
 
+/** Enforced AI chat limits (read-only in Admin). */
+export interface AiChatLimits {
+	messagesPerConversation: number
+	maxConversationChars: number
+	chatRequestsPerTenMinutes: number
+	followUpSuggestionsPerTenMinutes: number
+	maxToolStepsPerAnswer: number
+	suggestionsMessageSlice: number
+}
+
+/** AI chat status for admins (never includes secrets). */
+export interface AdminAiChatSettings {
+	configured: boolean
+	enabled: boolean
+	model: string
+	limits: AiChatLimits
+}
+
 /** Admin Settings. */
 export interface AdminSettings {
 	registrationOpen: boolean
 	/** The account that set this Ledger up: only it can manage admins or its own account. */
 	ownerId: string | null
+	aiChat: AdminAiChatSettings
+	mcp: { enabled: boolean }
 }
 
 /** User dialog. */

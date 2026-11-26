@@ -15,6 +15,12 @@ const PASSWORD_CHANGE_REQUIRED = {
 	code: "PASSWORD_CHANGE_REQUIRED",
 }
 
+/** POST routes that only read data, so demo mode (read-only) may call them. */
+const DEMO_SAFE_POST_PATHS = new Set([
+	"/api/banks/chat",
+	"/api/banks/chat/suggestions",
+])
+
 /**
  * Logged-in access to `/api/banks/*`: answers 401 without a session, 403 while a temporary
  * password is still in place, and otherwise provides `user` to every handler. Responses are never
@@ -36,7 +42,11 @@ export const sessionUser = new Elysia({ name: "session-user" })
 		if (!demo) {
 			return { user: session.user }
 		}
-		if (request.method !== "GET") {
+		const isDemoSafe =
+			request.method === "GET" ||
+			(request.method === "POST" &&
+				DEMO_SAFE_POST_PATHS.has(new URL(request.url).pathname))
+		if (!isDemoSafe) {
 			return status(403, {
 				error: "Demo mode is read-only. Exit demo mode to make changes.",
 			}) as never

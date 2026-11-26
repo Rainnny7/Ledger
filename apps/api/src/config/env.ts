@@ -100,6 +100,12 @@ export const env = createEnv({
 		UPDATE_CHECK: stringBoolean(true),
 		/** How this copy was installed; the Docker image sets `docker`. */
 		LEDGER_INSTALL: z.enum(["docker", "source"]).default("source"),
+		/** API key for the OpenAI-compatible AI gateway; without it, POST /api/banks/chat answers 503. */
+		AI_API_KEY: z.string().min(1).optional(),
+		/** Base URL of the OpenAI-compatible gateway the finance chat talks to. */
+		AI_BASE_URL: z.url().default("https://opencode.ai/inference/openai/v1"),
+		/** Model id on that gateway for the finance chat. */
+		AI_MODEL: z.string().min(1).default("deepseek-v4.1-flash"),
 	},
 	runtimeEnv: {
 		...process.env,

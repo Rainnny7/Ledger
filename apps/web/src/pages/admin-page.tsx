@@ -1,7 +1,9 @@
 import { ActivityCard } from "@/components/admin/activity-card"
+import { SendNotificationCard } from "@/components/admin/send-notification-card"
+import { SmtpCard } from "@/components/admin/smtp-card"
 import { BuildInfo } from "@/components/admin/build-info"
 import { DemoCard } from "@/components/admin/demo-card"
-import { SignupsCard } from "@/components/admin/signups-card"
+import { FeatureFlagsCard } from "@/components/admin/feature-flags-card"
 import { BackupsCard } from "@/components/admin/backups-card"
 import { TasksCard } from "@/components/admin/tasks-card"
 import { UpdateStatus } from "@/components/admin/update-status"
@@ -33,12 +35,16 @@ export function AdminPage() {
 			</div>
 			<div className="grid items-start gap-8 lg:grid-cols-2">
 				<div className="grid gap-8">
-					<SignupsCard />
+					<FeatureFlagsCard />
 					<DemoCard />
 				</div>
 				<UsersCard />
 			</div>
 			<TasksCard showBackupTask={showBackups} />
+			<div className="grid items-stretch gap-8 lg:grid-cols-2">
+				<SmtpCard />
+				<SendNotificationCard />
+			</div>
 			{showBackups ? <BackupsCard /> : null}
 			<ActivityCard />
 		</div>
