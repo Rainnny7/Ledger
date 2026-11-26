@@ -1,8 +1,10 @@
+import { notLike } from "drizzle-orm"
 import { Elysia } from "elysia"
 import { z } from "zod"
 import { adminUser } from "./session.ts"
 import { audit, isInstanceOwner } from "../admin/store.ts"
 import { CLIENT_IP_HEADER } from "../auth/hooks.ts"
+import { isDemoUserId } from "../demo/personas.ts"
 import { boundedString, id, jsonBody } from "../http/validation.ts"
 import {
 	getSmtpConfig,
@@ -110,10 +112,11 @@ adminMail.post(
 			ids = db
 				.select({ id: userTable.id })
 				.from(userTable)
+				.where(notLike(userTable.id, "ledger-demo%"))
 				.all()
 				.map((row) => row.id)
 		} else {
-			ids = body.userIds
+			ids = body.userIds.filter((userId) => !isDemoUserId(userId))
 		}
 		if (ids.length === 0) {
 			return status(400, { error: "No users to notify." })

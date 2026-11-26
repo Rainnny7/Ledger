@@ -64,8 +64,10 @@ function NotificationRow({
 	return (
 		<div
 			className={cn(
-				"group flex gap-2 rounded-md border border-transparent px-2 py-2 transition-colors hover:bg-muted/60",
-				unread && "border-primary/15 bg-primary/5"
+				"group flex gap-2 rounded-md border border-transparent px-2 py-2 transition-colors ",
+				unread
+					? "border-primary/25 bg-primary/10 hover:bg-primary/15"
+					: "hover:bg-muted/60"
 			)}
 		>
 			<button
@@ -167,8 +169,7 @@ export function NotificationBell({ enabled }: { enabled: boolean }) {
 				<Bell className="size-4" />
 				{unread > 0 && (
 					<Badge
-						variant="destructive"
-						className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 text-[10px] tabular-nums"
+						className="absolute -top-1 -right-1 h-4 min-w-4 border-2 border-background bg-red-500 px-1 text-[10px] font-bold text-white tabular-nums hover:bg-red-500"
 					>
 						{unread > 99 ? "99+" : unread}
 					</Badge>
