@@ -15,20 +15,26 @@ interface Connection {
 	usernameMasked: string
 }
 
+/** Options for {@link useConnectDialog}. */
+export type UseConnectDialogOptions = {
+	open: boolean
+	onOpenChange: (open: boolean) => void
+	connection?: Connection | null
+	full?: boolean
+	onConnected?: (connectionId: string) => void
+	/** When false, a finished sync does not call `onOpenChange(false)` (inline onboarding). */
+	closeOnSuccess?: boolean
+}
+
 /** React/UI entry: `useConnectDialog`. */
 export function useConnectDialog({
 	open,
 	onOpenChange,
 	connection,
-	full,
+	full = false,
 	onConnected,
-}: {
-	open: boolean
-	onOpenChange: (open: boolean) => void
-	connection?: Connection | null
-	full: boolean
-	onConnected?: (connectionId: string) => void
-}) {
+	closeOnSuccess = true,
+}: UseConnectDialogOptions) {
 	const [provider, setProvider] = useState<ProviderId>("td")
 	const [phase, setPhase] = useState<Phase>({ type: "pick" })
 	const [sessionId, setSessionId] = useState<string | null>(null)
@@ -94,7 +100,9 @@ export function useConnectDialog({
 			toast.success(`${meta.label} synced`)
 			notifyDataChanged()
 			onConnectedRef.current?.(view.step.connectionId)
-			onOpenChange(false)
+			if (closeOnSuccess) {
+				onOpenChange(false)
+			}
 		}
 		setPhase(view.step)
 	}
@@ -182,6 +190,15 @@ export function useConnectDialog({
 		})
 		return call(() => api.connect(providerId, body))
 	}
+
+	useEffect(() => {
+		if (open || !sessionId || phase.type === "done") {
+			return
+		}
+		void api.cancelSession(sessionId).catch(() => {})
+		// oxlint-disable-next-line react/set-state-in-effect -- clear session when inline flow hides
+		setSessionId(null)
+	}, [open, sessionId, phase.type])
 
 	const polling =
 		phase.type === "syncing" ||

@@ -301,6 +301,12 @@ export const auth = betterAuth({
 			// Settings → Appearance: the mode (system / light / dark / AMOLED) and accent colour, so they follow you to every device. Unset until picked.
 			theme: { type: "string", input: true, required: false },
 			accent: { type: "string", input: true, required: false },
+			// Cleared for new accounts; set when onboarding is skipped, closed or finished.
+			onboardingCompletedAt: {
+				type: "date",
+				input: true,
+				required: false,
+			},
 		},
 	},
 	databaseHooks: {

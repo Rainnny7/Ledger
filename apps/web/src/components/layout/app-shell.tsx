@@ -17,6 +17,10 @@ import {
 } from "@/components/icons/use-animated-icon"
 import { UsersIcon } from "@/components/icons/users"
 import { WalletIcon } from "@/components/icons/wallet"
+import {
+	OnboardingProvider,
+	useOnboarding,
+} from "@/components/onboarding/onboarding-provider"
 import { LinkMenuItems } from "@/components/layout/app-context-menu"
 import { Brand } from "@/components/layout/brand"
 import { openCommandPalette } from "@/components/layout/command-palette-open"
@@ -84,7 +88,7 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
 import { cn } from "cn"
-import { Monitor, MonitorPlay, Palette, Search, X } from "lucide-react"
+import { Map, Monitor, MonitorPlay, Palette, Search, X } from "lucide-react"
 import { domMax, LazyMotion, m } from "motion/react"
 import {
 	type ForwardRefExoticComponent,
@@ -181,6 +185,19 @@ const BUSINESS_NAV: NavEntry[] = [
 
 const ALL_NAV = [...NAV, ...BUSINESS_NAV]
 
+/** `data-tour` ids for the onboarding spotlight tour. */
+const NAV_TOUR_ID: Record<string, string> = {
+	"/": "nav-bank-accounts",
+	"/transactions": "nav-transactions",
+	"/insights": "nav-insights",
+	"/subscriptions": "nav-subscriptions",
+	"/goals": "nav-goals",
+	"/advisor": "nav-advisor",
+	"/work": "nav-work",
+	"/invoices": "nav-invoices",
+	"/taxes": "nav-taxes",
+}
+
 /** Shared layout id so the active nav highlight slides between top-level entries. */
 const NAV_ACTIVE_LAYOUT_ID = "main-nav-active"
 
@@ -236,6 +253,7 @@ function NavItem({
 	count,
 	active,
 	alert,
+	dataTour,
 }: {
 	to: string
 	label: string
@@ -243,6 +261,7 @@ function NavItem({
 	count: number | null
 	active: boolean
 	alert?: string | null
+	dataTour?: string
 }) {
 	const { ref: iconRef, handlers: iconHandlers } =
 		useAnimatedIcon<HTMLAnchorElement>()
@@ -254,6 +273,7 @@ function NavItem({
 			onClick={() => scrollUpIfHere(to, pathname)}
 			aria-current={active ? "page" : undefined}
 			data-nav-active={active || undefined}
+			data-tour={dataTour}
 			{...iconHandlers}
 			className={navEntryClass(active)}
 		>
@@ -318,6 +338,7 @@ function NavGroupLink({
 	const { ref: iconRef, handlers: iconHandlers } =
 		useAnimatedIcon<HTMLAnchorElement>()
 	const { pathname } = useLocation()
+	const dataTour = NAV_TOUR_ID[item.to]
 	return (
 		<NavigationMenuLink
 			closeOnClick
@@ -328,6 +349,7 @@ function NavGroupLink({
 					to={item.to}
 					onClick={() => scrollUpIfHere(item.to, pathname)}
 					aria-current={active ? "page" : undefined}
+					data-tour={dataTour}
 				/>
 			}
 			className={cn(
@@ -729,7 +751,16 @@ function ModeSwatch({ id }: { id: (typeof MODES)[number]["id"] }) {
 
 /** App Shell. */
 export function AppShell() {
+	return (
+		<OnboardingProvider>
+			<AppShellFrame />
+		</OnboardingProvider>
+	)
+}
+
+function AppShellFrame() {
 	const { data } = useSession()
+	const { startOnboarding } = useOnboarding()
 	useHomeCurrencySetup(data?.user)
 	const navigate = useNavigate()
 	const { pathname } = useLocation()
@@ -789,6 +820,7 @@ export function AppShell() {
 								<NavItem
 									key={item.to}
 									{...item}
+									dataTour={NAV_TOUR_ID[item.to]}
 									// Counted links always show their badge (0 while loading) so the nav doesn'theme shift.
 									count={
 										item.count
@@ -836,6 +868,7 @@ export function AppShell() {
 											size="icon"
 											className="rounded-full"
 											aria-label="Account menu"
+											data-tour="account-menu"
 										/>
 									}
 								>
@@ -873,6 +906,12 @@ export function AppShell() {
 												Settings
 											</MenuItem>
 											<DropdownMenuItem
+												onClick={() => startOnboarding()}
+											>
+												<Map className="size-4 shrink-0" />
+												Take the tour
+											</DropdownMenuItem>
+											<DropdownMenuItem
 												onClick={() =>
 													setDemoMode(false)
 												}
@@ -902,6 +941,12 @@ export function AppShell() {
 											>
 												Settings
 											</MenuItem>
+											<DropdownMenuItem
+												onClick={() => startOnboarding()}
+											>
+												<Map className="size-4 shrink-0" />
+												Take the tour
+											</DropdownMenuItem>
 											{isAdmin && (
 												<MenuItem
 													icon={ShieldCheckIcon}

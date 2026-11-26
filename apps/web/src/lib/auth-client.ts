@@ -32,6 +32,11 @@ export const authClient = createAuthClient({
 				theme: { type: "string", required: false, input: true },
 				// Settings → Appearance; the accent colour, used with any mode.
 				accent: { type: "string", required: false, input: true },
+				onboardingCompletedAt: {
+					type: "date",
+					required: false,
+					input: true,
+				},
 			},
 		}),
 	],

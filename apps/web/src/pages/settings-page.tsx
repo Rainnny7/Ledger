@@ -4,6 +4,7 @@ import { ChangePasswordCard } from "@/components/settings/change-password-card"
 import { DeleteAccountCard } from "@/components/settings/delete-account-card"
 import { DevicesCard } from "@/components/settings/devices-card"
 import { McpAccessCard } from "@/components/settings/mcp-access-card"
+import { OnboardingCard } from "@/components/settings/onboarding-card"
 import { PreferencesCard } from "@/components/settings/preferences-card"
 import { TwoFactorCard } from "@/components/settings/two-factor-card"
 import { demoMode } from "@/lib/demo"
@@ -32,6 +33,7 @@ export function SettingsPage() {
 			)}
 			<AppearanceCard />
 			<PreferencesCard />
+			{!demoMode && <OnboardingCard />}
 			{demoMode ? (
 				<div
 					inert

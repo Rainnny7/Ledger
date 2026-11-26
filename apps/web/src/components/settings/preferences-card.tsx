@@ -1,7 +1,6 @@
 import { useState } from "react"
-import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
-import { CurrencySelect } from "@/components/common/currency-select"
+import { CurrencyPreferenceField } from "@/components/settings/currency-preference-field"
 import {
 	Card,
 	CardContent,
@@ -12,9 +11,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { authClient, useSession } from "@/lib/auth-client"
-import { currencyName, useFx, useHomeCurrency } from "@/lib/currency"
 import { demoMode, setDemoPrefs, useDemoPrefs } from "@/lib/demo"
-import { formatDate } from "@/lib/format"
 import { queryClient } from "@/lib/queries"
 
 /** Display currency and overdraft-counting preferences. */
@@ -45,26 +42,6 @@ export function PreferencesCard() {
 		setPending(null)
 	}
 
-	const home = useHomeCurrency()
-	const fx = useFx()
-	const [pendingCurrency, setPendingCurrency] = useState<string | null>(null)
-	async function changeCurrency(code: string) {
-		if (demoMode) {
-			setDemoPrefs({ currency: code })
-			toast.success(`Totals now show in ${currencyName(code)}`)
-			return
-		}
-		setPendingCurrency(code)
-		const { error } = await authClient.updateUser({ currency: code })
-		if (error) {
-			toastError(error.message ?? "Could not save that")
-		} else {
-			toast.success(`Totals now show in ${currencyName(code)}`)
-			await queryClient.invalidateQueries()
-		}
-		setPendingCurrency(null)
-	}
-
 	return (
 		<Card>
 			<CardHeader>
@@ -72,30 +49,7 @@ export function PreferencesCard() {
 				<CardDescription>How Ledger shows your money.</CardDescription>
 			</CardHeader>
 			<CardContent className="grid gap-6">
-				<div className="flex flex-wrap items-start justify-between gap-4">
-					<Label
-						htmlFor="pref-currency"
-						className="grid flex-1 basis-64 gap-1 font-normal"
-					>
-						<span className="font-medium">Default currency</span>
-						<span className="text-sm text-muted-foreground">
-							Totals across accounts, goals, subscriptions and
-							jobs are shown in this currency, converting others
-							at daily reference rates
-							{fx?.date
-								? ` (last updated ${formatDate(fx.date)})`
-								: ""}
-							. New goals, subscriptions and jobs start in it too.
-						</span>
-					</Label>
-					<CurrencySelect
-						id="pref-currency"
-						value={pendingCurrency ?? home}
-						onChange={(currency) => void changeCurrency(currency)}
-						disabled={pendingCurrency !== null}
-						className="w-56"
-					/>
-				</div>
+				<CurrencyPreferenceField idPrefix="pref" />
 				<div className="flex items-start justify-between gap-4">
 					<Label
 						htmlFor="pref-overdraft"

@@ -27,7 +27,7 @@ export function DashboardEmptyState({ onAdd }: { onAdd: () => void }) {
 						overdraft and transactions in one place.
 					</p>
 				</div>
-				<Button onClick={onAdd}>
+				<Button data-tour="dashboard-connect" onClick={onAdd}>
 					<Plus /> Add account
 				</Button>
 			</CardContent>

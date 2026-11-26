@@ -1,3 +1,4 @@
+@import "driver.js/dist/driver.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -710,4 +711,113 @@
 	svg {
 	width: 14px;
 	height: 14px;
+}
+
+/* driver.js onboarding tour — theme tokens for light/dark */
+.driver-popover.ledger-driver-popover {
+	background: var(--popover);
+	color: var(--popover-foreground);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-md);
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-title {
+	font-weight: 600;
+	color: var(--foreground);
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-description {
+	color: var(--muted-foreground);
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-progress-text {
+	color: var(--muted-foreground);
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-arrow {
+	border: 5px solid var(--popover);
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-arrow-side-left {
+	border-top-color: transparent;
+	border-bottom-color: transparent;
+	border-right-color: transparent;
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-arrow-side-right {
+	border-top-color: transparent;
+	border-bottom-color: transparent;
+	border-left-color: transparent;
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-arrow-side-top {
+	border-bottom-color: transparent;
+	border-left-color: transparent;
+	border-right-color: transparent;
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-arrow-side-bottom {
+	border-top-color: transparent;
+	border-left-color: transparent;
+	border-right-color: transparent;
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-close-btn {
+	box-sizing: border-box;
+	width: 28px;
+	height: 28px;
+	border: 0;
+	border-radius: var(--radius-md);
+	background: transparent;
+	color: var(--muted-foreground);
+	text-shadow: none;
+	transition:
+		color 150ms,
+		background 150ms;
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-close-btn:hover,
+.driver-popover.ledger-driver-popover .driver-popover-close-btn:focus-visible {
+	background: var(--accent);
+	color: var(--accent-foreground);
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-footer-btn {
+	box-sizing: border-box;
+	height: 32px;
+	padding: 0 10px;
+	border-radius: var(--radius-lg);
+	font-size: 0.875rem;
+	font-weight: 500;
+	line-height: 1.25rem;
+	text-shadow: none;
+	outline: none;
+	box-shadow: none;
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-prev-btn {
+	border: 1px solid var(--border);
+	background: var(--background);
+	color: var(--foreground);
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-prev-btn:hover,
+.driver-popover.ledger-driver-popover .driver-popover-prev-btn:focus-visible {
+	background: var(--muted);
+	color: var(--foreground);
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-next-btn,
+.driver-popover.ledger-driver-popover .driver-popover-done-btn {
+	border: 1px solid transparent;
+	background: var(--primary);
+	color: var(--primary-foreground);
+}
+
+.driver-popover.ledger-driver-popover .driver-popover-next-btn:hover,
+.driver-popover.ledger-driver-popover .driver-popover-next-btn:focus-visible,
+.driver-popover.ledger-driver-popover .driver-popover-done-btn:hover,
+.driver-popover.ledger-driver-popover .driver-popover-done-btn:focus-visible {
+	background: color-mix(in oklch, var(--primary), var(--foreground) 20%);
 }

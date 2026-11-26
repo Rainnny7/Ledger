@@ -29,6 +29,13 @@
       "when": 1795658426362,
       "tag": "0003_mcp_token",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1795660040328,
+      "tag": "0004_chief_squirrel_girl",
+      "breakpoints": true
     }
   ]
 }

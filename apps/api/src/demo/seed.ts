@@ -45,8 +45,13 @@ function ensureDemoUser(p: Persona) {
 			updatedAt: now,
 			role: "user",
 			banned: true,
+			onboardingCompletedAt: now,
 		})
 		.onConflictDoNothing({ target: user.id })
+		.run()
+	db.update(user)
+		.set({ onboardingCompletedAt: now, updatedAt: now })
+		.where(eq(user.id, userIdOf(p)))
 		.run()
 }
 

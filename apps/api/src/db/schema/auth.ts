@@ -30,6 +30,8 @@ export const user = sqliteTable("user", {
 	currency: text("currency"),
 	theme: text("theme"),
 	accent: text("accent"),
+	/** Set after the user finishes or skips first-login onboarding (ISO-8601). */
+	onboardingCompletedAt: text("onboardingCompletedAt"),
 })
 
 /** Logged-in devices. */
