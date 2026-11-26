@@ -117,7 +117,9 @@ export function SubscriptionsTable({
 					<TableHead className="hidden text-right lg:table-cell">
 						Per month
 					</TableHead>
-					<TableHead className="w-12 pr-4" />
+					<TableHead className="w-12 pr-4">
+						<span className="sr-only">Actions</span>
+					</TableHead>
 				</TableRow>
 			</TableHeader>
 			<TableBody>
