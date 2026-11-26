@@ -201,20 +201,28 @@ export default defineConfig(({ mode }) => {
 		],
 		build: {
 			outDir: env.VIZ_OUT_DIR ?? "dist",
-			rollupOptions: {
+			rolldownOptions: {
 				output: {
-					manualChunks(id) {
-						if (
-							id.includes("node_modules/react/") ||
-							id.includes("node_modules/react-dom/") ||
-							id.includes(
-								"node_modules/@tanstack/react-router"
-							) ||
-							id.includes("node_modules/@tanstack/router-core") ||
-							id.includes("node_modules/scheduler/")
-						) {
-							return "vendor-react"
-						}
+					// Each lucide icon and base-ui part would otherwise become its own tiny file, and the browser
+					// only learns about them level by level, so a cold load is a long chain of round trips.
+					codeSplitting: {
+						groups: [
+							{
+								name: "vendor-react",
+								priority: 3,
+								test: /node_modules\/(react|react-dom|scheduler|@tanstack\/react-router|@tanstack\/router-core)\//,
+							},
+							{
+								name: "vendor-icons",
+								priority: 2,
+								test: /node_modules\/lucide-react\//,
+							},
+							{
+								name: "vendor-ui",
+								priority: 2,
+								test: /node_modules\/@base-ui\//,
+							},
+						],
 					},
 				},
 			},
