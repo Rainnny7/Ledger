@@ -662,7 +662,9 @@ function ThemeMenu() {
 				</span>
 			</DropdownMenuSubTrigger>
 			<DropdownMenuSubContent ref={menuRef} className="w-48">
-				<DropdownMenuLabel>Mode</DropdownMenuLabel>
+				<DropdownMenuGroup>
+						<DropdownMenuLabel>Mode</DropdownMenuLabel>
+					</DropdownMenuGroup>
 				<DropdownMenuRadioGroup
 					value={mode}
 					onValueChange={(selected) =>
@@ -679,7 +681,9 @@ function ThemeMenu() {
 					))}
 				</DropdownMenuRadioGroup>
 				<DropdownMenuSeparator />
-				<DropdownMenuLabel>Accent</DropdownMenuLabel>
+				<DropdownMenuGroup>
+						<DropdownMenuLabel>Accent</DropdownMenuLabel>
+					</DropdownMenuGroup>
 				<DropdownMenuRadioGroup
 					value={accent}
 					onValueChange={(selected) =>
