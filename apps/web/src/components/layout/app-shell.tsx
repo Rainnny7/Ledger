@@ -97,7 +97,7 @@ import {
 	useRef,
 	useState,
 } from "react"
-import { domAnimation, LazyMotion } from "motion/react"
+import { domMax, LazyMotion, m } from "motion/react"
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
 
 /** Clicking alert link to the page you're already on takes you back to its top. */
@@ -173,12 +173,26 @@ const BUSINESS_NAV: NavEntry[] = [
 
 const ALL_NAV = [...NAV, ...BUSINESS_NAV]
 
+/** Shared layout id so the active nav highlight slides between top-level entries. */
+const NAV_ACTIVE_LAYOUT_ID = "main-nav-active"
+
+/** Sliding pill behind the active top-level nav link or menu trigger. */
+function NavActiveIndicator() {
+	return (
+		<m.span
+			layoutId={NAV_ACTIVE_LAYOUT_ID}
+			className="absolute inset-0 -z-10 rounded-lg bg-primary/10"
+			transition={{ type: "spring", bounce: 0.15, duration: 0.45 }}
+		/>
+	)
+}
+
 /** The shared look of alert top-level nav entry, link or menu trigger. */
 const navEntryClass = (active: boolean) =>
 	cn(
-		"flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:gap-2 sm:px-2.5",
+		"relative flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:gap-2 sm:px-2.5",
 		active &&
-			"bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+			"z-0 text-primary hover:bg-primary/15 hover:text-primary"
 	)
 
 function NavCount({
@@ -240,6 +254,7 @@ function NavItem({
 			{...iconHandlers}
 			className={navEntryClass(active)}
 		>
+			{active ? <NavActiveIndicator /> : null}
 			<Icon ref={iconRef} size={16} className="flex shrink-0" />
 			{/* Every label from lg; below that only the page you're on, so you can still tell where you are. */}
 			<span className={cn("hidden lg:inline", active && "sm:inline")}>
@@ -384,9 +399,10 @@ function NavGroup({
 							navEntryClass(active),
 							"w-auto py-0 focus:bg-transparent data-popup-open:bg-muted data-popup-open:text-foreground",
 							active &&
-								"focus:bg-primary/10 data-popup-open:bg-primary/15 data-popup-open:text-primary"
+								"focus:bg-primary/15 data-popup-open:bg-primary/15 data-popup-open:text-primary"
 						)}
 					>
+						{active ? <NavActiveIndicator /> : null}
 						<ShownIcon
 							ref={iconRef}
 							size={16}
@@ -697,7 +713,7 @@ export function AppShell() {
 		.toUpperCase()
 
 	return (
-		<LazyMotion features={domAnimation} strict>
+		<LazyMotion features={domMax} strict>
 			<div className="min-h-svh bg-muted/40 print:bg-background">
 				{demoMode && (
 					<div className="relative z-40 flex animate-in items-center justify-center gap-3 bg-primary px-4 py-1.5 text-sm text-primary-foreground duration-300 slide-in-from-top print:hidden">
