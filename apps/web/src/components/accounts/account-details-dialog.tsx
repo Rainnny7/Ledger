@@ -65,10 +65,7 @@ export function AccountDetailsButton({
 }
 
 function DetailsBody({ account }: { account: Account }) {
-	const { data, loading, error, reload } = useAccountDetails(
-		account.id,
-		true
-	)
+	const { data, loading, error, reload } = useAccountDetails(account.id, true)
 	const [revealed, setRevealed] = useState(false)
 
 	if (!data && loading) {
@@ -80,10 +77,7 @@ function DetailsBody({ account }: { account: Account }) {
 	}
 	if (error && !data) {
 		return (
-			<QueryError
-				message={error.message}
-				onRetry={() => void reload()}
-			/>
+			<QueryError message={error.message} onRetry={() => void reload()} />
 		)
 	}
 

@@ -6,6 +6,14 @@
 
 <p align="center">A self-hosted personal finance dashboard that pulls in your bank data on its own.</p>
 
+<p align="center">
+  <a href="https://github.com/Rainnny7/Ledger/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Rainnny7/Ledger/ci.yml?branch=master&label=build" alt="Build status"></a>
+  <a href="https://github.com/Rainnny7/Ledger/actions/workflows/docker.yml"><img src="https://img.shields.io/github/actions/workflow/status/Rainnny7/Ledger/docker.yml?branch=master&label=docker" alt="Docker image build"></a>
+  <a href="https://github.com/Rainnny7/Ledger/releases"><img src="https://img.shields.io/github/v/release/Rainnny7/Ledger?include_prereleases&label=release" alt="Latest release"></a>
+  <img src="https://img.shields.io/github/package-json/v/Rainnny7/Ledger?label=version" alt="Project version">
+  <a href="https://github.com/Rainnny7/Ledger/commits/master"><img src="https://img.shields.io/github/last-commit/Rainnny7/Ledger" alt="Last commit"></a>
+</p>
+
 ![Ledger dashboard](assets/screenshots/dashboard.png)
 
 ## Table of contents

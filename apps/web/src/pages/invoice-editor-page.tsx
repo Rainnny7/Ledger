@@ -23,10 +23,7 @@ export function InvoiceEditorPage() {
 
 	if (error && !data) {
 		return (
-			<QueryError
-				message={error.message}
-				onRetry={() => void reload()}
-			/>
+			<QueryError message={error.message} onRetry={() => void reload()} />
 		)
 	}
 	if (work.error && !work.data && fromBill) {

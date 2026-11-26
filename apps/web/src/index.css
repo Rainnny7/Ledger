@@ -752,7 +752,9 @@
 	background: var(--secondary);
 	color: var(--secondary-foreground);
 }
-[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] {
+[data-sonner-toaster]
+	[data-sonner-toast][data-styled="true"]
+	[data-close-button] {
 	position: absolute;
 	top: 50%;
 	right: 12px;
