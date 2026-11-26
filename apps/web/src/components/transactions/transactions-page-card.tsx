@@ -130,12 +130,14 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 						}}
 					/>
 					<TransactionsFilterSelect
+						label="Account"
 						items={accountItems}
 						value={accountId}
 						onChange={(next) => (setAccountId(next), changed())}
 						className="w-44"
 					/>
 					<TransactionsFilterSelect
+						label="Period"
 						items={periodOptions}
 						value={since ? "since" : period}
 						onChange={(next) => {
@@ -151,6 +153,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 						className="w-36"
 					/>
 					<TransactionsFilterSelect
+						label="Category"
 						items={transactionCategoryItems}
 						value={category}
 						onChange={(next) => (
@@ -160,6 +163,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 						className="w-44"
 					/>
 					<TransactionsFilterSelect
+						label="Tax tag"
 						items={transactionTagItems}
 						value={tag}
 						onChange={(next) => (
