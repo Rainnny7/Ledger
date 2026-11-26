@@ -96,6 +96,32 @@
 			.app-loader-base {
 				opacity: 0.9;
 			}
+			/* The name and message sit below the mark, out of the grid flow so the mark never moves. */
+			.app-loader-text {
+				position: absolute;
+				top: calc(50% + 28px + 16px);
+				left: 0;
+				right: 0;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				gap: 6px;
+				padding: 0 24px;
+				text-align: center;
+				font-family: system-ui, sans-serif;
+			}
+			.app-loader-name {
+				font-size: 18px;
+				font-weight: 600;
+				letter-spacing: -0.01em;
+				color: var(--foreground);
+			}
+			.app-loader-message {
+				min-height: 1.25em;
+				font-size: 14px;
+				color: var(--muted-foreground);
+				animation: app-loader-in 400ms ease-out both;
+			}
 			@keyframes app-loader-in {
 				from {
 					opacity: 0;
@@ -157,6 +183,9 @@
 						<path class="app-loader-col" d="M18 18v-7" />
 						<path class="app-loader-base" d="M3 22h18" />
 					</svg>
+				</div>
+				<div class="app-loader-text">
+					<span class="app-loader-name">Ledger</span>
 				</div>
 			</div>
 		</div>

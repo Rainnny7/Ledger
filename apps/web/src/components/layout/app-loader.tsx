@@ -1,7 +1,47 @@
-import { type CSSProperties, useState } from "react"
+import { type CSSProperties, useEffect, useState } from "react"
 
 /** One loop of the loader's animation; see the .app-loader styles in index.html. */
 const PERIOD_MS = 3200
+
+/** Shown under the site name on the full-screen loader, one at random, swapped each loop. */
+const LOADING_MESSAGES = [
+	"Balancing the books…",
+	"Counting your coins…",
+	"Sharpening pencils…",
+	"Reconciling accounts…",
+	"Filing the paperwork…",
+	"Polishing the ledger…",
+	"Adding it all up…",
+	"Checking the math twice…",
+	"Stamping receipts…",
+	"Tallying the totals…",
+]
+
+/** A random message that differs from `previous`, so a swap is always visible. */
+function pickMessage(previous?: string) {
+	const options = LOADING_MESSAGES.filter((message) => message !== previous)
+	return options[Math.floor(Math.random() * options.length)]
+}
+
+/** The site name and a rotating random message, shown only on the full-screen loader. */
+function LoaderText() {
+	const [message, setMessage] = useState(() => pickMessage())
+	useEffect(() => {
+		const timer = window.setInterval(
+			() => setMessage((current) => pickMessage(current)),
+			PERIOD_MS,
+		)
+		return () => window.clearInterval(timer)
+	}, [])
+	return (
+		<div className="app-loader-text">
+			<span className="app-loader-name">Ledger</span>
+			<span key={message} className="app-loader-message">
+				{message}
+			</span>
+		</div>
+	)
+}
 
 /**
  * The full-page loader: the Ledger mark building itself, column by column.
@@ -48,6 +88,7 @@ export function AppLoader({
 					<path className="app-loader-base" d="M3 22h18" />
 				</svg>
 			</div>
+			{!inPage && <LoaderText />}
 		</div>
 	)
 }
