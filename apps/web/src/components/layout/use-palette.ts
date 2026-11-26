@@ -15,6 +15,7 @@
 	Timer,
 	Wallet,
 } from "lucide-react"
+import { toastGoodbye } from "@/lib/toast"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { SearchIcon } from "@/components/icons/search"
 import { useNavigate } from "@tanstack/react-router"
@@ -114,6 +115,7 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 				keywords: "log out logout leave",
 				run: async () => {
 					await signOut()
+					toastGoodbye()
 					if (demoMode) {
 						setDemoMode(false)
 					}

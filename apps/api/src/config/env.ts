@@ -100,6 +100,10 @@ export const env = createEnv({
 		UPDATE_CHECK: stringBoolean(true),
 		/** How this copy was installed; the Docker image sets `docker`. */
 		LEDGER_INSTALL: z.enum(["docker", "source"]).default("source"),
+		/** Cloudflare Turnstile site key (public). Captcha on the login page is on only when this and the secret are both set. */
+		TURNSTILE_SITE_KEY: z.string().min(1).optional(),
+		/** Cloudflare Turnstile secret key, used to verify tokens server-side. */
+		TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
 		/** API key for the OpenAI-compatible AI gateway; without it, POST /api/banks/chat answers 503. */
 		AI_API_KEY: z.string().min(1).optional(),
 		/** Base URL of the OpenAI-compatible gateway the finance chat talks to. */

@@ -32,7 +32,7 @@ docker compose up -d
 
 Open `http://localhost:3001` (or your `APP_URL`) and create an account. The first user is the admin.
 
-**Environment.** Values in `.env` next to the compose file are passed through for `APP_URL`, `PUBLIC_URL`, `APP_SECRET`, `ALLOW_REGISTRATION`, and `TRUST_PROXY`. Any other [configuration](README.md#configuration) variable can be added under `environment:` in the compose file if you need it.
+**Environment.** Values in `.env` next to the compose file are passed through for `APP_URL`, `PUBLIC_URL`, `APP_SECRET`, `ALLOW_REGISTRATION`, and `TRUST_PROXY`. Any other [configuration](README.md#configuration) variable can be added under `environment:` in the compose file if you need it. To put an invisible Cloudflare Turnstile captcha on log in and sign up, set `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` (both are required; Cloudflare's always-pass test keys `1x00000000000000000000BB` and `1x0000000000000000000000000000000AA` work for trying it on localhost).
 
 **Secret.** If `APP_SECRET` is empty, the app generates one on first run and stores it in the data volume (`data/.secret` inside the mount). For a fixed secret before first boot: `openssl rand -hex 32` (32+ characters). Changing `APP_SECRET` later signs everyone out and makes saved bank passwords unreadable.
 
@@ -198,7 +198,7 @@ Review release notes before auto-upgrading production; database migrations are f
 
 | Symptom                                            | What to try                                                                                                                                                          |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TD login hangs or Chromium crashes in Docker     | Confirm `shm_size: 1gb` (or `docker run --shm-size=1g`). Try `TD_HEADLESS=false` on a machine with a display, or `TD_BROWSER_CHANNEL=chrome` if Chrome is installed. |
+| TD login hangs or Chromium crashes in Docker       | Confirm `shm_size: 1gb` (or `docker run --shm-size=1g`). Try `TD_HEADLESS=false` on a machine with a display, or `TD_BROWSER_CHANNEL=chrome` if Chrome is installed. |
 | Port already in use                                | Change `PORT` and the published port mapping (`3001:3001`).                                                                                                          |
 | Everyone logged out / saved bank passwords invalid | Usually a new or changed `APP_SECRET`. Restore `data/.secret` or the previous env value; otherwise re-enter bank credentials.                                        |
 | PayPal webhooks never arrive                       | `PUBLIC_URL` must be a reachable public `https://` URL; reverse proxy must forward to Ledger.                                                                        |

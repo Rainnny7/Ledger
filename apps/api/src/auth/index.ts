@@ -6,7 +6,7 @@ import {
 	getSessionFromCtx,
 	isAPIError,
 } from "better-auth/api"
-import { admin, twoFactor } from "better-auth/plugins"
+import { admin, captcha, twoFactor } from "better-auth/plugins"
 import { audit, emailOf, setMustChangePassword } from "../admin/store.ts"
 import { endUserSessions } from "../banks/sessions.ts"
 import { eq, notLike } from "drizzle-orm"
@@ -35,6 +35,7 @@ import {
 	signInBackoffBlocked,
 	type AdminBody,
 } from "./hooks.ts"
+import { turnstileSecretKey } from "./captcha.ts"
 
 /** Public export for routes and tests. */
 export const auth = betterAuth({
@@ -338,6 +339,16 @@ export const auth = betterAuth({
 			bannedUserMessage:
 				"Your access to this Ledger has been turned off. Ask its admin to restore it.",
 		}),
+		// Invisible Cloudflare Turnstile on sign-in and sign-up, when both keys are configured.
+		...(turnstileSecretKey
+			? [
+					captcha({
+						provider: "cloudflare-turnstile",
+						secretKey: turnstileSecretKey,
+						endpoints: ["/sign-in/email", "/sign-up/email"],
+					}),
+				]
+			: []),
 	],
 	// Throttle password guessing (in-memory; this is a single-process app). On by default only in production.
 	rateLimit: {

@@ -26,6 +26,10 @@ import { toastError } from "@/lib/toast"
 export const queryClient = new QueryClient({
 	queryCache: new QueryCache({
 		onError: (error, query) => {
+			// A session that ended (logging out) sends the guards to the login page; that's not worth a toast.
+			if (error instanceof ApiError && error.status === 401) {
+				return
+			}
 			const message =
 				error instanceof Error ? error.message : String(error)
 			toastError(message, { id: JSON.stringify(query.queryKey) })
@@ -177,7 +181,10 @@ async function notificationsRequest<T>(
 	})
 	if (!response.ok) {
 		const data = await response.json().catch(() => ({}))
-		throw new Error((data as { error?: string }).error ?? "Request failed")
+		throw new ApiError(
+			response.status,
+			(data as { error?: string }).error ?? "Request failed"
+		)
 	}
 	return (await response.json().catch(() => ({}))) as T
 }
@@ -306,6 +313,8 @@ export type AppConfig = {
 	registrationOpen: boolean
 	aiChat: boolean
 	mcp: boolean
+	/** Public Cloudflare Turnstile site key; null when captcha is off. */
+	turnstileSiteKey: string | null
 }
 
 /** Whether open registration is enabled (from a public config endpoint). */

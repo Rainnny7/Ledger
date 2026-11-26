@@ -1,4 +1,5 @@
 import { UpdateDialog } from "@/components/admin/update-dialog"
+import { toastGoodbye } from "@/lib/toast"
 import { SearchIcon } from "@/components/icons/search"
 import { useAdvice } from "@/components/advisor/use-advice"
 import { BriefcaseBusinessIcon } from "@/components/icons/briefcase-business"
@@ -1006,6 +1007,7 @@ function AppShellFrame() {
 										icon={LogoutIcon}
 										onClick={async () => {
 											await signOut()
+											toastGoodbye()
 											if (demoMode) {
 												setDemoMode(false)
 											}

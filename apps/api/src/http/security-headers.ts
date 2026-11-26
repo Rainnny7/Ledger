@@ -5,15 +5,15 @@ import { Elysia } from "elysia"
 const CONTENT_SECURITY_POLICY = [
 	"default-src 'self'",
 	// The invoice PDF renderer is WebAssembly.
-	"script-src 'self' 'wasm-unsafe-eval'",
+	"script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com",
 	// Tailwind/Base UI set inline style attributes; charts use inline SVG styles.
 	"style-src 'self' 'unsafe-inline'",
 	// Currency flags in the pickers.
 	"img-src 'self' data: blob: https://flagcdn.com",
-	// The PDF preview is a blob: document in a frame.
-	"frame-src 'self' blob:",
+	// The PDF preview is a blob: document in a frame; Cloudflare Turnstile runs in its own frame.
+	"frame-src 'self' blob: https://challenges.cloudflare.com",
 	"font-src 'self' data:",
-	"connect-src 'self'",
+	"connect-src 'self' https://challenges.cloudflare.com",
 	"frame-ancestors 'none'",
 	"form-action 'self'",
 	"base-uri 'self'",

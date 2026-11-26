@@ -14,7 +14,6 @@ import { Route as AuthedRouteRouteImport } from './routes/_authed/route'
 import { Route as GuestRouteRouteImport } from './routes/_guest/route'
 import { Route as AuthedAppRouteRouteImport } from './routes/_authed/_app/route'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
-import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
 import { Route as ITokenRouteImport } from './routes/i.$token'
 import { Route as AuthedAppIndexRouteImport } from './routes/_authed/_app/index'
 import { Route as AuthedAppAdminRouteRouteImport } from './routes/_authed/_app/_admin/route'
@@ -54,11 +53,6 @@ const AuthedAppRouteRoute = AuthedAppRouteRouteImport.update({
 const GuestLoginRoute = GuestLoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => GuestRouteRoute,
-} as any)
-const GuestRegisterRoute = GuestRegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
   getParentRoute: () => GuestRouteRoute,
 } as any)
 const ITokenRoute = ITokenRouteImport.update({
@@ -154,7 +148,6 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthedAppIndexRoute
   '/$': typeof SplatRoute
   '/login': typeof GuestLoginRoute
-  '/register': typeof GuestRegisterRoute
   '/i/$token': typeof ITokenRoute
   '/advisor': typeof AuthedAppAdvisorRoute
   '/goals': typeof AuthedAppGoalsRoute
@@ -175,7 +168,6 @@ export interface FileRoutesByTo {
   '/': typeof AuthedAppIndexRoute
   '/$': typeof SplatRoute
   '/login': typeof GuestLoginRoute
-  '/register': typeof GuestRegisterRoute
   '/i/$token': typeof ITokenRoute
   '/advisor': typeof AuthedAppAdvisorRoute
   '/goals': typeof AuthedAppGoalsRoute
@@ -199,7 +191,6 @@ export interface FileRoutesById {
   '/$': typeof SplatRoute
   '/_authed/_app': typeof AuthedAppRouteRouteWithChildren
   '/_guest/login': typeof GuestLoginRoute
-  '/_guest/register': typeof GuestRegisterRoute
   '/i/$token': typeof ITokenRoute
   '/_authed/_app/_admin': typeof AuthedAppAdminRouteRouteWithChildren
   '/_authed/_app/_real': typeof AuthedAppRealRouteRouteWithChildren
@@ -225,7 +216,6 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/login'
-    | '/register'
     | '/i/$token'
     | '/advisor'
     | '/goals'
@@ -246,7 +236,6 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/login'
-    | '/register'
     | '/i/$token'
     | '/advisor'
     | '/goals'
@@ -269,7 +258,6 @@ export interface FileRouteTypes {
     | '/$'
     | '/_authed/_app'
     | '/_guest/login'
-    | '/_guest/register'
     | '/i/$token'
     | '/_authed/_app/_admin'
     | '/_authed/_app/_real'
@@ -332,13 +320,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof GuestLoginRouteImport
-      parentRoute: typeof GuestRouteRoute
-    }
-    '/_guest/register': {
-      id: '/_guest/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof GuestRegisterRouteImport
       parentRoute: typeof GuestRouteRoute
     }
     '/i/$token': {
@@ -546,12 +527,10 @@ const AuthedRouteRouteWithChildren = AuthedRouteRoute._addFileChildren(
 
 interface GuestRouteRouteChildren {
   GuestLoginRoute: typeof GuestLoginRoute
-  GuestRegisterRoute: typeof GuestRegisterRoute
 }
 
 const GuestRouteRouteChildren: GuestRouteRouteChildren = {
   GuestLoginRoute: GuestLoginRoute,
-  GuestRegisterRoute: GuestRegisterRoute,
 }
 
 const GuestRouteRouteWithChildren = GuestRouteRoute._addFileChildren(

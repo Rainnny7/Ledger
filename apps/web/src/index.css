@@ -821,3 +821,17 @@
 .driver-popover.ledger-driver-popover .driver-popover-done-btn:focus-visible {
 	background: color-mix(in oklch, var(--primary), var(--foreground) 20%);
 }
+
+/* The theme change reveals the new look in a circle (see lib/theme.ts). The browser's default
+   cross-fade would dim the old and new snapshots against each other and read as a flash. */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation: none;
+	mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+	z-index: 1;
+}
+::view-transition-new(root) {
+	z-index: 2;
+}

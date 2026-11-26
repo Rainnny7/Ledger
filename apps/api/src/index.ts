@@ -16,6 +16,8 @@ import {
 	registrationOpen,
 } from "./auth/index.ts"
 import { CLIENT_IP_HEADER } from "./auth/hooks.ts"
+import { turnstileSiteKey, verifyCaptcha } from "./auth/captcha.ts"
+import { authLookup } from "./auth/lookup.ts"
 import { handlePaypalWebhook } from "./banks/paypal/webhooks.ts"
 import { STATEMENT_MAX_REQUEST_BYTES } from "./banks/upload-gate.ts"
 import { runMigrations, setSetting } from "./db/connection.ts"
@@ -312,7 +314,14 @@ app.use(apiErrors)
 		registrationOpen: registrationOpen(),
 		aiChat: aiChatAvailable(),
 		mcp: mcpEnabled(),
+		turnstileSiteKey,
 	}))
+	.use(
+		authLookup({
+			registrationOpen,
+			verifyCaptcha,
+		})
+	)
 	// Better Auth reads the raw request itself, so Elysia must leave the body alone.
 	.get("/api/auth/*", ({ request }) => auth.handler(request), {
 		parse: "none",

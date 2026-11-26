@@ -117,9 +117,27 @@ export function TasksCard({
 												Running
 											</Badge>
 										) : last?.status === "error" ? (
-											<Badge variant="destructive">
-												Failed
-											</Badge>
+											<Hint
+												label={
+													<>
+														Failed{" "}
+														{formatTimestamp(
+															last.finishedAt ??
+																last.startedAt
+														)}
+														<br />
+														{last.summary ??
+															"No error details were recorded."}
+													</>
+												}
+											>
+												<Badge
+													variant="destructive"
+													className="cursor-default"
+												>
+													Failed
+												</Badge>
+											</Hint>
 										) : null}
 									</div>
 									<p className="mt-0.5 text-sm text-muted-foreground">

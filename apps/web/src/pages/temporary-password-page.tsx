@@ -2,6 +2,7 @@ import { Loader2 } from "lucide-react"
 import { KeyRoundIcon } from "@/components/icons/key-round"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastGoodbye } from "@/lib/toast"
 import { Brand } from "@/components/layout/brand"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -191,7 +192,10 @@ export function ChangeTemporaryPasswordPage() {
 							type="button"
 							variant="ghost"
 							className="w-full"
-							onClick={() => void signOut()}
+							onClick={async () => {
+								await signOut()
+								toastGoodbye()
+							}}
 						>
 							Logout
 						</Button>
