@@ -1,4 +1,7 @@
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
+import { PlusIcon } from "@/components/icons/plus"
+import { Trash2Icon } from "@/components/icons/trash-2"
+import { PencilIcon } from "@/components/icons/pencil"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
@@ -112,7 +115,7 @@ export function BudgetsCard({
 						onClick={() => setEditing({ budget: null })}
 						disabled={budgets.length >= BUDGETABLE.length}
 					>
-						<Plus /> Add
+						<PlusIcon size={24} className="flex" /> Add
 					</Button>
 				</CardAction>
 			</CardHeader>
@@ -130,7 +133,7 @@ export function BudgetsCard({
 							variant="secondary"
 							onClick={() => setEditing({ budget: null })}
 						>
-							<Plus /> Set a budget
+							<PlusIcon size={24} className="flex" /> Set a budget
 						</Button>
 					</div>
 				) : (
@@ -209,7 +212,10 @@ export function BudgetsCard({
 										className="opacity-60 group-hover:opacity-100"
 										onClick={() => setEditing({ budget })}
 									>
-										<Pencil />
+										<PencilIcon
+											size={24}
+											className="flex"
+										/>
 									</Button>
 								</li>
 							)
@@ -358,7 +364,7 @@ function BudgetDialog({
 									)
 								}
 							>
-								<Trash2 /> Remove
+								<Trash2Icon size={24} className="flex" /> Remove
 							</Button>
 						) : (
 							<span />

@@ -1,8 +1,9 @@
 import { ForeignMoney } from "@/components/common/money"
+import { SaveIcon } from "@/components/icons/save"
 import { StateBadge } from "@/components/invoices/state-badge"
 import type { InvoiceEditorModel } from "@/components/invoices/editor/use-invoice-editor"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Loader2, Save, Send } from "lucide-react"
+import { ArrowLeft, Loader2, Send } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 
 /** React/UI entry: `InvoiceEditorHeader`. */
@@ -55,7 +56,7 @@ export function InvoiceEditorHeader({ model }: { model: InvoiceEditorModel }) {
 					{saving === "save" ? (
 						<Loader2 className="animate-spin" />
 					) : (
-						<Save />
+						<SaveIcon size={24} className="flex" />
 					)}
 					{saved ? "Save" : "Save draft"}
 				</Button>

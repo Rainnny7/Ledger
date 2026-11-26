@@ -1,6 +1,7 @@
 import { DatePicker } from "@/components/common/date-picker"
+import { PlusIcon } from "@/components/icons/plus"
 import { Money } from "@/components/common/money"
-import { Loader2, Minus, Plus } from "lucide-react"
+import { Loader2, Minus } from "lucide-react"
 import { accentStyle } from "@/components/goals/goal-meta"
 import {
 	decimalInput,
@@ -85,7 +86,8 @@ export function GoalPaymentDialog({
 						className="w-full"
 					>
 						<ToggleGroupItem value="in" className="flex-1">
-							<Plus /> {payoff ? "Payment" : "Deposit"}
+							<PlusIcon size={24} className="flex" />{" "}
+							{payoff ? "Payment" : "Deposit"}
 						</ToggleGroupItem>
 						<ToggleGroupItem value="out" className="flex-1">
 							<Minus /> {payoff ? "Correction" : "Withdraw"}

@@ -1,4 +1,5 @@
-import { Plus, Target } from "lucide-react"
+import { Target } from "lucide-react"
+import { PlusIcon } from "@/components/icons/plus"
 import { GoalIcon } from "@/components/goals/goal-bits"
 import { GOAL_PRESETS } from "@/components/goals/goal-presets"
 import { Button } from "@/components/ui/button"
@@ -50,7 +51,7 @@ export function EmptyGoals({
 					))}
 				</div>
 				<Button onClick={() => onPick()}>
-					<Plus /> Custom goal
+					<PlusIcon size={24} className="flex" /> Custom goal
 				</Button>
 			</CardContent>
 		</Card>

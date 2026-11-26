@@ -1,4 +1,6 @@
-import { Check, Mail, X } from "lucide-react"
+import { X } from "lucide-react"
+import { CheckIcon } from "@/components/icons/check"
+import { MailIcon } from "@/components/icons/mail"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
@@ -38,9 +40,9 @@ export function InvitesBanner({ enabled }: { enabled: boolean }) {
 					key={i.id}
 					className="flex flex-wrap items-center gap-3 rounded-xl border bg-card px-4 py-3 text-sm"
 				>
-					<Mail
-						className="size-4 shrink-0 text-primary"
-						aria-hidden
+					<MailIcon
+						size={16}
+						className="flex shrink-0 text-primary"
 					/>
 					<p className="min-w-0 flex-1">
 						<span className="font-medium">
@@ -56,7 +58,7 @@ export function InvitesBanner({ enabled }: { enabled: boolean }) {
 					</p>
 					<div className="flex gap-2">
 						<Button size="sm" onClick={() => void respond(i, true)}>
-							<Check /> Accept
+							<CheckIcon size={24} className="flex" /> Accept
 						</Button>
 						<Button
 							size="sm"

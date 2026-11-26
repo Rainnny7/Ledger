@@ -1,5 +1,6 @@
 import { confirmDialog } from "@/lib/confirm"
-import { Plus } from "lucide-react"
+import { PlusIcon } from "@/components/icons/plus"
+
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
@@ -235,7 +236,7 @@ export function DashboardPage() {
 				<Button
 					onClick={() => setDialog({ open: true, connection: null })}
 				>
-					<Plus /> Add account
+					<PlusIcon size={24} className="flex" /> Add account
 				</Button>
 			</div>
 

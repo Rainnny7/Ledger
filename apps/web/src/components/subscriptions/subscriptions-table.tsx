@@ -1,15 +1,10 @@
 import { WithContextMenu } from "@/components/layout/app-context-menu"
+import { Trash2Icon } from "@/components/icons/trash-2"
+import { PencilIcon } from "@/components/icons/pencil"
+import { Share2Icon } from "@/components/icons/share-2"
 import { confirmDialog } from "@/lib/confirm"
 import { Money } from "@/components/common/money"
-import {
-	LogOut,
-	MoreHorizontal,
-	Pause,
-	Pencil,
-	Play,
-	Share2,
-	Trash2,
-} from "lucide-react"
+import { LogOut, MoreHorizontal, Pause, Play } from "lucide-react"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
 import { subscriptionDueLabel } from "@/components/subscriptions/subscription-utils"
@@ -141,7 +136,11 @@ export function SubscriptionsTable({
 									<DropdownMenuItem
 										onClick={() => onEdit(subscription)}
 									>
-										<Pencil /> Edit
+										<PencilIcon
+											size={24}
+											className="flex"
+										/>{" "}
+										Edit
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onClick={() =>
@@ -166,7 +165,11 @@ export function SubscriptionsTable({
 									<DropdownMenuItem
 										onClick={() => onShare(subscription)}
 									>
-										<Share2 /> Share
+										<Share2Icon
+											size={24}
+											className="flex"
+										/>{" "}
+										Share
 									</DropdownMenuItem>
 									<DropdownMenuSeparator />
 									<DropdownMenuItem
@@ -177,7 +180,11 @@ export function SubscriptionsTable({
 											)
 										}
 									>
-										<Trash2 /> Delete
+										<Trash2Icon
+											size={24}
+											className="flex"
+										/>{" "}
+										Delete
 									</DropdownMenuItem>
 								</>
 							) : (

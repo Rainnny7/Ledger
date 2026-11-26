@@ -1,9 +1,10 @@
 import { notifyFailure } from "@/components/work/dialogs/form"
+import { CopyIcon } from "@/components/icons/copy"
 import { roundMoney } from "@ledger/shared/money"
 import { api, type WorkJob } from "@/lib/api"
 import { formatMoney } from "@/lib/format"
 import { copyText, paymentLine } from "@/lib/work"
-import { Copy } from "lucide-react"
+
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
 
@@ -52,7 +53,8 @@ export async function saveWorkPayment(opts: {
 				? {
 						label: (
 							<span className="flex items-center gap-1">
-								<Copy className="size-3" /> Copy update
+								<CopyIcon size={12} className="flex" /> Copy
+								update
 							</span>
 						),
 						onClick: () =>

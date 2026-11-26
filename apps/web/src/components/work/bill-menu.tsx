@@ -1,4 +1,6 @@
-import { FileText, HandCoins, Pencil, Trash2 } from "lucide-react"
+import { FileText, HandCoins } from "lucide-react"
+import { Trash2Icon } from "@/components/icons/trash-2"
+import { PencilIcon } from "@/components/icons/pencil"
 import { Link } from "@tanstack/react-router"
 import {
 	DropdownMenuItem,
@@ -42,13 +44,13 @@ export function BillMenu({
 				</DropdownMenuItem>
 			)}
 			<DropdownMenuItem onClick={() => onBill(job, inv)}>
-				<Pencil /> Edit bill
+				<PencilIcon size={24} className="flex" /> Edit bill
 			</DropdownMenuItem>
 			{onRemove && (
 				<>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem variant="destructive" onClick={onRemove}>
-						<Trash2 /> Delete bill
+						<Trash2Icon size={24} className="flex" /> Delete bill
 					</DropdownMenuItem>
 				</>
 			)}

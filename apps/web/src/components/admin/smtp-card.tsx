@@ -1,4 +1,5 @@
 import { QueryError } from "@/components/ui/query-error"
+import { MailIcon } from "@/components/icons/mail"
 import { Button } from "@/components/ui/button"
 import {
 	Card,
@@ -16,7 +17,7 @@ import { adminFetch, smtpKey } from "@/lib/admin"
 import { queryClient } from "@/lib/queries"
 import { toastError } from "@/lib/toast"
 import { useQuery } from "@tanstack/react-query"
-import { Loader2, Mail } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -129,7 +130,7 @@ export function SmtpCard() {
 		<Card className="h-full">
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
-					<Mail className="size-4" />
+					<MailIcon size={16} className="flex" />
 					Outbound email
 				</CardTitle>
 				<CardDescription>
@@ -141,9 +142,7 @@ export function SmtpCard() {
 						disabled={saving || !form || !!smtp.error}
 						onClick={() => void save()}
 					>
-						{saving ? (
-							<Loader2 className="animate-spin" />
-						) : null}
+						{saving ? <Loader2 className="animate-spin" /> : null}
 						Save
 					</Button>
 				</CardAction>
@@ -196,7 +195,10 @@ export function SmtpCard() {
 									}
 									aria-label="Use TLS"
 								/>
-								<Label htmlFor="smtp-secure" className="font-normal">
+								<Label
+									htmlFor="smtp-secure"
+									className="font-normal"
+								>
 									Use TLS (secure)
 								</Label>
 							</div>
@@ -240,7 +242,9 @@ export function SmtpCard() {
 								/>
 							</div>
 							<div className="grid gap-1.5">
-								<Label htmlFor="smtp-from-name">From name</Label>
+								<Label htmlFor="smtp-from-name">
+									From name
+								</Label>
 								<Input
 									id="smtp-from-name"
 									value={form.fromName}
@@ -252,7 +256,9 @@ export function SmtpCard() {
 						</div>
 						<div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-end">
 							<div className="grid flex-1 gap-1.5">
-								<Label htmlFor="smtp-test-to">Send test email</Label>
+								<Label htmlFor="smtp-test-to">
+									Send test email
+								</Label>
 								<Input
 									id="smtp-test-to"
 									type="email"
@@ -267,7 +273,9 @@ export function SmtpCard() {
 								type="button"
 								variant="secondary"
 								disabled={
-									testing || !testTo.trim() || !smtp.data?.configured
+									testing ||
+									!testTo.trim() ||
+									!smtp.data?.configured
 								}
 								onClick={() => void sendTest()}
 							>

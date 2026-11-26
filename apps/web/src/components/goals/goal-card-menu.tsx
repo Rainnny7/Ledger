@@ -1,12 +1,8 @@
-import {
-	Archive,
-	ArchiveRestore,
-	LogOut,
-	Pencil,
-	Plus,
-	Share2,
-	Trash2,
-} from "lucide-react"
+import { Archive, ArchiveRestore, LogOut } from "lucide-react"
+import { PlusIcon } from "@/components/icons/plus"
+import { Trash2Icon } from "@/components/icons/trash-2"
+import { PencilIcon } from "@/components/icons/pencil"
+import { Share2Icon } from "@/components/icons/share-2"
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
@@ -35,7 +31,7 @@ export function goalCardMenuItems(
 			{!opts.done && !g.archived && opts.canEdit && (
 				<>
 					<DropdownMenuItem onClick={() => onPay(g)}>
-						<Plus />{" "}
+						<PlusIcon size={24} className="flex" />{" "}
 						{g.kind === "payoff" ? "Log a payment" : "Add money"}
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
@@ -43,13 +39,13 @@ export function goalCardMenuItems(
 			)}
 			{opts.canEdit && (
 				<DropdownMenuItem onClick={() => onEdit(g)}>
-					<Pencil /> Edit
+					<PencilIcon size={24} className="flex" /> Edit
 				</DropdownMenuItem>
 			)}
 			{opts.owner ? (
 				<>
 					<DropdownMenuItem onClick={() => onShare(g)}>
-						<Share2 /> Share
+						<Share2Icon size={24} className="flex" /> Share
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={() => onArchive(g)}>
 						{g.archived ? <ArchiveRestore /> : <Archive />}{" "}
@@ -60,7 +56,7 @@ export function goalCardMenuItems(
 						variant="destructive"
 						onClick={() => onDelete(g)}
 					>
-						<Trash2 /> Delete
+						<Trash2Icon size={24} className="flex" /> Delete
 					</DropdownMenuItem>
 				</>
 			) : (

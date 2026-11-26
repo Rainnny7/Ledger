@@ -1,4 +1,7 @@
-import { Download, ExternalLink, Eye, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
+import { DownloadIcon } from "@/components/icons/download"
+import { ExternalLinkIcon } from "@/components/icons/external-link"
+import { EyeIcon } from "@/components/icons/eye"
 import { useEffect, useEffectEvent, useState } from "react"
 import { Button } from "@/components/ui/button"
 import type { InvoicePdfSource } from "@/lib/invoice-pdf-data"
@@ -82,7 +85,7 @@ export function InvoicePreview({
 				}
 				nativeButton={false}
 			>
-				<ExternalLink /> Open
+				<ExternalLinkIcon size={24} className="flex" /> Open
 			</Button>
 			<Button
 				variant="outline"
@@ -90,7 +93,7 @@ export function InvoicePreview({
 				disabled={!blob}
 				onClick={() => blob && saveBlob(blob, fileName)}
 			>
-				<Download /> Download
+				<DownloadIcon size={24} className="flex" /> Download
 			</Button>
 		</div>
 	)
@@ -99,7 +102,8 @@ export function InvoicePreview({
 		<div className="grid gap-2 lg:sticky lg:top-20">
 			<div className="flex items-center justify-between gap-2">
 				<span className="flex items-center gap-2 text-sm font-medium">
-					<Eye className="size-4 text-muted-foreground" /> Preview
+					<EyeIcon size={16} className="flex text-muted-foreground" />{" "}
+					Preview
 					{busy && (
 						<Loader2 className="size-3.5 animate-spin text-muted-foreground" />
 					)}

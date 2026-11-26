@@ -1,5 +1,6 @@
 import { Money } from "@/components/common/money"
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
+import { PlusIcon } from "@/components/icons/plus"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useState } from "react"
 import { subscriptionOccurrences } from "@/components/subscriptions/subscription-utils"
 import { Button } from "@/components/ui/button"
@@ -160,7 +161,7 @@ export function SubscriptionCalendarCard({
 										onClick={() => onAdd(day)}
 										className="grid size-4 place-items-center rounded text-muted-foreground opacity-0 transition-opacity group-hover/day:opacity-100 hover:text-foreground focus-visible:opacity-100"
 									>
-										<Plus className="size-3" />
+										<PlusIcon size={12} className="flex" />
 									</button>
 								</div>
 								{items.slice(0, 2).map((subscription) => (

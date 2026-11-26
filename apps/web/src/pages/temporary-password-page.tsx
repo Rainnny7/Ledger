@@ -1,4 +1,5 @@
-import { KeyRound, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
+import { KeyRoundIcon } from "@/components/icons/key-round"
 import { useState } from "react"
 import { toast } from "sonner"
 import { Brand } from "@/components/layout/brand"
@@ -86,7 +87,7 @@ export function ChangeTemporaryPasswordPage() {
 			<Card className="relative w-full max-w-sm">
 				<CardHeader>
 					<div className="mb-1 grid size-10 place-items-center rounded-xl bg-sunset text-primary-foreground">
-						<KeyRound className="size-5" />
+						<KeyRoundIcon size={20} className="flex" />
 					</div>
 					<CardTitle>Choose your own password</CardTitle>
 					<CardDescription>

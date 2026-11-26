@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
-import { Eye, Loader2, Pencil, UserPlus, Users, X } from "lucide-react"
+import { PencilIcon } from "@/components/icons/pencil"
+import { EyeIcon } from "@/components/icons/eye"
+import { UserPlusIcon } from "@/components/icons/user-plus"
+import { Loader2, Users, X } from "lucide-react"
 import { type FormEvent, type KeyboardEvent, useId, useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { toast } from "sonner"
@@ -345,7 +348,7 @@ export function ShareDialog({
 							{saving ? (
 								<Loader2 className="animate-spin" />
 							) : (
-								<UserPlus />
+								<UserPlusIcon size={24} className="flex" />
 							)}{" "}
 							Invite
 						</Button>
@@ -443,7 +446,7 @@ export function ShareBadge({
 	onClick?: () => void
 }) {
 	if (item.owner) {
-		const Icon = item.access === "edit" ? Pencil : Eye
+		const Icon = item.access === "edit" ? PencilIcon : EyeIcon
 		return (
 			<Tooltip>
 				<TooltipTrigger

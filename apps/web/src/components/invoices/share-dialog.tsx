@@ -1,15 +1,11 @@
 import { confirmDialog } from "@/lib/confirm"
-import {
-	Check,
-	Copy,
-	Download,
-	ExternalLink,
-	Loader2,
-	Mail,
-	RefreshCw,
-	Send,
-	Share2,
-} from "lucide-react"
+import { CopyIcon } from "@/components/icons/copy"
+import { DownloadIcon } from "@/components/icons/download"
+import { CheckIcon } from "@/components/icons/check"
+import { Share2Icon } from "@/components/icons/share-2"
+import { ExternalLinkIcon } from "@/components/icons/external-link"
+import { MailIcon } from "@/components/icons/mail"
+import { Loader2, RefreshCw, Send } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
@@ -185,7 +181,11 @@ export function ShareDialog({
 							onClick={() => void copyLink()}
 							className="shrink-0"
 						>
-							{copied ? <Check /> : <Copy />}
+							{copied ? (
+								<CheckIcon size={24} className="flex" />
+							) : (
+								<CopyIcon size={24} className="flex" />
+							)}
 							{copied ? "Copied" : "Copy link"}
 						</Button>
 					</div>
@@ -198,7 +198,7 @@ export function ShareDialog({
 							{busy === "share" ? (
 								<Loader2 className="animate-spin" />
 							) : (
-								<Share2 />
+								<Share2Icon size={24} className="flex" />
 							)}
 							{canShareFiles ? "Share PDF" : "Share"}
 						</Button>
@@ -210,7 +210,7 @@ export function ShareDialog({
 							{busy === "pdf" ? (
 								<Loader2 className="animate-spin" />
 							) : (
-								<Download />
+								<DownloadIcon size={24} className="flex" />
 							)}
 							Download PDF
 						</Button>
@@ -224,7 +224,7 @@ export function ShareDialog({
 							}
 							nativeButton={false}
 						>
-							<Mail /> Email
+							<MailIcon size={24} className="flex" /> Email
 						</Button>
 						<Button
 							variant="outline"
@@ -237,7 +237,8 @@ export function ShareDialog({
 							}
 							nativeButton={false}
 						>
-							<ExternalLink /> Open page
+							<ExternalLinkIcon size={24} className="flex" /> Open
+							page
 						</Button>
 					</div>
 					<p className="text-xs text-muted-foreground">

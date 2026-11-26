@@ -1,4 +1,9 @@
-import { Check, Copy, KeyRound, Loader2, Plus, Trash2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
+import { PlusIcon } from "@/components/icons/plus"
+import { Trash2Icon } from "@/components/icons/trash-2"
+import { CopyIcon } from "@/components/icons/copy"
+import { CheckIcon } from "@/components/icons/check"
+import { KeyRoundIcon } from "@/components/icons/key-round"
 import { useState } from "react"
 import { toast } from "sonner"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -134,7 +139,7 @@ export function McpAccessCard() {
 						{creating ? (
 							<Loader2 className="animate-spin" />
 						) : (
-							<Plus />
+							<PlusIcon size={24} className="flex" />
 						)}{" "}
 						Create token
 					</Button>
@@ -156,7 +161,10 @@ export function McpAccessCard() {
 							key={token.id}
 							className="flex items-center gap-3 rounded-md px-2 py-2 text-sm"
 						>
-							<KeyRound className="size-5 shrink-0 text-muted-foreground" />
+							<KeyRoundIcon
+								size={20}
+								className="flex shrink-0 text-muted-foreground"
+							/>
 							<div className="min-w-0 flex-1">
 								<div className="truncate font-medium">
 									{token.name}
@@ -181,7 +189,10 @@ export function McpAccessCard() {
 									{revoking === token.id ? (
 										<Loader2 className="animate-spin" />
 									) : (
-										<Trash2 />
+										<Trash2Icon
+											size={24}
+											className="flex"
+										/>
 									)}{" "}
 									Revoke
 								</Button>
@@ -244,7 +255,12 @@ function NewTokenDialog({
 										setCopied(true)
 									}}
 								>
-									{copied ? <Check /> : <Copy />} Copy
+									{copied ? (
+										<CheckIcon size={24} className="flex" />
+									) : (
+										<CopyIcon size={24} className="flex" />
+									)}{" "}
+									Copy
 								</Button>
 							</div>
 						</div>
@@ -283,7 +299,7 @@ function Snippet({ label, text }: { label: string; text: string }) {
 					size="sm"
 					onClick={() => void copyText(text, label)}
 				>
-					<Copy /> Copy
+					<CopyIcon size={24} className="flex" /> Copy
 				</Button>
 			</div>
 			<pre className="max-h-48 overflow-auto rounded-md bg-muted p-3 font-mono text-xs break-all whitespace-pre-wrap">

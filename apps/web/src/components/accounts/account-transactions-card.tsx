@@ -1,5 +1,6 @@
 import { Money } from "@/components/common/money"
-import { ArrowDownLeft, ArrowUpRight, Download, History } from "lucide-react"
+import { DownloadIcon } from "@/components/icons/download"
+import { ArrowDownLeft, ArrowUpRight, History } from "lucide-react"
 import {
 	accountCategoryItems,
 	accountPeriodItems,
@@ -126,7 +127,7 @@ export function AccountTransactionsCard({
 							onClick={onExport}
 							disabled={filtered.length === 0}
 						>
-							<Download /> CSV
+							<DownloadIcon size={24} className="flex" /> CSV
 						</Button>
 					</div>
 				</div>

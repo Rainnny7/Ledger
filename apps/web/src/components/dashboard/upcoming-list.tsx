@@ -1,8 +1,9 @@
 import { Money } from "@/components/common/money"
+import { CalendarClockIcon } from "@/components/icons/calendar-clock"
 import { CategoryIcon } from "@/components/transactions/tx-bits"
 import type { Subscription } from "@/lib/api"
 import { daysFromToday, formatRelativeDate } from "@/lib/format"
-import { CalendarClock } from "lucide-react"
+
 import { Link } from "@tanstack/react-router"
 
 /** Upcoming subscription payments, or an empty-state nudge to track or detect them. */
@@ -18,7 +19,7 @@ export function UpcomingList({
 	if (items.length === 0) {
 		return (
 			<div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-muted-foreground">
-				<CalendarClock className="size-6" />
+				<CalendarClockIcon size={24} className="flex" />
 				{empty ? (
 					<p>
 						No subscriptions tracked yet.

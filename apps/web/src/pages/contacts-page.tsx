@@ -1,20 +1,16 @@
 import { WithContextMenu } from "@/components/layout/app-context-menu"
+import { Trash2Icon } from "@/components/icons/trash-2"
+import { CopyIcon } from "@/components/icons/copy"
+import { PencilIcon } from "@/components/icons/pencil"
+import { CheckIcon } from "@/components/icons/check"
+import { UserPlusIcon } from "@/components/icons/user-plus"
 import { copyText } from "@/lib/clipboard"
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { confirmDialog } from "@/lib/confirm"
-import {
-	Check,
-	Copy,
-	Loader2,
-	Pencil,
-	Trash2,
-	UserPlus,
-	Users,
-	X,
-} from "lucide-react"
+import { Loader2, Users, X } from "lucide-react"
 import { type FormEvent, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
@@ -224,7 +220,7 @@ function AddContactCard() {
 						{saving ? (
 							<Loader2 className="animate-spin" />
 						) : (
-							<UserPlus />
+							<UserPlusIcon size={24} className="flex" />
 						)}{" "}
 						Add contact
 					</Button>
@@ -287,19 +283,19 @@ function ContactRow({
 	const menuItems = (
 		<>
 			<DropdownMenuItem onClick={rename}>
-				<Pencil /> Rename
+				<PencilIcon size={24} className="flex" /> Rename
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onClick={() => void copyText(contact.email, "Email")}
 			>
-				<Copy /> Copy email
+				<CopyIcon size={24} className="flex" /> Copy email
 			</DropdownMenuItem>
 			<DropdownMenuSeparator />
 			<DropdownMenuItem
 				variant="destructive"
 				onClick={() => void remove()}
 			>
-				<Trash2 /> Remove
+				<Trash2Icon size={24} className="flex" /> Remove
 			</DropdownMenuItem>
 		</>
 	)
@@ -329,7 +325,7 @@ function ContactRow({
 							size="icon-sm"
 							aria-label="Save name"
 						>
-							<Check />
+							<CheckIcon size={24} className="flex" />
 						</Button>
 						<Button
 							type="button"
@@ -362,7 +358,7 @@ function ContactRow({
 							aria-label={`Rename ${contact.email}`}
 							onClick={rename}
 						>
-							<Pencil />
+							<PencilIcon size={24} className="flex" />
 						</Button>
 						<Button
 							variant="ghost"
@@ -370,7 +366,7 @@ function ContactRow({
 							aria-label={`Remove ${contact.email}`}
 							onClick={() => void remove()}
 						>
-							<Trash2 />
+							<Trash2Icon size={24} className="flex" />
 						</Button>
 					</div>
 				)}

@@ -1,4 +1,5 @@
-import { ChevronRight, ExternalLink, LockKeyhole } from "lucide-react"
+import { ChevronRight, LockKeyhole } from "lucide-react"
+import { ExternalLinkIcon } from "@/components/icons/external-link"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -31,7 +32,7 @@ export function PaypalFields({
 							className="inline-flex items-center gap-0.5 font-medium text-foreground underline-offset-4 hover:underline"
 						>
 							developer.paypal.com{" "}
-							<ExternalLink className="size-3" />
+							<ExternalLinkIcon size={12} className="flex" />
 						</a>{" "}
 						with your PayPal account and switch to <b>Live</b>.
 					</li>

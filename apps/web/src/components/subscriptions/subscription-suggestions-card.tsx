@@ -1,5 +1,6 @@
 import { Money } from "@/components/common/money"
-import { Sparkles, X } from "lucide-react"
+import { SparklesIcon } from "@/components/icons/sparkles"
+import { X } from "lucide-react"
 import { subscriptionDueLabel } from "@/components/subscriptions/subscription-utils"
 import { CategoryIcon } from "@/components/transactions/tx-bits"
 import { Button } from "@/components/ui/button"
@@ -36,7 +37,8 @@ export function SubscriptionSuggestionsCard({
 		<Card>
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
-					<Sparkles className="size-4" /> Detected recurring charges
+					<SparklesIcon size={16} className="flex" /> Detected
+					recurring charges
 				</CardTitle>
 				<CardDescription>
 					These repeat on a schedule in your transactions. Track them

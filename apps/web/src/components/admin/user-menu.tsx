@@ -1,12 +1,6 @@
-import {
-	Ban,
-	KeyRound,
-	LogOut,
-	ShieldCheck,
-	ShieldMinus,
-	Trash2,
-	UserCheck,
-} from "lucide-react"
+import { Ban, LogOut, ShieldCheck, ShieldMinus, UserCheck } from "lucide-react"
+import { Trash2Icon } from "@/components/icons/trash-2"
+import { KeyRoundIcon } from "@/components/icons/key-round"
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
@@ -46,7 +40,8 @@ export function AdminUserMenuItems({
 				</DropdownMenuItem>
 			)}
 			<DropdownMenuItem disabled={disabled} onClick={onPassword}>
-				<KeyRound /> Set temporary password
+				<KeyRoundIcon size={24} className="flex" /> Set temporary
+				password
 			</DropdownMenuItem>
 			<DropdownMenuItem disabled={disabled} onClick={onRevokeSessions}>
 				<LogOut /> Logout everywhere
@@ -66,7 +61,7 @@ export function AdminUserMenuItems({
 				disabled={disabled}
 				onClick={onDelete}
 			>
-				<Trash2 /> Delete user
+				<Trash2Icon size={24} className="flex" /> Delete user
 			</DropdownMenuItem>
 		</>
 	)

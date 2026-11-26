@@ -1,7 +1,9 @@
 import { Money } from "@/components/common/money"
+import { PlusIcon } from "@/components/icons/plus"
+import { CheckIcon } from "@/components/icons/check"
 import { GoalIcon } from "@/components/goals/goal-bits"
 import type { PaymentDraft } from "@/components/goals/goal-form"
-import { Check, Loader2, Plus, Repeat, Target, Unlink } from "lucide-react"
+import { Loader2, Repeat, Target, Unlink } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
@@ -18,7 +20,6 @@ import {
 import type { Goal, Subscription, Transaction } from "@/lib/api"
 import { api } from "@/lib/api"
 import { queryClient } from "@/lib/queries"
-import { cn } from "cn"
 import { useState } from "react"
 
 /** Save, subscription linking, and goal payment actions for the transaction sheet. */
@@ -133,12 +134,9 @@ export function TransactionSheetActions({
 												)
 											}
 										>
-											<Check
-												className={cn(
-													countedFor?.id !==
-														subscription.id &&
-														"invisible"
-												)}
+											<CheckIcon
+												size={24}
+												className="flex"
 											/>
 											<span className="flex-1 truncate">
 												{subscription.name}
@@ -163,7 +161,8 @@ export function TransactionSheetActions({
 									</DropdownMenuItem>
 								)}
 								<DropdownMenuItem onClick={trackAsSubscription}>
-									<Plus /> Track as a new subscription
+									<PlusIcon size={24} className="flex" />{" "}
+									Track as a new subscription
 								</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>

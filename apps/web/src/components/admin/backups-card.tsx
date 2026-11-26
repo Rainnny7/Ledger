@@ -1,11 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
-import {
-	CalendarClock,
-	DatabaseBackup,
-	Download,
-	Hand,
-	Save,
-} from "lucide-react"
+import { DownloadIcon } from "@/components/icons/download"
+import { SaveIcon } from "@/components/icons/save"
+import { CalendarClockIcon } from "@/components/icons/calendar-clock"
+import { DatabaseBackup, Hand } from "lucide-react"
 import { useState } from "react"
 import { Hint } from "@/components/common/hint"
 import { Button } from "@/components/ui/button"
@@ -46,12 +43,12 @@ export function BackupsCard() {
 				</CardTitle>
 				<CardDescription>
 					A copy of the whole database is made every day; the most
-					recent {backups.data?.kept ?? ""} are kept. Download one to
-					keep it somewhere else too.
+					recent {backups.data?.kept ?? ""} are kept. DownloadIcon one
+					to keep it somewhere else too.
 				</CardDescription>
 				<CardAction>
 					<Button size="sm" onClick={() => setOpen(true)}>
-						<Save /> Back up now
+						<SaveIcon size={24} className="flex" /> Back up now
 					</Button>
 				</CardAction>
 			</CardHeader>
@@ -77,7 +74,10 @@ export function BackupsCard() {
 								className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/60"
 							>
 								{backup.reason?.kind === "schedule" ? (
-									<CalendarClock className="size-4 shrink-0 text-muted-foreground" />
+									<CalendarClockIcon
+										size={16}
+										className="flex shrink-0 text-muted-foreground"
+									/>
 								) : (
 									<Hand className="size-4 shrink-0 text-muted-foreground" />
 								)}
@@ -114,7 +114,8 @@ export function BackupsCard() {
 										/>
 									}
 								>
-									<Download /> Download
+									<DownloadIcon size={24} className="flex" />{" "}
+									Download
 								</Button>
 							</li>
 						))}

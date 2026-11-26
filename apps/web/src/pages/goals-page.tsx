@@ -1,4 +1,5 @@
-import { ChevronDown, Plus, Trophy, Users } from "lucide-react"
+import { ChevronDown, Trophy, Users } from "lucide-react"
+import { PlusIcon } from "@/components/icons/plus"
 import { AnimatedMoney } from "@/components/common/count-up"
 import { GoalCard } from "@/components/goals/goal-card"
 import { EmptyGoals } from "@/components/goals/empty-goals"
@@ -31,7 +32,7 @@ export function GoalsPage() {
 					</p>
 				</div>
 				<Button onClick={() => page.startNew()}>
-					<Plus /> New goal
+					<PlusIcon size={24} className="flex" /> New goal
 				</Button>
 			</div>
 
@@ -111,7 +112,8 @@ export function GoalsPage() {
 										size="sm"
 										onClick={() => page.startNew()}
 									>
-										<Plus /> New goal
+										<PlusIcon size={24} className="flex" />{" "}
+										New goal
 									</Button>
 								</CardContent>
 							</Card>

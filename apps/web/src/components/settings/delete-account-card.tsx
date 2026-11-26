@@ -1,5 +1,5 @@
-import { Trash2 } from "lucide-react"
 import { useState } from "react"
+import { Trash2Icon } from "@/components/icons/trash-2"
 import { useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -24,8 +24,8 @@ export function DeleteAccountCard() {
 				<CardTitle>Delete account</CardTitle>
 				<CardDescription>
 					Permanently delete your account and everything in it: linked
-					banks, saved bank logins, accounts, transactions,
-					categories and subscriptions. This can’t be undone.
+					banks, saved bank logins, accounts, transactions, categories
+					and subscriptions. This can’t be undone.
 				</CardDescription>
 				<CardAction>
 					<Button
@@ -33,7 +33,7 @@ export function DeleteAccountCard() {
 						size="sm"
 						onClick={() => setOpen(true)}
 					>
-						<Trash2 /> Delete account
+						<Trash2Icon size={24} className="flex" /> Delete account
 					</Button>
 				</CardAction>
 			</CardHeader>

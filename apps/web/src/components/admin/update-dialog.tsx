@@ -1,5 +1,6 @@
-import { Copy, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { CopyIcon } from "@/components/icons/copy"
+import { ExternalLinkIcon } from "@/components/icons/external-link"
 import {
 	Dialog,
 	DialogContent,
@@ -62,7 +63,8 @@ export function UpdateDialog({
 						rel="noreferrer"
 						className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
 					>
-						Release on GitHub <ExternalLink className="size-3.5" />
+						Release on GitHub{" "}
+						<ExternalLinkIcon size={14} className="flex" />
 					</a>
 				) : null}
 				<div className="grid gap-2">
@@ -78,7 +80,7 @@ export function UpdateDialog({
 							variant="outline"
 							onClick={() => void copyText(script, "Commands")}
 						>
-							<Copy /> Copy
+							<CopyIcon size={24} className="flex" /> Copy
 						</Button>
 					</div>
 					<pre className="overflow-x-auto rounded-md border bg-muted/60 p-3 font-mono text-xs leading-relaxed">

@@ -1,11 +1,7 @@
-import {
-	Archive,
-	ArchiveRestore,
-	LogOut,
-	Pencil,
-	Share2,
-	Trash2,
-} from "lucide-react"
+import { Archive, ArchiveRestore, LogOut } from "lucide-react"
+import { Trash2Icon } from "@/components/icons/trash-2"
+import { PencilIcon } from "@/components/icons/pencil"
+import { Share2Icon } from "@/components/icons/share-2"
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
@@ -31,12 +27,12 @@ export function JobMenu({
 	return (
 		<>
 			<DropdownMenuItem onClick={() => actions.onEdit(job)}>
-				<Pencil /> Edit job
+				<PencilIcon size={24} className="flex" /> Edit job
 			</DropdownMenuItem>
 			{owner ? (
 				<>
 					<DropdownMenuItem onClick={() => actions.onShare(job)}>
-						<Share2 /> Share
+						<Share2Icon size={24} className="flex" /> Share
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={() => actions.onArchive(job)}>
 						{job.archived ? <ArchiveRestore /> : <Archive />}{" "}
@@ -47,7 +43,7 @@ export function JobMenu({
 						variant="destructive"
 						onClick={() => actions.onDelete(job)}
 					>
-						<Trash2 /> Delete
+						<Trash2Icon size={24} className="flex" /> Delete
 					</DropdownMenuItem>
 				</>
 			) : (

@@ -1,11 +1,11 @@
 import {
 	FileText,
-	KeyRound,
 	Loader2,
 	LockKeyhole,
 	ShieldCheck,
 	Smartphone,
 } from "lucide-react"
+import { KeyRoundIcon } from "@/components/icons/key-round"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { InstitutionBadge } from "@/components/accounts/institution"
 import { PROVIDERS, type ProviderId } from "@/components/accounts/providers"
@@ -82,7 +82,7 @@ export function ConnectTdMethodScreen({
 				index={0}
 				icon={
 					<ChoiceIcon>
-						<KeyRound className="size-4" />
+						<KeyRoundIcon size={16} className="flex" />
 					</ChoiceIcon>
 				}
 				title="Log in with EasyWeb"

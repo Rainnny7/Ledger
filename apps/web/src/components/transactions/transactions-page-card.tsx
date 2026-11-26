@@ -1,4 +1,5 @@
 import type { useTransactionsPage } from "@/components/transactions/use-transactions-page"
+import { DownloadIcon } from "@/components/icons/download"
 import { TransactionsBulkToolbar } from "@/components/transactions/transactions-bulk-toolbar"
 import { TransactionsFilterSelect } from "@/components/transactions/transactions-filter-select"
 import { TransactionsPagination } from "@/components/transactions/transactions-pagination"
@@ -17,7 +18,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Category } from "@/lib/api"
 import type { RangeKey } from "@/lib/ranges"
 import { formatMoney } from "@/lib/format"
-import { ArrowDownLeft, ArrowUpRight, Download, X } from "lucide-react"
+import { ArrowDownLeft, ArrowUpRight, X } from "lucide-react"
 
 type Model = ReturnType<typeof useTransactionsPage>
 
@@ -116,7 +117,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							onClick={exportCsv}
 							disabled={filtered.length === 0}
 						>
-							<Download /> CSV
+							<DownloadIcon size={24} className="flex" /> CSV
 						</Button>
 					</div>
 				</div>

@@ -1,5 +1,6 @@
-import { Search } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { SearchIcon } from "@/components/icons/search"
+import { useAnimatedIcon } from "@/components/icons/use-animated-icon"
 import { Input } from "@/components/ui/input"
 import { cn } from "cn"
 
@@ -36,6 +37,9 @@ export function SearchInput({
 	})
 	useEffect(() => () => clearTimeout(timer.current), [])
 
+	const { ref: searchIconRef, handlers: searchIconHandlers } =
+		useAnimatedIcon<HTMLDivElement>()
+
 	function commit(next: string) {
 		clearTimeout(timer.current)
 		setSeen(next)
@@ -43,8 +47,15 @@ export function SearchInput({
 	}
 
 	return (
-		<div className={cn("relative min-w-48 flex-1", className)}>
-			<Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+		<div
+			className={cn("relative min-w-48 flex-1", className)}
+			{...searchIconHandlers}
+		>
+			<SearchIcon
+				ref={searchIconRef}
+				size={16}
+				className="pointer-events-none absolute top-1/2 left-2.5 flex -translate-y-1/2 text-muted-foreground"
+			/>
 			<Input
 				placeholder={placeholder}
 				className="pl-8"

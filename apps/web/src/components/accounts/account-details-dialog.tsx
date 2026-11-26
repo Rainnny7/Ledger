@@ -1,5 +1,8 @@
 import { Hint } from "@/components/common/hint"
-import { Check, Copy, Eye, EyeOff, Landmark, Loader2 } from "lucide-react"
+import { CopyIcon } from "@/components/icons/copy"
+import { CheckIcon } from "@/components/icons/check"
+import { EyeIcon } from "@/components/icons/eye"
+import { EyeOff, Landmark, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
@@ -132,7 +135,11 @@ function DetailsBody({ account }: { account: Account }) {
 							size="sm"
 							onClick={() => setRevealed((shown) => !shown)}
 						>
-							{revealed ? <EyeOff /> : <Eye />}{" "}
+							{revealed ? (
+								<EyeOff />
+							) : (
+								<EyeIcon size={24} className="flex" />
+							)}{" "}
 							{revealed ? "Hide" : "Show"}
 						</Button>
 					)}
@@ -232,10 +239,14 @@ function Row({
 				<Button
 					variant="ghost"
 					size="icon-xs"
-					aria-label={`Copy ${label.toLowerCase()}`}
+					aria-label={`CopyIcon ${label.toLowerCase()}`}
 					onClick={copy}
 				>
-					{copied ? <Check /> : <Copy />}
+					{copied ? (
+						<CheckIcon size={24} className="flex" />
+					) : (
+						<CopyIcon size={24} className="flex" />
+					)}
 				</Button>
 			</dd>
 		</div>

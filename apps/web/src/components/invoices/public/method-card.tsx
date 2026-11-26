@@ -1,4 +1,5 @@
-import { ExternalLink, Loader2, QrCode as QrIcon } from "lucide-react"
+import { Loader2, QrCode as QrIcon } from "lucide-react"
+import { ExternalLinkIcon } from "@/components/icons/external-link"
 import { useState } from "react"
 import { toastError } from "@/lib/toast"
 import { QrCode } from "@/components/common/qr-code"
@@ -110,7 +111,8 @@ export function PublicMethodCard({
 					render={<a href={link} target="_blank" rel="noreferrer" />}
 					nativeButton={false}
 				>
-					<ExternalLink /> Pay with {method.label}
+					<ExternalLinkIcon size={24} className="flex" /> Pay with{" "}
+					{method.label}
 				</Button>
 			)}
 		</div>

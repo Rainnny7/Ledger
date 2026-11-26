@@ -1,4 +1,5 @@
-import { Check, Circle } from "lucide-react"
+import { Circle } from "lucide-react"
+import { CheckIcon } from "@/components/icons/check"
 import { checkPassword } from "@ledger/shared/password"
 import { cn } from "cn"
 
@@ -35,7 +36,7 @@ export function PasswordRules({
 					)}
 				>
 					{rule.ok ? (
-						<Check className="size-3.5 shrink-0" />
+						<CheckIcon size={14} className="flex shrink-0" />
 					) : (
 						<Circle className="size-3 shrink-0 opacity-60" />
 					)}

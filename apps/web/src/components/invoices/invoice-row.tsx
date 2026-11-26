@@ -1,18 +1,18 @@
 import { WithContextMenu } from "@/components/layout/app-context-menu"
+import { Trash2Icon } from "@/components/icons/trash-2"
+import { DownloadIcon } from "@/components/icons/download"
+import { PencilIcon } from "@/components/icons/pencil"
 import { confirmDialog } from "@/lib/confirm"
 import { ForeignMoney } from "@/components/common/money"
 import { Hint } from "@/components/common/hint"
 import {
 	Ban,
 	CopyPlus,
-	Download,
 	HandCoins,
 	Loader2,
 	MoreHorizontal,
-	Pencil,
 	RotateCcw,
 	Send,
-	Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
@@ -214,7 +214,7 @@ function InvoiceRowMenu({
 				<Send /> Send / share
 			</DropdownMenuItem>
 			<DropdownMenuItem onClick={onDownload}>
-				<Download /> Download PDF
+				<DownloadIcon size={24} className="flex" /> Download PDF
 			</DropdownMenuItem>
 			{state !== "paid" && state !== "void" && (
 				<DropdownMenuItem onClick={onPay}>
@@ -223,7 +223,7 @@ function InvoiceRowMenu({
 			)}
 			<DropdownMenuSeparator />
 			<DropdownMenuItem onClick={onOpen}>
-				<Pencil /> Edit
+				<PencilIcon size={24} className="flex" /> Edit
 			</DropdownMenuItem>
 			<DropdownMenuItem onClick={onDuplicate}>
 				<CopyPlus /> Duplicate
@@ -240,7 +240,7 @@ function InvoiceRowMenu({
 				)
 			)}
 			<DropdownMenuItem variant="destructive" onClick={onRemove}>
-				<Trash2 /> Delete
+				<Trash2Icon size={24} className="flex" /> Delete
 			</DropdownMenuItem>
 		</>
 	)

@@ -1,4 +1,5 @@
 import { WithContextMenu } from "@/components/layout/app-context-menu"
+import { ArrowRightIcon } from "@/components/icons/arrow-right"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
 	DropdownMenu,
@@ -8,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import type { Tip, TipKind } from "@/lib/advisor"
 import { cn } from "cn"
-import { ArrowRight, BellOff, EyeOff, MoreHorizontal } from "lucide-react"
+import { BellOff, EyeOff, MoreHorizontal } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 import { hrefTarget } from "@/components/common/href-target"
 import { headline, KIND_META, perYear } from "./advisor-meta.ts"
@@ -94,74 +95,81 @@ export function TipCard({
 						meta.card
 					)}
 				>
-				<div className="flex items-start gap-2.5">
-					<TipIcon kind={tip.kind} className="size-8" />
-					<h3 className="min-w-0 flex-1 self-center text-sm leading-snug font-medium">
-						{tip.title}
-					</h3>
-					{menuButton}
-				</div>
-				<p className="text-sm text-muted-foreground">
-					{headline(tip.body)}
-				</p>
-				{(tip.action || saving) && (
-					<div className="flex items-center justify-between gap-2 pt-1">
-						{tip.action ? (
-							<Link
-								{...hrefTarget(tip.action.to)}
-								className={cn(
-									buttonVariants({
-										variant: "ghost",
-										size: "sm",
-									}),
-									"-ml-2 h-7 px-2 font-medium",
-									meta.text
-								)}
-							>
-								{tip.action.label} <ArrowRight />
-							</Link>
-						) : (
-							<span />
-						)}
-						{saving}
+					<div className="flex items-start gap-2.5">
+						<TipIcon kind={tip.kind} className="size-8" />
+						<h3 className="min-w-0 flex-1 self-center text-sm leading-snug font-medium">
+							{tip.title}
+						</h3>
+						{menuButton}
 					</div>
-				)}
-			</article>
+					<p className="text-sm text-muted-foreground">
+						{headline(tip.body)}
+					</p>
+					{(tip.action || saving) && (
+						<div className="flex items-center justify-between gap-2 pt-1">
+							{tip.action ? (
+								<Link
+									{...hrefTarget(tip.action.to)}
+									className={cn(
+										buttonVariants({
+											variant: "ghost",
+											size: "sm",
+										}),
+										"-ml-2 h-7 px-2 font-medium",
+										meta.text
+									)}
+								>
+									{tip.action.label}{" "}
+									<ArrowRightIcon
+										size={24}
+										className="flex"
+									/>
+								</Link>
+							) : (
+								<span />
+							)}
+							{saving}
+						</div>
+					)}
+				</article>
 			</WithContextMenu>
 		)
 	}
 
 	return (
 		<WithContextMenu menu={menuItems} className="w-48">
-			<article className={cn("flex gap-3 rounded-lg border p-4", meta.card)}>
-			<TipIcon kind={tip.kind} />
-			<div className="flex min-w-0 flex-1 flex-col gap-1.5">
-				<div className="flex items-start gap-2">
-					<h3 className="min-w-0 flex-1 text-sm leading-snug font-medium">
-						{tip.title}
-					</h3>
-					{saving}
-					{menuButton}
-				</div>
-				<p className="text-sm text-muted-foreground">{tip.body}</p>
-				{tip.action && (
-					<div className="flex justify-start pt-1">
-						<Link
-							{...hrefTarget(tip.action.to)}
-							className={cn(
-								buttonVariants({
-									variant: "outline",
-									size: "sm",
-								}),
-								"bg-background/60"
-							)}
-						>
-							{tip.action.label} <ArrowRight />
-						</Link>
+			<article
+				className={cn("flex gap-3 rounded-lg border p-4", meta.card)}
+			>
+				<TipIcon kind={tip.kind} />
+				<div className="flex min-w-0 flex-1 flex-col gap-1.5">
+					<div className="flex items-start gap-2">
+						<h3 className="min-w-0 flex-1 text-sm leading-snug font-medium">
+							{tip.title}
+						</h3>
+						{saving}
+						{menuButton}
 					</div>
-				)}
-			</div>
-		</article>
+					<p className="text-sm text-muted-foreground">{tip.body}</p>
+					{tip.action && (
+						<div className="flex justify-start pt-1">
+							<Link
+								{...hrefTarget(tip.action.to)}
+								className={cn(
+									buttonVariants({
+										variant: "outline",
+										size: "sm",
+									}),
+									"bg-background/60"
+								)}
+							>
+								{tip.action.label}{" "}
+								<ArrowRightIcon size={24} className="flex" />
+							</Link>
+						</div>
+					)}
+				</div>
+			</article>
 		</WithContextMenu>
 	)
 }

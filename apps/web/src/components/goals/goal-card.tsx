@@ -1,7 +1,8 @@
 import { WithContextMenu } from "@/components/layout/app-context-menu"
+import { PlusIcon } from "@/components/icons/plus"
 import { AnimatedMoney } from "@/components/common/count-up"
 import { Money } from "@/components/common/money"
-import { MoreHorizontal, Plus } from "lucide-react"
+import { MoreHorizontal } from "lucide-react"
 import { useState } from "react"
 import { parseAsString, useQueryState } from "nuqs"
 import { toast } from "sonner"
@@ -161,7 +162,7 @@ export function GoalCard({
 							onClick={() => actions.onPay(goal)}
 							className="w-fit"
 						>
-							<Plus />{" "}
+							<PlusIcon size={24} className="flex" />{" "}
 							{goal.kind === "payoff"
 								? "Log a payment"
 								: "Add money"}

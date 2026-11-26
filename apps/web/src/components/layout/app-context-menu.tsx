@@ -1,5 +1,7 @@
-import { Copy, ExternalLink, Eye } from "lucide-react"
 import { useEffect, type ReactElement, type ReactNode } from "react"
+import { CopyIcon } from "@/components/icons/copy"
+import { ExternalLinkIcon } from "@/components/icons/external-link"
+import { EyeIcon } from "@/components/icons/eye"
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -57,15 +59,15 @@ export function LinkMenuItems({
 	return (
 		<>
 			<DropdownMenuItem onClick={onOpen}>
-				<Eye /> {label}
+				<EyeIcon size={24} className="flex" /> {label}
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onClick={() => window.open(url, "_blank", "noopener")}
 			>
-				<ExternalLink /> Open in new tab
+				<ExternalLinkIcon size={24} className="flex" /> Open in new tab
 			</DropdownMenuItem>
 			<DropdownMenuItem onClick={() => void copyText(url, "Link")}>
-				<Copy /> Copy link
+				<CopyIcon size={24} className="flex" /> Copy link
 			</DropdownMenuItem>
 		</>
 	)
@@ -84,7 +86,7 @@ export function TransactionMenuItems({
 	return (
 		<>
 			<DropdownMenuItem onClick={onOpen}>
-				<Eye /> View details
+				<EyeIcon size={24} className="flex" /> View details
 			</DropdownMenuItem>
 			<DropdownMenuSeparator />
 			<DropdownMenuItem
@@ -95,12 +97,12 @@ export function TransactionMenuItems({
 					)
 				}
 			>
-				<Copy /> Copy amount
+				<CopyIcon size={24} className="flex" /> Copy amount
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onClick={() => void copyText(transaction.merchant, "Merchant")}
 			>
-				<Copy /> Copy merchant
+				<CopyIcon size={24} className="flex" /> Copy merchant
 			</DropdownMenuItem>
 			{transaction.description &&
 				transaction.description !== transaction.merchant && (
@@ -112,7 +114,8 @@ export function TransactionMenuItems({
 							)
 						}
 					>
-						<Copy /> Copy bank description
+						<CopyIcon size={24} className="flex" /> Copy bank
+						description
 					</DropdownMenuItem>
 				)}
 		</>

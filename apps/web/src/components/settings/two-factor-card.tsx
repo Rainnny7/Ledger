@@ -1,4 +1,6 @@
-import { Copy, Download, Loader2, ShieldCheck, ShieldOff } from "lucide-react"
+import { Loader2, ShieldCheck, ShieldOff } from "lucide-react"
+import { CopyIcon } from "@/components/icons/copy"
+import { DownloadIcon } from "@/components/icons/download"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -379,7 +381,7 @@ function BackupCodes({ codes }: { codes: string[] }) {
 						)
 					}
 				>
-					<Copy /> Copy
+					<CopyIcon size={24} className="flex" /> Copy
 				</Button>
 				<Button
 					variant="outline"
@@ -397,7 +399,7 @@ function BackupCodes({ codes }: { codes: string[] }) {
 						setTimeout(() => URL.revokeObjectURL(url), 1000)
 					}}
 				>
-					<Download /> Download
+					<DownloadIcon size={24} className="flex" /> Download
 				</Button>
 			</div>
 		</div>

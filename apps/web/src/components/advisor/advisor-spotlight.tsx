@@ -1,4 +1,5 @@
-import { ArrowRight, Lightbulb } from "lucide-react"
+import { Lightbulb } from "lucide-react"
+import { ArrowRightIcon } from "@/components/icons/arrow-right"
 import { Link } from "@tanstack/react-router"
 import { TipCard } from "@/components/advisor/advisor-bits"
 import { perYear } from "@/components/advisor/advisor-meta"
@@ -63,7 +64,7 @@ export function AdvisorSpotlight() {
 						{actionable.length > shown.length
 							? `All ${tips.length} tips`
 							: "Open Advisor"}{" "}
-						<ArrowRight />
+						<ArrowRightIcon size={24} className="flex" />
 					</Link>
 				</div>
 				<div

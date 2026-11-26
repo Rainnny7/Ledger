@@ -1,9 +1,5 @@
-import {
-	ArrowRight,
-	CircleAlert,
-	CircleCheck,
-	type LucideIcon,
-} from "lucide-react"
+import { CircleAlert, CircleCheck, type LucideIcon } from "lucide-react"
+import { ArrowRightIcon } from "@/components/icons/arrow-right"
 import { type ReactNode, useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { hrefTarget } from "@/components/common/href-target"
@@ -80,7 +76,8 @@ export function ReviewItem({
 							render={<Link {...hrefTarget(link)} />}
 							nativeButton={false}
 						>
-							Transactions <ArrowRight />
+							Transactions{" "}
+							<ArrowRightIcon size={24} className="flex" />
 						</Button>
 					)}
 				</div>

@@ -1,4 +1,5 @@
-import { MoreHorizontal, Plus, Wallet } from "lucide-react"
+import { MoreHorizontal, Wallet } from "lucide-react"
+import { PlusIcon } from "@/components/icons/plus"
 import { WithContextMenu } from "@/components/layout/app-context-menu"
 import { PaymentMethodMenu } from "@/components/invoices/payment-method-menu"
 import { Button } from "@/components/ui/button"
@@ -40,7 +41,7 @@ export function PaymentMethodsSection({
 				</CardDescription>
 				<CardAction>
 					<Button variant="outline" size="sm" onClick={onAdd}>
-						<Plus /> Add
+						<PlusIcon size={24} className="flex" /> Add
 					</Button>
 				</CardAction>
 			</CardHeader>

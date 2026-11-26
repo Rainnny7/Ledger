@@ -1,5 +1,6 @@
-import { Check, Copy } from "lucide-react"
 import { useState } from "react"
+import { CopyIcon } from "@/components/icons/copy"
+import { CheckIcon } from "@/components/icons/check"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
@@ -87,7 +88,11 @@ export function CopyButton({ value, what }: { value: string; what: string }) {
 				setTimeout(() => setDone(false), 1500)
 			}}
 		>
-			{done ? <Check /> : <Copy />}
+			{done ? (
+				<CheckIcon size={24} className="flex" />
+			) : (
+				<CopyIcon size={24} className="flex" />
+			)}
 		</Button>
 	)
 }

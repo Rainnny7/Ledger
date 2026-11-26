@@ -1,4 +1,5 @@
 import type { InvoiceEditorModel } from "@/components/invoices/editor/use-invoice-editor"
+import { PlusIcon } from "@/components/icons/plus"
 import { Button } from "@/components/ui/button"
 import {
 	Card,
@@ -11,7 +12,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { methodKind, methodLines } from "@/lib/invoice"
 import { cn } from "cn"
-import { Plus } from "lucide-react"
 
 /** React/UI entry: `InvoiceEditorMethods`. */
 export function InvoiceEditorMethods({ model }: { model: InvoiceEditorModel }) {
@@ -31,7 +31,7 @@ export function InvoiceEditorMethods({ model }: { model: InvoiceEditorModel }) {
 						size="sm"
 						onClick={() => setMethodDialog({ method: null })}
 					>
-						<Plus /> Add
+						<PlusIcon size={24} className="flex" /> Add
 					</Button>
 				</CardAction>
 			</CardHeader>

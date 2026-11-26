@@ -1,3 +1,5 @@
+import { PlusIcon } from "@/components/icons/plus"
+import { SparklesIcon } from "@/components/icons/sparkles"
 import {
 	Conversation,
 	ConversationContent,
@@ -44,7 +46,7 @@ import {
 	type UIMessage,
 } from "ai"
 import { cn } from "cn"
-import { MessageCircle, Plus, Sparkles, Square, X } from "lucide-react"
+import { MessageCircle, Square, X } from "lucide-react"
 import { AnimatePresence, m, useReducedMotion } from "motion/react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
@@ -419,7 +421,7 @@ function ChatWidgetPanel() {
 											/>
 										}
 									>
-										<Plus />
+										<PlusIcon size={24} className="flex" />
 										New chat
 									</PopoverTrigger>
 									<PopoverContent
@@ -467,7 +469,10 @@ function ChatWidgetPanel() {
 										<ConversationEmptyState className="justify-center py-4">
 											<div className="flex w-full max-w-sm flex-col items-center gap-3">
 												<div className="flex size-9 items-center justify-center rounded-full bg-muted">
-													<Sparkles className="size-4 text-muted-foreground" />
+													<SparklesIcon
+														size={16}
+														className="flex text-muted-foreground"
+													/>
 												</div>
 												<div className="space-y-0.5">
 													<h3 className="text-[13px] font-medium">

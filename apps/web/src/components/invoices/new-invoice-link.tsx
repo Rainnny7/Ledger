@@ -1,5 +1,5 @@
-import { Plus } from "lucide-react"
 import { Link } from "@tanstack/react-router"
+import { PlusIcon } from "@/components/icons/plus"
 import { Button } from "@/components/ui/button"
 
 /** React/UI entry: `NewInvoiceLink`. */
@@ -13,7 +13,7 @@ export function NewInvoiceLink({
 			nativeButton={false}
 			{...props}
 		>
-			<Plus /> {children}
+			<PlusIcon size={24} className="flex" /> {children}
 		</Button>
 	)
 }

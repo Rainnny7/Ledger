@@ -1,5 +1,6 @@
 import { confirmDialog } from "@/lib/confirm"
-import { ChevronDown, Plus, Users } from "lucide-react"
+import { PlusIcon } from "@/components/icons/plus"
+import { ChevronDown, Users } from "lucide-react"
 import { AnimatedMoney } from "@/components/common/count-up"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -162,7 +163,7 @@ export function WorkPage() {
 				</div>
 				{jobs.length > 0 && (
 					<Button onClick={() => setJobDialog({ job: null })}>
-						<Plus /> Add job
+						<PlusIcon size={24} className="flex" /> Add job
 					</Button>
 				)}
 			</div>

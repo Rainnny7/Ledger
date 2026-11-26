@@ -1,4 +1,5 @@
-import { Download, Printer } from "lucide-react"
+import { Printer } from "lucide-react"
+import { DownloadIcon } from "@/components/icons/download"
 import { Link } from "@tanstack/react-router"
 import { hrefTarget } from "@/components/common/href-target"
 import { Button } from "@/components/ui/button"
@@ -70,7 +71,7 @@ export function TaxSummaryCard({
 						onClick={onDownloadCsv}
 						disabled={loading || !hasTransactions}
 					>
-						<Download /> CSV
+						<DownloadIcon size={24} className="flex" /> CSV
 					</Button>
 				</div>
 			</div>
@@ -139,7 +140,7 @@ export function TaxSummaryCard({
 					onClick={onDownloadPackage}
 					disabled={loading || !hasTransactions}
 				>
-					<Download /> Download package
+					<DownloadIcon size={24} className="flex" /> Download package
 				</Button>
 			</div>
 		</Card>

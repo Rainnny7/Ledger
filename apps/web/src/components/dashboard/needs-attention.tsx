@@ -1,12 +1,15 @@
 import {
 	AlertTriangle,
-	CalendarClock,
 	ChevronRight,
 	FileWarning,
 	PiggyBank,
 	ShieldAlert,
 	type LucideIcon,
 } from "lucide-react"
+import { CalendarClockIcon } from "@/components/icons/calendar-clock"
+import { SlotIcon } from "@/components/icons/slot-icon"
+import type { AnimatedIconComponent } from "@/components/icons/use-animated-icon"
+import { useAnimatedIcon } from "@/components/icons/use-animated-icon"
 import { useMemo } from "react"
 import { Link } from "@tanstack/react-router"
 import { hrefTarget } from "@/components/common/href-target"
@@ -29,7 +32,7 @@ import { cn } from "cn"
 
 interface Alert {
 	id: string
-	icon: LucideIcon
+	icon: LucideIcon | AnimatedIconComponent
 	tone: "danger" | "warn"
 	title: string
 	detail: string
@@ -100,7 +103,7 @@ export function NeedsAttention({
 			}
 			out.push({
 				id: `s:${subscription.id}`,
-				icon: CalendarClock,
+				icon: CalendarClockIcon,
 				tone: "warn",
 				title: `${subscription.name} renews ${formatRelativeDate(subscription.nextDue).toLowerCase()}`,
 				detail: formatMoney(subscription.amount, subscription.currency),
@@ -151,35 +154,44 @@ export function NeedsAttention({
 			<CardContent>
 				<ul className="grid gap-1 sm:grid-cols-2">
 					{alerts.map((alert) => (
-						<li key={alert.id}>
-							<Link
-								{...hrefTarget(alert.to)}
-								className="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-							>
-								<span
-									className={cn(
-										"flex size-8 shrink-0 items-center justify-center rounded-full",
-										alert.tone === "danger"
-											? "bg-destructive/10 text-destructive"
-											: "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-									)}
-								>
-									<alert.icon className="size-4" />
-								</span>
-								<span className="min-w-0 flex-1">
-									<span className="block truncate font-medium">
-										{alert.title}
-									</span>
-									<span className="block truncate text-xs text-muted-foreground">
-										{alert.detail}
-									</span>
-								</span>
-								<ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-							</Link>
-						</li>
+						<AlertRow key={alert.id} alert={alert} />
 					))}
 				</ul>
 			</CardContent>
 		</Card>
+	)
+}
+
+function AlertRow({ alert }: { alert: Alert }) {
+	const { ref: iconRef, handlers: iconHandlers } =
+		useAnimatedIcon<HTMLAnchorElement>()
+	return (
+		<li>
+			<Link
+				{...hrefTarget(alert.to)}
+				{...iconHandlers}
+				className="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+			>
+				<span
+					className={cn(
+						"flex size-8 shrink-0 items-center justify-center rounded-full",
+						alert.tone === "danger"
+							? "bg-destructive/10 text-destructive"
+							: "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+					)}
+				>
+					<SlotIcon icon={alert.icon} iconRef={iconRef} size={16} />
+				</span>
+				<span className="min-w-0 flex-1">
+					<span className="block truncate font-medium">
+						{alert.title}
+					</span>
+					<span className="block truncate text-xs text-muted-foreground">
+						{alert.detail}
+					</span>
+				</span>
+				<ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+			</Link>
+		</li>
 	)
 }

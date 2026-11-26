@@ -1,7 +1,8 @@
 import { WithContextMenu } from "@/components/layout/app-context-menu"
+import { UserPlusIcon } from "@/components/icons/user-plus"
 import { AdminUserMenuItems } from "@/components/admin/user-menu"
 import { useQuery } from "@tanstack/react-query"
-import { Crown, Loader2, MoreHorizontal, ShieldCheck, UserPlus } from "lucide-react"
+import { Crown, Loader2, MoreHorizontal, ShieldCheck } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
@@ -107,7 +108,7 @@ export function UsersCard() {
 						size="sm"
 						onClick={() => setDialog({ type: "add" })}
 					>
-						<UserPlus /> Add user
+						<UserPlusIcon size={24} className="flex" /> Add user
 					</Button>
 				</CardAction>
 			</CardHeader>
@@ -157,7 +158,9 @@ export function UsersCard() {
 							}
 							onUnban={() =>
 								void act(user, "Access restored", () =>
-									authClient.admin.unbanUser({ userId: user.id })
+									authClient.admin.unbanUser({
+										userId: user.id,
+									})
 								)
 							}
 							onBan={() => setDialog({ type: "ban", user })}
@@ -172,75 +175,75 @@ export function UsersCard() {
 									animationDelay: `${Math.min(index, 10) * 30}ms`,
 								}}
 							>
-							<Avatar className="size-8">
-								<AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
-									{userInitials(user)}
-								</AvatarFallback>
-							</Avatar>
-							<div className="min-w-0 flex-1">
-								<div className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
-									<span className="truncate">
-										{user.name || user.email}
-									</span>
-									{isMe && (
-										<Badge variant="outline">You</Badge>
-									)}
-									{isOwner ? (
-										<Badge>
-											<Crown /> Owner
-										</Badge>
-									) : (
-										isAdmin && <Badge>Admin</Badge>
-									)}
-									{user.mustChangePassword && (
-										<Badge variant="outline">
-											Temporary password
-										</Badge>
-									)}
-									{user.banned && (
-										<Badge variant="destructive">
-											Banned
-										</Badge>
-									)}
-									{user.twoFactorEnabled && (
-										<Badge variant="secondary">
-											<ShieldCheck /> 2FA
-										</Badge>
-									)}
+								<Avatar className="size-8">
+									<AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
+										{userInitials(user)}
+									</AvatarFallback>
+								</Avatar>
+								<div className="min-w-0 flex-1">
+									<div className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
+										<span className="truncate">
+											{user.name || user.email}
+										</span>
+										{isMe && (
+											<Badge variant="outline">You</Badge>
+										)}
+										{isOwner ? (
+											<Badge>
+												<Crown /> Owner
+											</Badge>
+										) : (
+											isAdmin && <Badge>Admin</Badge>
+										)}
+										{user.mustChangePassword && (
+											<Badge variant="outline">
+												Temporary password
+											</Badge>
+										)}
+										{user.banned && (
+											<Badge variant="destructive">
+												Banned
+											</Badge>
+										)}
+										{user.twoFactorEnabled && (
+											<Badge variant="secondary">
+												<ShieldCheck /> 2FA
+											</Badge>
+										)}
+									</div>
+									<div className="truncate text-xs text-muted-foreground">
+										{user.email} · joined{" "}
+										{userJoined.format(
+											new Date(user.createdAt)
+										)}
+									</div>
 								</div>
-								<div className="truncate text-xs text-muted-foreground">
-									{user.email} · joined{" "}
-									{userJoined.format(
-										new Date(user.createdAt)
-									)}
-								</div>
+								{busyUser && (
+									<Loader2 className="size-4 animate-spin text-muted-foreground" />
+								)}
+								{manageable && (
+									<DropdownMenu>
+										<DropdownMenuTrigger
+											render={
+												<Button
+													variant="ghost"
+													size="icon"
+													aria-label={`Manage ${user.name || user.email}`}
+													disabled={busyUser}
+												/>
+											}
+										>
+											<MoreHorizontal />
+										</DropdownMenuTrigger>
+										<DropdownMenuContent
+											align="end"
+											className="w-52"
+										>
+											{menuItems}
+										</DropdownMenuContent>
+									</DropdownMenu>
+								)}
 							</div>
-							{busyUser && (
-								<Loader2 className="size-4 animate-spin text-muted-foreground" />
-							)}
-							{manageable && (
-								<DropdownMenu>
-									<DropdownMenuTrigger
-										render={
-											<Button
-												variant="ghost"
-												size="icon"
-												aria-label={`Manage ${user.name || user.email}`}
-												disabled={busyUser}
-											/>
-										}
-									>
-										<MoreHorizontal />
-									</DropdownMenuTrigger>
-									<DropdownMenuContent
-										align="end"
-										className="w-52"
-									>
-										{menuItems}
-									</DropdownMenuContent>
-								</DropdownMenu>
-							)}
-						</div>
 						</WithContextMenu>
 					)
 				})}

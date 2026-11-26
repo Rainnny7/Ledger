@@ -1,4 +1,5 @@
 import { QueryError } from "@/components/ui/query-error"
+import { Trash2Icon } from "@/components/icons/trash-2"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,7 +32,6 @@ import {
 	CircleAlert,
 	Info,
 	Loader2,
-	Trash2,
 	TriangleAlert,
 } from "lucide-react"
 import { useState } from "react"
@@ -64,7 +64,7 @@ function NotificationRow({
 	return (
 		<div
 			className={cn(
-				"group flex gap-2 rounded-md border border-transparent px-2 py-2 transition-colors ",
+				"group flex gap-2 rounded-md border border-transparent px-2 py-2 transition-colors",
 				unread
 					? "border-primary/25 bg-primary/10 hover:bg-primary/15"
 					: "hover:bg-muted/60"
@@ -80,7 +80,7 @@ function NotificationRow({
 					aria-hidden
 				/>
 				<span className="min-w-0 flex-1">
-					<span className="block truncate font-medium leading-snug">
+					<span className="block truncate leading-snug font-medium">
 						{item.title}
 					</span>
 					<span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
@@ -94,7 +94,9 @@ function NotificationRow({
 						>
 							{formatRelative(item.createdAt)}
 						</TooltipTrigger>
-						<TooltipContent>{formatTimestamp(item.createdAt)}</TooltipContent>
+						<TooltipContent>
+							{formatTimestamp(item.createdAt)}
+						</TooltipContent>
 					</Tooltip>
 				</span>
 			</button>
@@ -110,7 +112,7 @@ function NotificationRow({
 				{busy ? (
 					<Loader2 className="size-3.5 animate-spin" />
 				) : (
-					<Trash2 className="size-3.5" />
+					<Trash2Icon size={14} className="flex" />
 				)}
 			</Button>
 		</div>
@@ -168,9 +170,7 @@ export function NotificationBell({ enabled }: { enabled: boolean }) {
 			>
 				<Bell className="size-4" />
 				{unread > 0 && (
-					<Badge
-						className="absolute -top-1 -right-1 h-4 min-w-4 border-2 border-background bg-red-500 px-1 text-[10px] font-bold text-white tabular-nums hover:bg-red-500"
-					>
+					<Badge className="absolute -top-1 -right-1 h-4 min-w-4 border-2 border-background bg-red-500 px-1 text-[10px] font-bold text-white tabular-nums hover:bg-red-500">
 						{unread > 99 ? "99+" : unread}
 					</Badge>
 				)}

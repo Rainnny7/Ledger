@@ -1,16 +1,16 @@
-import {
-	Briefcase,
-	CalendarClock,
-	Clock,
-	Plus,
-	ReceiptText,
-} from "lucide-react"
+import { Briefcase, Clock, ReceiptText } from "lucide-react"
+import { CalendarClockIcon } from "@/components/icons/calendar-clock"
+import { PlusIcon } from "@/components/icons/plus"
+import { SlotIcon } from "@/components/icons/slot-icon"
+import { useAnimatedIcon } from "@/components/icons/use-animated-icon"
 import { tintStyle } from "@/components/goals/goal-meta"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 /** React/UI entry: `EmptyWork`. */
 export function EmptyWork({ onAdd }: { onAdd: () => void }) {
+	const { ref: addIconRef, handlers: addIconHandlers } =
+		useAnimatedIcon<HTMLButtonElement>()
 	const steps = [
 		{
 			icon: Clock,
@@ -23,7 +23,7 @@ export function EmptyWork({ onAdd }: { onAdd: () => void }) {
 			body: "“done 40 hours since last pay, total is $1,000.”",
 		},
 		{
-			icon: CalendarClock,
+			icon: CalendarClockIcon,
 			title: "Get paid in instalments",
 			body: "Record each payment and see when it’s cleared.",
 		},
@@ -51,7 +51,11 @@ export function EmptyWork({ onAdd }: { onAdd: () => void }) {
 							key={title}
 							className="rounded-xl border p-3 text-left"
 						>
-							<Icon className="mb-2 size-4 text-primary" />
+							<SlotIcon
+								icon={Icon}
+								size={16}
+								className="mb-2 text-primary"
+							/>
 							<p className="text-sm font-medium">{title}</p>
 							<p className="text-xs text-muted-foreground">
 								{body}
@@ -59,8 +63,9 @@ export function EmptyWork({ onAdd }: { onAdd: () => void }) {
 						</div>
 					))}
 				</div>
-				<Button onClick={onAdd}>
-					<Plus /> Add a job
+				<Button onClick={onAdd} {...addIconHandlers}>
+					<PlusIcon ref={addIconRef} size={24} className="flex" /> Add
+					a job
 				</Button>
 			</CardContent>
 		</Card>

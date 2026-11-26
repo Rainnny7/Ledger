@@ -1,4 +1,5 @@
-import { CheckCircle2, Download, Loader2 } from "lucide-react"
+import { CheckCircle2, Loader2 } from "lucide-react"
+import { DownloadIcon } from "@/components/icons/download"
 import { Button } from "@/components/ui/button"
 import type { PublicInvoice } from "@/lib/api"
 import { daysFromToday, formatDate } from "@/lib/format"
@@ -68,7 +69,7 @@ export function PublicInvoiceView({
 						{downloadPdf.isPending ? (
 							<Loader2 className="animate-spin" />
 						) : (
-							<Download />
+							<DownloadIcon size={24} className="flex" />
 						)}
 						Download PDF
 					</Button>

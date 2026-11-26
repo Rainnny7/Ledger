@@ -1,4 +1,5 @@
-import { Check, Monitor } from "lucide-react"
+import { Monitor } from "lucide-react"
+import { CheckIcon } from "@/components/icons/check"
 import {
 	ACCENTS,
 	MODES,
@@ -137,12 +138,7 @@ export function AppearanceModePicker() {
 										{option.description}
 									</span>
 								</span>
-								<Check
-									className={cn(
-										"mt-0.5 size-4 shrink-0 text-primary",
-										!selected && "invisible"
-									)}
-								/>
+								<CheckIcon size={24} className="flex" />
 							</span>
 						</button>
 					)
@@ -189,12 +185,7 @@ export function AppearanceAccentPicker() {
 								background: `linear-gradient(135deg, ${entry.light} 50%, ${entry.dark} 50%)`,
 							}}
 						>
-							<Check
-								className={cn(
-									"size-4 text-white mix-blend-difference",
-									!selected && "hidden"
-								)}
-							/>
+							<CheckIcon size={24} className="flex" />
 						</button>
 					)
 				})}

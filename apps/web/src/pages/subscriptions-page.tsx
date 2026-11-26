@@ -1,4 +1,5 @@
-import { Plus, Repeat } from "lucide-react"
+import { Repeat } from "lucide-react"
+import { PlusIcon } from "@/components/icons/plus"
 import { AnimatedMoney } from "@/components/common/count-up"
 import { SubscriptionCalendarCard } from "@/components/subscriptions/subscription-calendar-card"
 import { SubscriptionComingUp } from "@/components/subscriptions/subscription-coming-up"
@@ -37,7 +38,7 @@ export function SubscriptionsPage() {
 					</p>
 				</div>
 				<Button onClick={() => page.openNew()}>
-					<Plus /> Add subscription
+					<PlusIcon size={24} className="flex" /> Add subscription
 				</Button>
 			</div>
 

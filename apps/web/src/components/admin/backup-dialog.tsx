@@ -1,4 +1,5 @@
-import { Loader2, Save } from "lucide-react"
+import { Loader2 } from "lucide-react"
+import { SaveIcon } from "@/components/icons/save"
 import { useState } from "react"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
@@ -81,7 +82,7 @@ export function BackUpDialog({
 							{saving ? (
 								<Loader2 className="animate-spin" />
 							) : (
-								<Save />
+								<SaveIcon size={24} className="flex" />
 							)}{" "}
 							Back up
 						</Button>

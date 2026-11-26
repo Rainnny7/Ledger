@@ -1,7 +1,7 @@
 import { InstitutionBadge } from "@/components/accounts/institution"
+import { PlusIcon } from "@/components/icons/plus"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Plus } from "lucide-react"
 
 /** First-run prompt shown before any account has been added. */
 export function DashboardEmptyState({ onAdd }: { onAdd: () => void }) {
@@ -28,7 +28,7 @@ export function DashboardEmptyState({ onAdd }: { onAdd: () => void }) {
 					</p>
 				</div>
 				<Button data-tour="dashboard-connect" onClick={onAdd}>
-					<Plus /> Add account
+					<PlusIcon size={24} className="flex" /> Add account
 				</Button>
 			</CardContent>
 		</Card>

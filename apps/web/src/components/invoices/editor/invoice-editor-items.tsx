@@ -1,4 +1,5 @@
 import { ForeignMoney } from "@/components/common/money"
+import { PlusIcon } from "@/components/icons/plus"
 import { mulMoney } from "@ledger/shared/money"
 import {
 	parseNumber,
@@ -10,7 +11,7 @@ import type { InvoiceEditorModel } from "@/components/invoices/editor/use-invoic
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, X } from "lucide-react"
+import { X } from "lucide-react"
 
 function Shown({
 	model,
@@ -130,7 +131,7 @@ export function InvoiceEditorItems({ model }: { model: InvoiceEditorModel }) {
 						setDraftField("items", [...draft.items, newItem()])
 					}
 				>
-					<Plus /> Add line
+					<PlusIcon size={24} className="flex" /> Add line
 				</Button>
 
 				<div className="mt-2 grid gap-2 border-t pt-3 text-sm">

@@ -1,4 +1,6 @@
 import { InstitutionBadge } from "@/components/accounts/institution"
+import { Trash2Icon } from "@/components/icons/trash-2"
+import { KeyRoundIcon } from "@/components/icons/key-round"
 import { isProviderId, PROVIDERS } from "@/components/accounts/providers"
 import { AccountCard } from "@/components/dashboard/account-card"
 import { canForget } from "@/components/dashboard/connection-utils"
@@ -21,11 +23,9 @@ import {
 	AlertTriangle,
 	ChevronDown,
 	History,
-	KeyRound,
 	MoreHorizontal,
 	RefreshCw,
 	ShieldAlert,
-	Trash2,
 	Upload,
 	Zap,
 	ZapOff,
@@ -106,7 +106,8 @@ export function ConnectionSection({
 			)}
 			{canForget(connection) && (
 				<DropdownMenuItem onClick={() => void onForget(connection)}>
-					<KeyRound /> Forget saved password
+					<KeyRoundIcon size={24} className="flex" /> Forget saved
+					password
 				</DropdownMenuItem>
 			)}
 			{canForget(connection) && <DropdownMenuSeparator />}
@@ -114,7 +115,7 @@ export function ConnectionSection({
 				variant="destructive"
 				onClick={() => void onRemove(connection)}
 			>
-				<Trash2 /> Remove connection
+				<Trash2Icon size={24} className="flex" /> Remove connection
 			</DropdownMenuItem>
 		</>
 	)
@@ -238,7 +239,11 @@ export function ConnectionSection({
 						size="sm"
 						onClick={() => onRefresh(connection)}
 					>
-						{connection.lastError ? <RefreshCw /> : <KeyRound />}{" "}
+						{connection.lastError ? (
+							<RefreshCw />
+						) : (
+							<KeyRoundIcon size={24} className="flex" />
+						)}{" "}
 						{connection.lastError ? "Try again" : "Log in"}
 					</Button>
 				</div>

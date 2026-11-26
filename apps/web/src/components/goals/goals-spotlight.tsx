@@ -1,6 +1,8 @@
 import { ReservedSlot } from "@/components/common/reserved-slot"
+import { PlusIcon } from "@/components/icons/plus"
+import { ArrowRightIcon } from "@/components/icons/arrow-right"
 import { Money } from "@/components/common/money"
-import { ArrowRight, Plus } from "lucide-react"
+
 import { useMemo, useState } from "react"
 import { Link } from "@tanstack/react-router"
 import {
@@ -73,7 +75,7 @@ export function GoalsSpotlight() {
 						{open.length > shown.length
 							? `All ${open.length} goals`
 							: "View goals"}{" "}
-						<ArrowRight />
+						<ArrowRightIcon size={24} className="flex" />
 					</Link>
 				</div>
 
@@ -130,7 +132,7 @@ export function GoalsSpotlight() {
 									aria-label={`Add to ${goal.name}`}
 									onClick={() => setPaying({ goal: goal })}
 								>
-									<Plus />
+									<PlusIcon size={24} className="flex" />
 								</Button>
 							</div>
 							<GoalBar goal={goal} className="h-1.5" />

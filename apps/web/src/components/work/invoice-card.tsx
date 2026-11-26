@@ -1,8 +1,10 @@
 import { WithContextMenu } from "@/components/layout/app-context-menu"
+import { CopyIcon } from "@/components/icons/copy"
+import { ExternalLinkIcon } from "@/components/icons/external-link"
 import { confirmDialog } from "@/lib/confirm"
 import { Money } from "@/components/common/money"
 import { Hint } from "@/components/common/hint"
-import { Copy, ExternalLink, Link2, MoreHorizontal, X } from "lucide-react"
+import { Link2, MoreHorizontal, X } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
@@ -110,7 +112,7 @@ export function InvoiceCard({
 					void copyForChat(invoiceText(invoice, job.currency), "Bill")
 				}
 			>
-				<Copy /> Copy as a message
+				<CopyIcon size={24} className="flex" /> Copy as a message
 			</DropdownMenuItem>
 			{!readonly && (
 				<>
@@ -166,7 +168,7 @@ export function InvoiceCard({
 								)
 							}
 						>
-							<Copy />
+							<CopyIcon size={24} className="flex" />
 						</Button>
 					</Hint>
 					{!readonly && (
@@ -246,7 +248,10 @@ export function InvoiceCard({
 										rel="noopener noreferrer nofollow"
 										className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
 									>
-										<ExternalLink className="size-3" />{" "}
+										<ExternalLinkIcon
+											size={12}
+											className="flex"
+										/>{" "}
 										Proof
 									</a>
 								)}
@@ -329,7 +334,10 @@ export function InvoiceCard({
 													)
 												}
 											>
-												<Copy className="size-3.5" />
+												<CopyIcon
+													size={14}
+													className="flex"
+												/>
 											</button>
 										</Hint>
 										{owner && (
