@@ -37,6 +37,9 @@ export interface AdminAiChatSettings {
 	limits: AiChatLimits
 }
 
+/** Where updates come from: the latest release or the newest ver/* branch. */
+export type ReleaseChannel = "stable" | "dev"
+
 /** Admin Settings. */
 export interface AdminSettings {
 	registrationOpen: boolean
@@ -44,6 +47,7 @@ export interface AdminSettings {
 	ownerId: string | null
 	aiChat: AdminAiChatSettings
 	mcp: { enabled: boolean }
+	releaseChannel: ReleaseChannel
 }
 
 /** User dialog. */

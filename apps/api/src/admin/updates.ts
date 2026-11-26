@@ -13,6 +13,15 @@ const FAILURE_TTL = 60 * 60_000
 /** UpdateInstall values accepted by validation and routes. */
 export type UpdateInstall = "docker" | "source"
 
+/** Where updates come from: `stable` follows master (`latest` image), `dev` the newest `ver/*` branch. */
+export type ReleaseChannel = "stable" | "dev"
+
+/** Container image repository published by CI. */
+export const IMAGE_REPOSITORY = "ghcr.io/rainnny7/ledger"
+
+const GITHUB_API = "https://api.github.com/repos/rainnny7/ledger"
+const DEV_BRANCH_PATTERN = /^ver\/\d+(\.\d+)*(-[\w.]+)?$/
+
 /** UpdateInfo values accepted by validation and routes. */
 export type UpdateInfo = {
 	current: string
@@ -24,12 +33,22 @@ export type UpdateInfo = {
 	/** False when the server has UPDATE_CHECK=false, so nothing is polled. */
 	checkEnabled: boolean
 	install: UpdateInstall
+	channel: ReleaseChannel
+	/** Docker image tag for the selected channel, or null when the dev branch is unknown. */
+	imageTag: string | null
+	/** Whether this server can swap its own container (set by the route, not the GitHub check). */
+	canSwitch: boolean
 	commands: string[]
 }
 
 type CacheEntry = { at: number; data: UpdateInfo }
 
-let cache: CacheEntry | null = null
+const cache = new Map<ReleaseChannel, CacheEntry>()
+
+/** Forgets cached checks, e.g. after the admin picks another channel. */
+export function clearUpdateCache() {
+	cache.clear()
+}
 
 function readCurrentVersion(): string {
 	const pkg = JSON.parse(
@@ -66,9 +85,39 @@ export function semverNewer(latest: string, current: string): boolean {
 	return false
 }
 
-function installCommands(install: UpdateInstall): string[] {
+/** Image tag CI publishes for a branch: `/` becomes `-` (`ver/1.0.1-dev` -> `ver-1.0.1-dev`). */
+export function branchImageTag(branch: string): string {
+	return branch.replace(/\//g, "-")
+}
+
+/** Highest-version `ver/X.Y.Z...` branch name, or null when none match. */
+export function pickNewestDevBranch(branchNames: string[]): string | null {
+	let newest: string | null = null
+	for (const name of branchNames) {
+		if (
+			DEV_BRANCH_PATTERN.test(name) &&
+			(newest === null ||
+				semverNewer(name.slice("ver/".length), newest.slice("ver/".length)))
+		) {
+			newest = name
+		}
+	}
+	return newest
+}
+
+/** Copy-paste upgrade commands; docker commands name the channel's image tag. */
+export function installCommands(
+	install: UpdateInstall,
+	imageTag: string | null
+): string[] {
 	if (install === "docker") {
-		return ["docker compose pull", "docker compose up -d"]
+		return [
+			imageTag
+				? `# in docker-compose.yml set: image: ${IMAGE_REPOSITORY}:${imageTag}`
+				: "# in docker-compose.yml set the image tag to the newest ver-* tag",
+			"docker compose pull",
+			"docker compose up -d",
+		]
 	}
 	return [
 		"git pull",
@@ -78,7 +127,10 @@ function installCommands(install: UpdateInstall): string[] {
 	]
 }
 
-function baseInfo(): Omit<
+function baseInfo(
+	channel: ReleaseChannel,
+	imageTag: string | null
+): Omit<
 	UpdateInfo,
 	"latest" | "available" | "url" | "notes" | "publishedAt"
 > {
@@ -87,8 +139,25 @@ function baseInfo(): Omit<
 		current: readCurrentVersion(),
 		checkEnabled: env.UPDATE_CHECK,
 		install,
-		commands: installCommands(install),
+		channel,
+		imageTag,
+		canSwitch: false,
+		commands: installCommands(install, imageTag),
 	}
+}
+
+async function githubJson<T>(endpoint: string): Promise<T> {
+	const response = await fetch(`${GITHUB_API}/${endpoint}`, {
+		headers: {
+			Accept: "application/vnd.github+json",
+			"User-Agent": "ledger-update-check",
+		},
+		signal: AbortSignal.timeout(15_000),
+	})
+	if (!response.ok) {
+		throw new Error(String(response.status))
+	}
+	return (await response.json()) as T
 }
 
 type GhRelease = {
@@ -98,31 +167,21 @@ type GhRelease = {
 	published_at?: string | null
 }
 
-async function fetchLatest(): Promise<UpdateInfo> {
-	const base = baseInfo()
+const EMPTY_CHECK = {
+	latest: null,
+	available: false,
+	url: null,
+	notes: null,
+	publishedAt: null,
+}
+
+async function fetchStable(): Promise<UpdateInfo> {
+	const base = baseInfo("stable", "latest")
 	if (!env.UPDATE_CHECK) {
-		return {
-			...base,
-			latest: null,
-			available: false,
-			url: null,
-			notes: null,
-			publishedAt: null,
-		}
+		return { ...base, ...EMPTY_CHECK }
 	}
-	const url = "https://api.github.com/repos/rainnny7/ledger/releases/latest"
 	try {
-		const response = await fetch(url, {
-			headers: {
-				Accept: "application/vnd.github+json",
-				"User-Agent": "ledger-update-check",
-			},
-			signal: AbortSignal.timeout(15_000),
-		})
-		if (!response.ok) {
-			throw new Error(String(response.status))
-		}
-		const data = (await response.json()) as GhRelease
+		const data = await githubJson<GhRelease>("releases/latest")
 		const tag = data.tag_name?.trim()
 		if (!tag) {
 			throw new Error("no tag")
@@ -137,27 +196,52 @@ async function fetchLatest(): Promise<UpdateInfo> {
 			publishedAt: data.published_at ?? null,
 		}
 	} catch {
-		return {
-			...base,
-			latest: null,
-			available: false,
-			url: null,
-			notes: null,
-			publishedAt: null,
-		}
+		return { ...base, ...EMPTY_CHECK }
 	}
 }
 
-/** Cached GitHub release check; never throws. */
-export async function getUpdateInfo(): Promise<UpdateInfo> {
+async function fetchDev(): Promise<UpdateInfo> {
+	if (!env.UPDATE_CHECK) {
+		return { ...baseInfo("dev", null), ...EMPTY_CHECK }
+	}
+	try {
+		const branches = await githubJson<{ name?: string }[]>(
+			"branches?per_page=100"
+		)
+		const branch = pickNewestDevBranch(
+			branches.flatMap((entry) => (entry.name ? [entry.name] : []))
+		)
+		if (!branch) {
+			throw new Error("no dev branch")
+		}
+		const base = baseInfo("dev", branchImageTag(branch))
+		const latest = branch.slice("ver/".length)
+		return {
+			...base,
+			latest,
+			available: semverNewer(latest, base.current),
+			url: `https://github.com/rainnny7/ledger/tree/${branch}`,
+			notes: null,
+			publishedAt: null,
+		}
+	} catch {
+		return { ...baseInfo("dev", null), ...EMPTY_CHECK }
+	}
+}
+
+/** Cached GitHub check for the channel (release or newest ver/* branch); never throws. */
+export async function getUpdateInfo(
+	channel: ReleaseChannel
+): Promise<UpdateInfo> {
 	const now = Date.now()
-	if (cache) {
-		const ttl = cache.data.latest != null ? SUCCESS_TTL : FAILURE_TTL
-		if (now - cache.at < ttl) {
-			return cache.data
+	const cached = cache.get(channel)
+	if (cached) {
+		const ttl = cached.data.latest != null ? SUCCESS_TTL : FAILURE_TTL
+		if (now - cached.at < ttl) {
+			return cached.data
 		}
 	}
-	const data = await fetchLatest()
-	cache = { at: now, data }
+	const data = channel === "dev" ? await fetchDev() : await fetchStable()
+	cache.set(channel, { at: now, data })
 	return data
 }

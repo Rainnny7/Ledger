@@ -5,6 +5,8 @@ import { z } from "zod"
 import {
 	audit,
 	getOwnerId,
+	getReleaseChannel,
+	setReleaseChannel,
 	isInstanceOwner,
 	recentAudit,
 } from "./admin/store.ts"
@@ -50,7 +52,11 @@ import {
 	runTask,
 	startScheduler,
 } from "./tasks/scheduler.ts"
-import { getUpdateInfo } from "./admin/updates.ts"
+import {
+	dockerSwitchAvailable,
+	startContainerSwitch,
+} from "./admin/docker-switch.ts"
+import { clearUpdateCache, getUpdateInfo } from "./admin/updates.ts"
 import { boundedString, id, jsonBody } from "./http/validation.ts"
 
 runMigrations()
@@ -67,18 +73,21 @@ const adminSettings = () => ({
 		limits: aiChatLimits,
 	},
 	mcp: { enabled: mcpEnabled() },
+	releaseChannel: getReleaseChannel(),
 })
 const adminSettingsBody = z
 	.object({
 		registrationOpen: z.boolean().optional(),
 		aiChatEnabled: z.boolean().optional(),
 		mcpEnabled: z.boolean().optional(),
+		releaseChannel: z.enum(["stable", "dev"]).optional(),
 	})
 	.refine(
 		(body) =>
 			body.registrationOpen !== undefined ||
 			body.aiChatEnabled !== undefined ||
-			body.mcpEnabled !== undefined,
+			body.mcpEnabled !== undefined ||
+			body.releaseChannel !== undefined,
 		{ message: "At least one setting is required" }
 	)
 const backupNoteBody = z.object({ note: boundedString(200).optional() })
@@ -97,7 +106,38 @@ const auditQuery = z.object({
 const admin = new Elysia({ name: "admin-routes", prefix: "/api/admin" }).use(
 	adminUser
 )
-admin.get("/update", async () => await getUpdateInfo())
+admin.get("/update", async () => ({
+	...(await getUpdateInfo(getReleaseChannel())),
+	canSwitch: await dockerSwitchAvailable(),
+}))
+/** Pulls the selected channel's image and swaps this container for one running it (needs the Docker socket). */
+admin.post("/update/switch", async ({ user, request, status }) => {
+	if (!(await dockerSwitchAvailable())) {
+		return status(409, {
+			error: "Mount /var/run/docker.sock into the container to switch from here.",
+		})
+	}
+	const info = await getUpdateInfo(getReleaseChannel())
+	if (!info.imageTag) {
+		return status(409, {
+			error: "Could not determine the image to switch to. Try again shortly.",
+		})
+	}
+	try {
+		await startContainerSwitch(info.imageTag)
+	} catch (error) {
+		return status(502, { error: (error as Error).message })
+	}
+	audit({
+		kind: "admin",
+		ip: request.headers.get(CLIENT_IP_HEADER) ?? undefined,
+		actorId: user.id,
+		actorEmail: user.email,
+		action: "Switched container image",
+		detail: info.imageTag,
+	})
+	return { ok: true, imageTag: info.imageTag }
+})
 admin.get("/settings", () => adminSettings())
 admin.put(
 	"/settings",
@@ -130,6 +170,21 @@ admin.put(
 				action: body.aiChatEnabled
 					? "Enabled AI chat"
 					: "Disabled AI chat",
+			})
+		}
+		if (
+			body.releaseChannel !== undefined &&
+			body.releaseChannel !== getReleaseChannel()
+		) {
+			setReleaseChannel(body.releaseChannel)
+			clearUpdateCache()
+			audit({
+				kind: "admin",
+				ip: request.headers.get(CLIENT_IP_HEADER) ?? undefined,
+				actorId: user.id,
+				actorEmail: user.email,
+				action: "Changed release channel",
+				detail: body.releaseChannel,
 			})
 		}
 		if (body.mcpEnabled !== undefined && body.mcpEnabled !== mcpEnabled()) {

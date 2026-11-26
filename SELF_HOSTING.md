@@ -155,6 +155,12 @@ For Docker, the database is `./data/app.db` on the host mount. Copy backups off 
 
 **In-app notice (admins).** When `UPDATE_CHECK` is not `false`, the server polls GitHub’s latest release for `rainnny7/ledger` about every **6 hours** (cached). Admins see a banner with release notes and copy-paste upgrade commands. Set `UPDATE_CHECK=false` to disable. Set `LEDGER_INSTALL=docker` or rely on the Docker image’s default so the UI suggests Docker commands instead of source.
 
+**Release channel (admins).** The Admin page has a **Release channel** selector. **Stable** follows the latest release (image tag `latest`). **Dev** follows the newest `ver/X.Y.Z` branch on GitHub; CI publishes it as an image tagged with the branch name and `/` replaced by `-`, e.g. `ghcr.io/rainnny7/ledger:ver-1.0.1-dev`. The update check and the commands shown follow the selected channel.
+
+- **One-click switch** needs the Docker socket mounted (uncomment `/var/run/docker.sock:/var/run/docker.sock` in `docker-compose.yml`) and the container's default hostname (its id). Ledger then pulls the image and starts a short-lived helper that replaces the container with a copy running the new image (same settings, volumes, ports and networks), restoring the old one if something fails. **Mounting the socket gives Ledger host-level control of Docker; only do it if you accept that.**
+- **Without the socket**, the page shows the same selector plus commands: set `image:` in `docker-compose.yml` to the tag shown, then `docker compose pull && docker compose up -d`.
+- A later `docker compose up` goes back to the image tag in your compose file, so edit the file too if you want the channel to stick.
+
 **Docker Compose:**
 
 ```bash

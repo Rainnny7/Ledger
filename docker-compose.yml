@@ -22,6 +22,11 @@ services:
             TRUST_PROXY: ${TRUST_PROXY:-false}
         volumes:
             - ./data:/data
+            # Optional: lets admins switch release channel (stable/dev) from the Admin page in one
+            # click. WARNING: access to the Docker socket is host-level control (anyone who can
+            # use it can start privileged containers and read the host). Leave commented out unless
+            # you accept that; without it the Admin page shows copy-paste commands instead.
+            # - /var/run/docker.sock:/var/run/docker.sock
         # Chromium needs more shared memory than Docker's 64MB default
         shm_size: 1gb
 

@@ -634,6 +634,11 @@ export type UpdateInfo = {
 	publishedAt: string | null
 	checkEnabled: boolean
 	install: "docker" | "source"
+	channel: "stable" | "dev"
+	/** Docker image tag for the selected channel; null when unknown. */
+	imageTag: string | null
+	/** True when the server can pull and swap its own container (Docker socket mounted). */
+	canSwitch: boolean
 	commands: string[]
 }
 

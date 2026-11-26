@@ -6,6 +6,7 @@ import { DemoCard } from "@/components/admin/demo-card"
 import { FeatureFlagsCard } from "@/components/admin/feature-flags-card"
 import { BackupsCard } from "@/components/admin/backups-card"
 import { TasksCard } from "@/components/admin/tasks-card"
+import { ReleaseChannelCard } from "@/components/admin/release-channel-card"
 import { UpdateStatus } from "@/components/admin/update-status"
 import { UsersCard } from "@/components/admin/users-card"
 import { useAdminSettings } from "@/components/admin/use-admin-settings"
@@ -36,11 +37,14 @@ export function AdminPage() {
 			<div className="grid items-start gap-8 lg:grid-cols-2">
 				<div className="grid gap-8">
 					<FeatureFlagsCard />
+					<ReleaseChannelCard />
 					<DemoCard />
 				</div>
-				<UsersCard />
+				<div className="grid gap-8">
+					<UsersCard />
+					<TasksCard showBackupTask={showBackups} />
+				</div>
 			</div>
-			<TasksCard showBackupTask={showBackups} />
 			<div className="grid items-stretch gap-8 lg:grid-cols-2">
 				<SmtpCard />
 				<SendNotificationCard />

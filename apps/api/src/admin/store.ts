@@ -19,6 +19,7 @@ import {
 } from "drizzle-orm"
 import { db, getSetting, setSetting } from "../db/connection.ts"
 import { adminAudit, user } from "../db/schema/index.ts"
+import type { ReleaseChannel } from "./updates.ts"
 import { isInstanceOwnerFor } from "./owner-gate.ts"
 
 export { isInstanceOwnerFor } from "./owner-gate.ts"
@@ -197,4 +198,14 @@ export function setMustChangePassword(userId: string, value: boolean) {
 		.set({ mustChangePassword: value })
 		.where(eq(user.id, userId))
 		.run()
+}
+
+/** The saved release channel; `stable` until an admin picks another. */
+export function getReleaseChannel(): ReleaseChannel {
+	return getSetting("release_channel") === "dev" ? "dev" : "stable"
+}
+
+/** Persists the release channel the update check and container switch follow. */
+export function setReleaseChannel(channel: ReleaseChannel) {
+	setSetting("release_channel", channel)
 }
