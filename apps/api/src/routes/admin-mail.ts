@@ -40,6 +40,27 @@ const adminNotificationBody = z.object({
 	email: z.boolean(),
 })
 
+/**
+ * Turns an SMTP failure into readable text. Connection failures often surface
+ * as an AggregateError (one attempt per resolved address) with an empty
+ * message, so fall back to the error code or the first nested error.
+ */
+function describeSmtpError(error: unknown): string {
+	if (!(error instanceof Error)) {
+		return "SMTP delivery failed."
+	}
+	if (error.message) {
+		return error.message
+	}
+	const nested = error instanceof AggregateError ? error.errors[0] : undefined
+	const source = nested instanceof Error ? nested : error
+	const code = (source as { code?: string }).code
+	if (source.message) {
+		return source.message
+	}
+	return code ? `SMTP connection failed (${code}).` : "SMTP delivery failed."
+}
+
 /** Owner-only SMTP and admin notification broadcast routes (mount on `/api/admin`). */
 export const adminMail = new Elysia({ name: "admin-mail" }).use(adminUser)
 
@@ -96,9 +117,7 @@ adminMail.post(
 			})
 			return { ok: true }
 		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : "SMTP delivery failed."
-			return status(502, { error: message })
+			return status(502, { error: describeSmtpError(error) })
 		}
 	},
 	{ body: jsonBody(smtpTestBody) }
