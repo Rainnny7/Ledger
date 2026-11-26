@@ -1,5 +1,10 @@
-﻿import { ArrowRight, Clock, CornerDownLeft, Plus, Search } from "lucide-react"
+﻿import { Clock, CornerDownLeft } from "lucide-react"
 import type { PaletteItem } from "@/components/layout/command-palette-data"
+import { PlusIcon } from "@/components/icons/plus"
+import { SearchIcon } from "@/components/icons/search"
+import { ArrowRightIcon } from "@/components/icons/arrow-right"
+import { SlotIcon } from "@/components/icons/slot-icon"
+import { useAnimatedIcon } from "@/components/icons/use-animated-icon"
 import { usePalette } from "@/components/layout/use-palette"
 import { cn } from "cn"
 
@@ -7,12 +12,21 @@ import { cn } from "cn"
 export function Palette({ onDone }: { onDone: () => void }) {
 	const { query, setQuery, setActive, listRef, items, current, go } =
 		usePalette({ onDone })
+	const { ref: searchIconRef, handlers: searchIconHandlers } =
+		useAnimatedIcon<HTMLDivElement>()
 
 	return (
 		<div className="flex max-h-[min(34rem,70svh)] flex-col">
-			<div className="flex items-center gap-2.5 border-b px-3.5">
+			<div
+				className="flex items-center gap-2.5 border-b px-3.5"
+				{...searchIconHandlers}
+			>
 				<span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-					<Search className="size-4" />
+					<SearchIcon
+						ref={searchIconRef}
+						size={16}
+						className="flex"
+					/>
 				</span>
 				<input
 					autoFocus
@@ -104,83 +118,105 @@ function PaletteList({
 					No actions match.
 				</p>
 			)}
-			{items.map((item, index) => {
-				const heading =
-					item.group !== items[index - 1]?.group ? item.group : null
-				const Icon = item.group === "Recent" ? Clock : item.icon
-				const on = index === current
-				const doing =
-					item.group === "Actions" || item.group === "Suggested"
-				return (
-					<div key={`${item.group}:${item.id}`}>
-						{heading && (
-							<div className="flex items-center gap-1.5 px-2 pt-2.5 pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-								{heading === "Suggested" && (
-									<Plus className="size-3 text-primary" />
-								)}
-								{heading}
-							</div>
+			{items.map((item, index) => (
+				<PaletteOption
+					key={`${item.group}:${item.id}`}
+					item={item}
+					index={index}
+					items={items}
+					current={current}
+					setActive={setActive}
+					go={go}
+				/>
+			))}
+		</div>
+	)
+}
+
+function PaletteOption({
+	item,
+	index,
+	items,
+	current,
+	setActive,
+	go,
+}: {
+	item: PaletteItem
+	index: number
+	items: PaletteItem[]
+	current: number
+	setActive: (index: number | ((current: number) => number)) => void
+	go: (item: PaletteItem | undefined) => void
+}) {
+	const { ref: iconRef, handlers: iconHandlers } =
+		useAnimatedIcon<HTMLButtonElement>()
+	const heading = item.group !== items[index - 1]?.group ? item.group : null
+	const Icon = item.group === "Recent" ? Clock : item.icon
+	const on = index === current
+	const doing = item.group === "Actions" || item.group === "Suggested"
+
+	return (
+		<div>
+			{heading && (
+				<div className="flex items-center gap-1.5 px-2 pt-2.5 pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+					{heading === "Suggested" && (
+						<PlusIcon size={12} className="flex text-primary" />
+					)}
+					{heading}
+				</div>
+			)}
+			<button
+				type="button"
+				id={`palette-${index}`}
+				role="option"
+				aria-selected={on}
+				data-index={index}
+				onMouseMove={() => !on && setActive(index)}
+				onClick={() => go(item)}
+				className={cn(
+					"relative flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
+					on && "bg-primary/10 text-primary"
+				)}
+				{...iconHandlers}
+			>
+				{on && (
+					<span
+						aria-hidden
+						className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-primary"
+					/>
+				)}
+				<span
+					className={cn(
+						"flex size-7 shrink-0 items-center justify-center rounded-md transition-colors",
+						on
+							? "bg-primary text-primary-foreground"
+							: doing
+								? "bg-primary/10 text-primary"
+								: "bg-muted text-muted-foreground"
+					)}
+				>
+					<SlotIcon icon={Icon} iconRef={iconRef} size={14} />
+				</span>
+				<span className="min-w-0 flex-1 truncate">{item.label}</span>
+				{item.hint && (
+					<span
+						className={cn(
+							"shrink-0 text-xs tabular-nums",
+							on ? "text-primary/80" : "text-muted-foreground"
 						)}
-						<button
-							type="button"
-							id={`palette-${index}`}
-							role="option"
-							aria-selected={on}
-							data-index={index}
-							onMouseMove={() => !on && setActive(index)}
-							onClick={() => go(item)}
-							className={cn(
-								"relative flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
-								on && "bg-primary/10 text-primary"
-							)}
-						>
-							{on && (
-								<span
-									aria-hidden
-									className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-primary"
-								/>
-							)}
-							<span
-								className={cn(
-									"flex size-7 shrink-0 items-center justify-center rounded-md transition-colors",
-									on
-										? "bg-primary text-primary-foreground"
-										: doing
-											? "bg-primary/10 text-primary"
-											: "bg-muted text-muted-foreground"
-								)}
-							>
-								<Icon className="size-3.5" />
-							</span>
-							<span
-								className={cn(
-									"min-w-0 flex-1 truncate",
-									on && "font-medium"
-								)}
-							>
-								{item.label}
-							</span>
-							{item.hint && (
-								<span
-									className={cn(
-										"shrink-0 text-xs tabular-nums",
-										on
-											? "text-primary/80"
-											: "text-muted-foreground"
-									)}
-								>
-									{item.hint}
-								</span>
-							)}
-							{on ? (
-								<CornerDownLeft className="size-3.5 shrink-0" />
-							) : (
-								<ArrowRight className="size-3.5 shrink-0 text-transparent" />
-							)}
-						</button>
-					</div>
-				)
-			})}
+					>
+						{item.hint}
+					</span>
+				)}
+				{on ? (
+					<CornerDownLeft className="size-3.5 shrink-0" />
+				) : (
+					<ArrowRightIcon
+						size={14}
+						className="flex shrink-0 text-transparent"
+					/>
+				)}
+			</button>
 		</div>
 	)
 }

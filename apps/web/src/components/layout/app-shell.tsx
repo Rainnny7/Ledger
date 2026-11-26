@@ -1,4 +1,5 @@
 import { UpdateDialog } from "@/components/admin/update-dialog"
+import { SearchIcon } from "@/components/icons/search"
 import { useAdvice } from "@/components/advisor/use-advice"
 import { BriefcaseBusinessIcon } from "@/components/icons/briefcase-business"
 import { CalculatorIcon } from "@/components/icons/calculator"
@@ -23,6 +24,7 @@ import {
 } from "@/components/onboarding/onboarding-provider"
 import { LinkMenuItems } from "@/components/layout/app-context-menu"
 import { Brand } from "@/components/layout/brand"
+import { Kbd, isApplePlatform } from "@/components/ui/kbd"
 import { openCommandPalette } from "@/components/layout/command-palette-open"
 import { NotificationBell } from "@/components/notifications/notification-bell"
 import { InvitesBanner } from "@/components/sharing/invites-banner"
@@ -88,7 +90,7 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
 import { cn } from "cn"
-import { Map, Monitor, MonitorPlay, Palette, Search, X } from "lucide-react"
+import { Map, Monitor, MonitorPlay, Palette, X } from "lucide-react"
 import { domMax, LazyMotion, m } from "motion/react"
 import {
 	type ForwardRefExoticComponent,
@@ -685,8 +687,8 @@ function ThemeMenu() {
 			</DropdownMenuSubTrigger>
 			<DropdownMenuSubContent ref={menuRef} className="w-48">
 				<DropdownMenuGroup>
-						<DropdownMenuLabel>Mode</DropdownMenuLabel>
-					</DropdownMenuGroup>
+					<DropdownMenuLabel>Mode</DropdownMenuLabel>
+				</DropdownMenuGroup>
 				<DropdownMenuRadioGroup
 					value={mode}
 					onValueChange={(selected) =>
@@ -704,8 +706,8 @@ function ThemeMenu() {
 				</DropdownMenuRadioGroup>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
-						<DropdownMenuLabel>Accent</DropdownMenuLabel>
-					</DropdownMenuGroup>
+					<DropdownMenuLabel>Accent</DropdownMenuLabel>
+				</DropdownMenuGroup>
 				<DropdownMenuRadioGroup
 					value={accent}
 					onValueChange={(selected) =>
@@ -775,11 +777,13 @@ function AppShellFrame() {
 	const { data: updateInfo } = useUpdate(isAdmin && !demoMode)
 	const [updateOpen, setUpdateOpen] = useState(false)
 	const initials = (user?.name || user?.email || "?")
-		.split(/\subscription+/)
+		.split(/\s+/)
 		.map((part) => part[0])
 		.slice(0, 2)
 		.join("")
 		.toUpperCase()
+	const { ref: searchIconRef, handlers: searchIconHandlers } =
+		useAnimatedIcon<HTMLButtonElement>()
 
 	return (
 		<LazyMotion features={domMax} strict>
@@ -853,11 +857,19 @@ function AppShellFrame() {
 							<Button
 								variant="ghost"
 								size="icon"
-								aria-label="Search (Ctrl+K)"
-								title="Search (Ctrl+K / ⌘K)"
+								className="xl:w-auto xl:gap-2 xl:rounded-lg xl:bg-muted xl:pr-1.5 xl:pl-2.5 xl:hover:bg-muted/70"
+								aria-label={`Search (${isApplePlatform ? "⌘K" : "Ctrl+K"})`}
 								onClick={openCommandPalette}
+								{...searchIconHandlers}
 							>
-								<Search />
+								<SearchIcon
+									ref={searchIconRef}
+									size={24}
+									className="flex"
+								/>
+								<Kbd className="hidden bg-foreground/10 xl:inline-flex">
+									{isApplePlatform ? "⌘ K" : "Ctrl + K"}
+								</Kbd>
 							</Button>
 							<NotificationBell enabled={signedIn} />
 							<DropdownMenu>
@@ -906,7 +918,9 @@ function AppShellFrame() {
 												Settings
 											</MenuItem>
 											<DropdownMenuItem
-												onClick={() => startOnboarding()}
+												onClick={() =>
+													startOnboarding()
+												}
 											>
 												<Map className="size-4 shrink-0" />
 												Take the tour
@@ -942,7 +956,9 @@ function AppShellFrame() {
 												Settings
 											</MenuItem>
 											<DropdownMenuItem
-												onClick={() => startOnboarding()}
+												onClick={() =>
+													startOnboarding()
+												}
 											>
 												<Map className="size-4 shrink-0" />
 												Take the tour

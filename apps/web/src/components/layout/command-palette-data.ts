@@ -2,7 +2,6 @@ import {
 	BriefcaseBusiness,
 	Calculator,
 	ChartPie,
-	Download,
 	FileArchive,
 	FilePlus2,
 	FileText,
@@ -12,13 +11,15 @@ import {
 	RefreshCw,
 	Rocket,
 	Settings,
-	Sparkles,
 	Store,
 	Upload,
 	Users,
 	Wallet,
 	type LucideIcon,
 } from "lucide-react"
+import { DownloadIcon } from "@/components/icons/download"
+import { SparklesIcon } from "@/components/icons/sparkles"
+import type { AnimatedIconComponent } from "@/components/icons/use-animated-icon"
 import type { Transaction } from "@/lib/api"
 import { queryClient } from "@/lib/queries"
 
@@ -27,7 +28,7 @@ export interface PaletteItem {
 	id: string
 	label: string
 	hint?: string
-	icon: LucideIcon
+	icon: AnimatedIconComponent | LucideIcon
 	group: PaletteGroup
 	/** Extra words that should match, beyond the label. */
 	keywords?: string
@@ -212,14 +213,14 @@ export const ACTIONS: PaletteItem[] = (
 		{
 			id: "action:export",
 			label: "Export transactions to CSV",
-			icon: Download,
+			icon: DownloadIcon,
 			to: "/transactions?period=all&export=1",
 			keywords: "download spreadsheet excel",
 		},
 		{
 			id: "action:review",
 			label: "Uncategorized transactions",
-			icon: Sparkles,
+			icon: SparklesIcon,
 			to: "/transactions?category=other&period=all",
 			keywords: "other tidy review fix",
 		},

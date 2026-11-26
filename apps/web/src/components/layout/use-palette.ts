@@ -10,13 +10,13 @@
 	Receipt,
 	RefreshCw,
 	Rocket,
-	Search,
 	ShieldCheck,
 	Sun,
 	Timer,
 	Wallet,
 } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
+import { SearchIcon } from "@/components/icons/search"
 import { useNavigate } from "@tanstack/react-router"
 import {
 	ACTIONS,
@@ -223,10 +223,7 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 		// ">" narrows to actions, like in an editor.
 		const actionsOnly = raw.startsWith(">")
 		const text = actionsOnly ? raw.slice(1).trim() : raw
-		const words = text
-			.toLowerCase()
-			.split(/\subscription+/)
-			.filter(Boolean)
+		const words = text.toLowerCase().split(/\s+/).filter(Boolean)
 		const searchable = actionsOnly
 			? pool.filter((item) => item.group === "Actions")
 			: pool
@@ -327,7 +324,7 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 		const search: PaletteItem = {
 			id: "search",
 			label: `Search transactions for “${text}”`,
-			icon: Search,
+			icon: SearchIcon,
 			group: "Search",
 			to: `/transactions?q=${encodeURIComponent(text)}&period=all`,
 		}
