@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process"
+import { readFileSync } from "node:fs"
 import path from "node:path"
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
@@ -7,6 +8,36 @@ import { boneyardPlugin } from "boneyard-js/vite"
 import { visualizer } from "rollup-plugin-visualizer"
 import { defineConfig, loadEnv, type Plugin } from "vite"
 import { THEMES } from "@ledger/shared/themes"
+
+const ROOT_PKG = path.resolve(import.meta.dirname, "../../package.json")
+
+/** App version at build time; prerelease suffix may come from the git branch when package.json is release-only. */
+function appVersion(env: Record<string, string>) {
+	if (env.BUILD_VERSION) {
+		return env.BUILD_VERSION
+	}
+	const pkg = JSON.parse(readFileSync(ROOT_PKG, "utf8")) as {
+		version?: string
+	}
+	let version = pkg.version ?? "0.0.0"
+	if (!/^v?\d+\.\d+\.\d+-.+/i.test(version)) {
+		try {
+			const branch = execSync("git rev-parse --abbrev-ref HEAD", {
+				cwd: import.meta.dirname,
+				stdio: ["ignore", "pipe", "ignore"],
+			})
+				.toString()
+				.trim()
+			const match = branch.match(/-(dev|snapshot)(?:[.\w-]*)?$/i)
+			if (match) {
+				version = `${version}-${match[1]}`
+			}
+		} catch {
+			// not a git checkout
+		}
+	}
+	return version
+}
 
 /** The commit being built. CI or a Docker build without .git can pass it in as BUILD_GIT_HASH. */
 function gitHash(env: Record<string, string>) {
@@ -154,6 +185,9 @@ export default defineConfig(({ mode }) => {
 			dedupe: ["react", "react-dom"],
 		},
 		define: {
+			"import.meta.env.VITE_APP_VERSION": JSON.stringify(
+				appVersion(env)
+			),
 			"import.meta.env.VITE_BUILD_GIT_HASH": JSON.stringify(gitHash(env)),
 			"import.meta.env.VITE_BUILD_TIME": JSON.stringify(
 				new Date().toISOString()
