@@ -85,7 +85,7 @@ export function ChangeTemporaryPasswordPage() {
 			<Brand className="relative text-lg" />
 			<Card className="relative w-full max-w-sm">
 				<CardHeader>
-					<div className="mb-1 grid size-10 place-items-center rounded-xl bg-sunset text-white">
+					<div className="mb-1 grid size-10 place-items-center rounded-xl bg-sunset text-primary-foreground">
 						<KeyRound className="size-5" />
 					</div>
 					<CardTitle>Choose your own password</CardTitle>

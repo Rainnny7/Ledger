@@ -87,12 +87,37 @@ function themeBootSource() {
 	return `(function(){try{var M=${escapeForScript(modes)},A=${escapeForScript(accents)},c=localStorage.getItem("theme")||"system",a=localStorage.getItem("accent");if(c==="system"||!M[c])c=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var m=M[c],r=document.documentElement;r.classList.add(m[0],A[A.hasOwnProperty(a)?a:${escapeForScript(DEFAULT_ACCENT)}]);r.style.colorScheme=m[2]?"dark":"light";r.style.backgroundColor=m[1]}catch(e){}})()`
 }
 
+/**
+ * The theme's primary colours as a tiny stylesheet, copied from src/index.css. The loader in
+ * index.html paints with them, and in dev the real stylesheet arrives with the app's code, so without
+ * this the loader's logo has no colour (or the wrong one) until then.
+ */
+function brandColorStyles() {
+	const css = readFileSync(
+		path.resolve(import.meta.dirname, "src/index.css"),
+		"utf8"
+	).replace(/\/\*[\s\S]*?\*\//g, "")
+	const rules: string[] = []
+	for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+		const primary = body.match(/(?:^|[;\s])--primary:\s*([^;]+);/)
+		const foreground = body.match(
+			/(?:^|[;\s])--primary-foreground:\s*([^;]+);/
+		)
+		if (primary && foreground) {
+			rules.push(
+				`${selector.trim()}{--primary:${primary[1]};--primary-foreground:${foreground[1]}}`
+			)
+		}
+	}
+	return `<style>${rules.join("")}</style>`
+}
+
 const themeBoot = (): Plugin => ({
 	name: "theme-boot",
 	transformIndexHtml(html) {
 		return html.replace(
 			"<!-- %THEME_BOOT% -->",
-			`<script src="${THEME_BOOT_PATH}"></script>`
+			`<script src="${THEME_BOOT_PATH}"></script>${brandColorStyles()}`
 		)
 	},
 	configureServer(server) {

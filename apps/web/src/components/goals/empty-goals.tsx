@@ -14,7 +14,7 @@ export function EmptyGoals({
 	return (
 		<Card className="items-center py-12 text-center">
 			<CardContent className="flex flex-col items-center gap-5">
-				<span className="grid size-14 place-items-center rounded-2xl bg-sunset text-white shadow-sm">
+				<span className="grid size-14 place-items-center rounded-2xl bg-sunset text-primary-foreground shadow-sm">
 					<Target className="size-7" />
 				</span>
 				<div>

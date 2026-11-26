@@ -51,7 +51,7 @@
 
 /*
  * Default look: mostly neutral surfaces with a slight warm tint, a dusty-rose primary,
- * and a pastel peach → pink → violet gradient kept to the logo and favicon.
+ * and a logo gradient derived from the active accent colour.
  *
  * Chart colours were checked with the dataviz palette validator (lightness band,
  * colour-blind separation, contrast) against each mode's card surface:
@@ -81,9 +81,6 @@
 	--chart-3: #7c4dcc;
 	--chart-4: #f08a24;
 	--chart-5: #f2c230;
-	--sunset-peach: #f9b27c;
-	--sunset-pink: #f17aa6;
-	--sunset-violet: #9d7cf0;
 	--radius: 0.625rem;
 	--sidebar: oklch(0.985 0.002 60);
 	--sidebar-foreground: oklch(0.2 0.008 300);
@@ -171,6 +168,8 @@
  * next to the mode class. Amber is the default and lives in :root / .dark above. Each accent
  * overrides only the primary, ring and accent-tint tokens; light accents are darker and more
  * saturated so they read on white, dark ones lighter so they read on the dark surfaces.
+ */
+
 .accent-rose {
 	--primary: #b8466f;
 	--primary-foreground: oklch(0.99 0 0);
@@ -199,8 +198,6 @@
 	--accent: oklch(0.22 0.015 340);
 	--sidebar-accent: oklch(0.22 0.015 340);
 }
-
- */
 
 .accent-terracotta {
 	--primary: #b0532e;
@@ -586,13 +583,12 @@
 	}
 }
 
-/* Pastel sunset gradient: brand mark only. */
+/* Brand mark gradient: a subtle blend of the active accent colour (--primary); pair with text-primary-foreground so the icon stays readable. */
 @utility bg-sunset {
 	background-image: linear-gradient(
 		135deg,
-		var(--sunset-peach) 0%,
-		var(--sunset-pink) 55%,
-		var(--sunset-violet) 100%
+		color-mix(in oklab, var(--primary) 88%, white) 0%,
+		var(--primary) 100%
 	);
 }
 

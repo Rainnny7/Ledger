@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client"
 import "./index.css"
 import App from "./App.tsx"
 import { clearReloadFlag, reloadForNewVersion } from "@/lib/chunk-reload"
+import { syncFaviconWithTheme } from "@/lib/favicon"
 
 // A page's code file failed to load, usually because the app was rebuilt while this tab was open.
 window.addEventListener("vite:preloadError", (event) => {
@@ -15,6 +16,7 @@ clearReloadFlag()
 
 // index.html painted the theme's background inline until the stylesheet arrived; it has now.
 document.documentElement.style.removeProperty("background-color")
+syncFaviconWithTheme()
 
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
