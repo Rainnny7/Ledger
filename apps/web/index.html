@@ -21,6 +21,12 @@
 		/>
 		<!-- %THEME_BOOT% -->
 		<style>
+			/* The same scrollbar space the app stylesheet reserves, so the centred loader doesn't shift sideways when it arrives. */
+			html {
+				overflow-y: scroll;
+				scrollbar-gutter: stable;
+				scrollbar-width: thin;
+			}
 			/*
        * The full-page loader (src/components/layout/app-loader.tsx). It lives here so it styles the copy in
        * #root below, which shows until the app's code has loaded. Every animation is a fraction of one
@@ -30,7 +36,8 @@
 				--loader-phase: 0ms;
 				position: fixed;
 				inset: 0;
-				z-index: 5;
+				/* Above the app's header: on first load the loader covers the whole window until the page is ready. */
+				z-index: 50;
 				display: grid;
 				place-items: center;
 				pointer-events: none;
@@ -113,6 +120,8 @@
 				padding: 0 24px;
 				text-align: center;
 				font-family: system-ui, sans-serif;
+				/* Same as the app stylesheet's, so the text doesn't resize when that arrives. */
+				line-height: 1.5;
 			}
 			.app-loader-name {
 				font-size: 18px;

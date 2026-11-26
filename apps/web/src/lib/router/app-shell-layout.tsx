@@ -10,7 +10,7 @@ const AppShell = lazy(() =>
 /** Authed pages share the nav header and main outlet. */
 export function AppShellLayout() {
 	return (
-		<Suspense fallback={<AppLoader inPage />}>
+		<Suspense fallback={<AppLoader />}>
 			<AppShell />
 		</Suspense>
 	)
