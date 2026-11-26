@@ -55,6 +55,7 @@ export const modeMeta = (id: string | undefined) =>
  * stay readable on white); `dark` is the one on Dark and AMOLED (lighter, to glow on black).
  */
 export const ACCENTS = [
+	{ id: "amber", label: "Amber", light: "#a8680a", dark: "#f0b35f" },
 	{ id: "rose", label: "Rose", light: "#b8466f", dark: "#f08fb3" },
 	{
 		id: "terracotta",
@@ -70,7 +71,6 @@ export const ACCENTS = [
 		dark: "#93abd9",
 	},
 	{ id: "lavender", label: "Lavender", light: "#7556c9", dark: "#b9a3f5" },
-	{ id: "amber", label: "Amber", light: "#a8680a", dark: "#f0b35f" },
 	{ id: "coral", label: "Coral", light: "#c4503f", dark: "#f48c7a" },
 	{ id: "mint", label: "Mint", light: "#1f8a68", dark: "#7fd4b4" },
 	{ id: "sky", label: "Sky", light: "#1d70b8", dark: "#7db8f2" },
@@ -80,7 +80,7 @@ export const ACCENTS = [
 export type AccentId = (typeof ACCENTS)[number]["id"]
 
 /** The accent used until one is picked. */
-export const DEFAULT_ACCENT: AccentId = "rose"
+export const DEFAULT_ACCENT: AccentId = "amber"
 
 /** All accent ids. */
 export const ACCENT_IDS = ACCENTS.map((accent) => accent.id) as AccentId[]
