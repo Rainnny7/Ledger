@@ -3,42 +3,34 @@ import { type CSSProperties, useEffect, useState } from "react"
 /** One loop of the loader's animation; see the .app-loader styles in index.html. */
 const PERIOD_MS = 3200
 
-/** Shown under the site name, one per loop of the animation. */
-const LOADING_MESSAGES = [
-	"Balancing the books…",
-	"Counting your coins…",
-	"Sharpening pencils…",
-	"Reconciling accounts…",
-	"Filing the paperwork…",
-	"Polishing the ledger…",
-	"Adding it all up…",
-	"Checking the math twice…",
-	"Stamping receipts…",
-	"Tallying the totals…",
-]
-
-/** The messages in a random order, fixed for this visit so every loader copy agrees on the sequence. */
-const MESSAGE_ORDER = [...LOADING_MESSAGES].sort(() => Math.random() - 0.5)
+declare global {
+	interface Window {
+		/** The loading messages in this visit's random order; set by the inline script in index.html. */
+		__loaderMessages: string[]
+	}
+}
 
 /**
  * The message for the current loop. It's derived from the same clock as the animation, so a loader
- * that remounts (boot to sign-in to a page load, with or without the nav) shows the same message
+ * that remounts (boot to login to a page load, with or without the nav) shows the same message
  * instead of flashing a different one.
  */
 function currentMessage() {
-	return MESSAGE_ORDER[
-		Math.floor(performance.now() / PERIOD_MS) % MESSAGE_ORDER.length
-	]
+	const messages = window.__loaderMessages
+	return messages[Math.floor(performance.now() / PERIOD_MS) % messages.length]
 }
 
 /** The site name and a random message that changes each loop. */
 function LoaderText() {
 	const [message, setMessage] = useState(currentMessage)
+	// The first message appears instantly so a remount doesn't flicker; only later swaps fade in.
+	const [swapped, setSwapped] = useState(false)
 	useEffect(() => {
 		let timer: number
 		const schedule = () => {
 			timer = window.setTimeout(() => {
 				setMessage(currentMessage())
+				setSwapped(true)
 				schedule()
 			}, PERIOD_MS - (performance.now() % PERIOD_MS))
 		}
@@ -48,7 +40,14 @@ function LoaderText() {
 	return (
 		<div className="app-loader-text">
 			<span className="app-loader-name">Ledger</span>
-			<span key={message} className="app-loader-message">
+			<span
+				key={message}
+				className={
+					swapped
+						? "app-loader-message app-loader-message-swap"
+						: "app-loader-message"
+				}
+			>
 				{message}
 			</span>
 		</div>
