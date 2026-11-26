@@ -6,6 +6,7 @@
 	Monitor,
 	MonitorPlay,
 	Moon,
+	Palette,
 	Receipt,
 	RefreshCw,
 	Rocket,
@@ -34,7 +35,7 @@ import {
 } from "@/components/layout/command-palette-data"
 import { signOut, useSession } from "@/lib/auth-client"
 import { DEMO_PERSONAS, demoMode, demoPersona, setDemoMode } from "@/lib/demo"
-import { THEMES, useAppTheme } from "@/lib/theme"
+import { ACCENTS, MODES, useAppTheme } from "@/lib/theme"
 import { formatMoney, formatShortDate } from "@/lib/format"
 import {
 	queryClient,
@@ -48,7 +49,7 @@ import {
 /** Command palette state: searchable items, keyboard selection, and navigation/actions. */
 export function usePalette({ onDone }: { onDone: () => void }) {
 	const navigate = useNavigate()
-	const { choice, change } = useAppTheme()
+	const { mode, accent, changeMode, changeAccent } = useAppTheme()
 	const isAdmin = useSession().data?.user.role === "admin"
 	const accounts = useOverview().data?.accounts
 	const goals = useGoals().data?.goals
@@ -65,20 +66,27 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 	// Commands that do something right here rather than going to account page.
 	const commands = useMemo<PaletteItem[]>(() => {
 		const list: Omit<PaletteItem, "group">[] = [
-			...THEMES.map((theme) => ({
-				id: `c:theme-${theme.id}`,
-				label: `${theme.label} theme`,
-				icon: theme.dark ? Moon : Sun,
-				run: () => void change(theme.id),
-				keywords: `appearance mode colour color ${theme.dark ? "dark night" : "light day"}`,
+			...MODES.map((entry) => ({
+				id: `c:mode-${entry.id}`,
+				label: `${entry.label} mode`,
+				icon: entry.dark ? Moon : Sun,
+				run: () => void changeMode(entry.id),
+				keywords: `appearance theme colour color ${entry.dark ? "dark night" : "light day"}`,
 			})),
 			{
-				id: "c:theme-system",
-				label: "Match system theme",
+				id: "c:mode-system",
+				label: "Match system mode",
 				icon: Monitor,
-				run: () => void change("system"),
-				keywords: "appearance mode auto",
+				run: () => void changeMode("system"),
+				keywords: "appearance theme auto",
 			},
+			...ACCENTS.map((entry) => ({
+				id: `c:accent-${entry.id}`,
+				label: `${entry.label} accent`,
+				icon: Palette,
+				run: () => void changeAccent(entry.id),
+				keywords: "appearance theme colour color highlight",
+			})),
 			...(demoMode
 				? [
 						{
@@ -115,9 +123,13 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 			},
 		]
 		return list
-			.filter((command) => command.id !== `c:theme-${choice}`)
+			.filter(
+				(command) =>
+					command.id !== `c:mode-${mode}` &&
+					command.id !== `c:accent-${accent}`
+			)
 			.map((command) => ({ ...command, group: "Actions" as const }))
-	}, [choice, change, navigate])
+	}, [mode, accent, changeMode, changeAccent, navigate])
 
 	// Everything findable by name: pages, accounts and the things you've made.
 	const pool = useMemo(() => {

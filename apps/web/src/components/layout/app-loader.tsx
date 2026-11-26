@@ -3,7 +3,7 @@ import { type CSSProperties, useEffect, useState } from "react"
 /** One loop of the loader's animation; see the .app-loader styles in index.html. */
 const PERIOD_MS = 3200
 
-/** Shown under the site name on the full-screen loader, one at random, swapped each loop. */
+/** Shown under the site name, one per loop of the animation. */
 const LOADING_MESSAGES = [
 	"Balancing the books…",
 	"Counting your coins…",
@@ -17,21 +17,33 @@ const LOADING_MESSAGES = [
 	"Tallying the totals…",
 ]
 
-/** A random message that differs from `previous`, so a swap is always visible. */
-function pickMessage(previous?: string) {
-	const options = LOADING_MESSAGES.filter((message) => message !== previous)
-	return options[Math.floor(Math.random() * options.length)]
+/** The messages in a random order, fixed for this visit so every loader copy agrees on the sequence. */
+const MESSAGE_ORDER = [...LOADING_MESSAGES].sort(() => Math.random() - 0.5)
+
+/**
+ * The message for the current loop. It's derived from the same clock as the animation, so a loader
+ * that remounts (boot to sign-in to a page load, with or without the nav) shows the same message
+ * instead of flashing a different one.
+ */
+function currentMessage() {
+	return MESSAGE_ORDER[
+		Math.floor(performance.now() / PERIOD_MS) % MESSAGE_ORDER.length
+	]
 }
 
-/** The site name and a rotating random message, shown only on the full-screen loader. */
+/** The site name and a random message that changes each loop. */
 function LoaderText() {
-	const [message, setMessage] = useState(() => pickMessage())
+	const [message, setMessage] = useState(currentMessage)
 	useEffect(() => {
-		const timer = window.setInterval(
-			() => setMessage((current) => pickMessage(current)),
-			PERIOD_MS,
-		)
-		return () => window.clearInterval(timer)
+		let timer: number
+		const schedule = () => {
+			timer = window.setTimeout(() => {
+				setMessage(currentMessage())
+				schedule()
+			}, PERIOD_MS - (performance.now() % PERIOD_MS))
+		}
+		schedule()
+		return () => window.clearTimeout(timer)
 	}, [])
 	return (
 		<div className="app-loader-text">
@@ -88,7 +100,7 @@ export function AppLoader({
 					<path className="app-loader-base" d="M3 22h18" />
 				</svg>
 			</div>
-			{!inPage && <LoaderText />}
+			<LoaderText />
 		</div>
 	)
 }

@@ -5,8 +5,8 @@ import { ThemeProvider } from "next-themes"
 import { ErrorBoundary } from "@/components/layout/error-boundary"
 import { useNoNativeContextMenu } from "@/components/layout/app-context-menu"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { THEME_CLASSES } from "@/lib/theme-classes"
-import { THEME_IDS } from "@ledger/shared/themes"
+import { MODE_CLASSES } from "@/lib/theme-classes"
+import { MODE_IDS } from "@ledger/shared/themes"
 import { queryClient } from "@/lib/queries"
 import { router } from "./router.ts"
 
@@ -29,8 +29,8 @@ export default function App() {
 			<QueryClientProvider client={queryClient}>
 				<ThemeProvider
 					attribute="class"
-					themes={THEME_IDS}
-					value={THEME_CLASSES}
+					themes={MODE_IDS}
+					value={MODE_CLASSES}
 					defaultTheme="system"
 					enableSystem
 					disableTransitionOnChange

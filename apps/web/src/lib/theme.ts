@@ -3,7 +3,7 @@
  * next-themes keeps the mode in this browser and sets its class on <html> before the first paint;
  * the accent is kept in localStorage ("accent") and set as an `accent-*` class on <html> the same
  * way (see themeBoot in vite.config.ts). Both are also saved to the account (Settings → Appearance)
- * so they follow you to every device you sign in on.
+ * so they follow you to every device you log in on.
  */
 import { useTheme } from "next-themes"
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react"
@@ -147,9 +147,7 @@ export function useAppTheme() {
 			}
 			void authClient.updateUser(changes).then(({ error }) => {
 				if (error) {
-					toastError(
-						error.message ?? "Couldn’t save your appearance"
-					)
+					toastError(error.message ?? "Couldn’t save your appearance")
 				}
 			})
 		},
@@ -192,7 +190,7 @@ export function useAppTheme() {
 }
 
 /**
- * On sign-in, picks up the mode and accent saved to the account (chosen on another device), once
+ * On login, picks up the mode and accent saved to the account (chosen on another device), once
  * per session. Changes made here afterwards are saved by useAppTheme.
  */
 export function useAccountTheme() {

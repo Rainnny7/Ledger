@@ -7,7 +7,12 @@ import react from "@vitejs/plugin-react"
 import { boneyardPlugin } from "boneyard-js/vite"
 import { visualizer } from "rollup-plugin-visualizer"
 import { defineConfig, loadEnv, type Plugin } from "vite"
-import { THEMES } from "@ledger/shared/themes"
+import {
+	accentClassName,
+	ACCENT_IDS,
+	DEFAULT_ACCENT,
+	MODES,
+} from "@ledger/shared/themes"
 
 const ROOT_PKG = path.resolve(import.meta.dirname, "../../package.json")
 
@@ -57,19 +62,28 @@ function gitHash(env: Record<string, string>) {
 }
 
 /**
- * Applies the saved theme before anything paints. next-themes does the same, but only once the app's
- * code has loaded, so until then the page (and the loader on it) would flash the default white. The
- * background is set inline too because the stylesheet isn't there yet in dev; main.tsx drops it.
+ * Applies the saved mode and accent before anything paints. next-themes does the same for the mode,
+ * but only once the app's code has loaded, so until then the page (and the loader on it) would flash
+ * the default white. The background is set inline too because the stylesheet isn't there yet in dev;
+ * main.tsx drops it.
  */
+/** JSON for an inline script. Escapes `<` so a value can never close the script early. */
+const escapeForScript = (value: unknown) =>
+	JSON.stringify(value).replace(/</g, "\\u003c")
+
 const themeBoot = (): Plugin => ({
 	name: "theme-boot",
 	transformIndexHtml(html) {
-		const themes = Object.fromEntries(
-			THEMES.map((t) => [t.id, [t.className, t.swatch[0], t.dark]])
+		const modes = Object.fromEntries(
+			MODES.map((mode) => [
+				mode.id,
+				[mode.className, mode.swatch[0], mode.dark],
+			])
 		)
-		// Escape `<` so a theme value can never close the inline script early.
-		const json = JSON.stringify(themes).replace(/</g, "\\u003c")
-		const script = `<script>(function(){try{var T=${json},c=localStorage.getItem("theme")||"system";if(c==="system"||!T[c])c=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var t=T[c],r=document.documentElement;r.classList.add(t[0]);r.style.colorScheme=t[2]?"dark":"light";r.style.backgroundColor=t[1]}catch(e){}})()</script>`
+		const accents = Object.fromEntries(
+			ACCENT_IDS.map((id) => [id, accentClassName(id)])
+		)
+		const script = `<script>(function(){try{var M=${escapeForScript(modes)},A=${escapeForScript(accents)},c=localStorage.getItem("theme")||"system",a=localStorage.getItem("accent");if(c==="system"||!M[c])c=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var m=M[c],r=document.documentElement;r.classList.add(m[0],A[A.hasOwnProperty(a)?a:${escapeForScript(DEFAULT_ACCENT)}]);r.style.colorScheme=m[2]?"dark":"light";r.style.backgroundColor=m[1]}catch(e){}})()</script>`
 		return html.replace("<!-- %THEME_BOOT% -->", script)
 	},
 })
@@ -185,9 +199,7 @@ export default defineConfig(({ mode }) => {
 			dedupe: ["react", "react-dom"],
 		},
 		define: {
-			"import.meta.env.VITE_APP_VERSION": JSON.stringify(
-				appVersion(env)
-			),
+			"import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion(env)),
 			"import.meta.env.VITE_BUILD_GIT_HASH": JSON.stringify(gitHash(env)),
 			"import.meta.env.VITE_BUILD_TIME": JSON.stringify(
 				new Date().toISOString()

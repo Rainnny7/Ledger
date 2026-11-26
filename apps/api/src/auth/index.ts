@@ -20,7 +20,7 @@ import {
 	passwordProblem,
 } from "@ledger/shared/password"
 import { isCurrencyCode } from "../http/validation.ts"
-import { isThemeChoice } from "@ledger/shared/themes"
+import { isAccent, isThemeMode } from "@ledger/shared/themes"
 import {
 	AUDITED,
 	CLIENT_IP_HEADER,
@@ -50,7 +50,7 @@ export const auth = betterAuth({
 	},
 	session: {
 		expiresIn: 60 * 60 * 24 * 7,
-		// "Fresh session" checks would make Settings → Devices fail a day after sign-in. The one sensitive
+		// "Fresh session" checks would make Settings → Devices fail a day after login. The one sensitive
 		// action they guard here, deleting the account, always requires the password instead (hook below).
 		freshAge: 0,
 	},
@@ -113,11 +113,20 @@ export const auth = betterAuth({
 				context.path === "/update-user" &&
 				(context.body as { theme?: unknown } | undefined)?.theme != null
 			) {
-				if (
-					!isThemeChoice((context.body as { theme?: unknown }).theme)
-				) {
+				if (!isThemeMode((context.body as { theme?: unknown }).theme)) {
 					throw new APIError("BAD_REQUEST", {
 						message: "Unknown theme.",
+					})
+				}
+			}
+			if (
+				context.path === "/update-user" &&
+				(context.body as { accent?: unknown } | undefined)?.accent !=
+					null
+			) {
+				if (!isAccent((context.body as { accent?: unknown }).accent)) {
+					throw new APIError("BAD_REQUEST", {
+						message: "Unknown accent colour.",
 					})
 				}
 			}
@@ -146,7 +155,7 @@ export const auth = betterAuth({
 				if (typeof email === "string" && signInBackoffBlocked(email)) {
 					throw new APIError("TOO_MANY_REQUESTS", {
 						message:
-							"Too many failed sign-in attempts. Try again later.",
+							"Too many failed login attempts. Try again later.",
 					})
 				}
 			}
@@ -176,7 +185,7 @@ export const auth = betterAuth({
 			if (!session) {
 				return
 			}
-			// Signed in with a temporary password: nothing else works until it's replaced.
+			// Logged in with a temporary password: nothing else works until it's replaced.
 			if (
 				(session.user as { mustChangePassword?: boolean })
 					.mustChangePassword
@@ -235,7 +244,7 @@ export const auth = betterAuth({
 				}
 			}
 			if (context.path === "/admin/set-user-password" && userId) {
-				// A temporary password: they choose their own at next sign-in, and every device signs out now.
+				// A temporary password: they choose their own at next login, and every device signs out now.
 				setMustChangePassword(userId, true)
 				db.delete(schema.session)
 					.where(eq(schema.session.userId, userId))
@@ -289,8 +298,9 @@ export const auth = betterAuth({
 			},
 			// Settings → Preferences: the currency totals are shown in. Guessed from the browser at sign-up.
 			currency: { type: "string", input: true, required: false },
-			// Settings → Appearance: the colour theme, so it follows you to every device. Unset until picked.
+			// Settings → Appearance: the mode (system / light / dark / AMOLED) and accent colour, so they follow you to every device. Unset until picked.
 			theme: { type: "string", input: true, required: false },
+			accent: { type: "string", input: true, required: false },
 		},
 	},
 	databaseHooks: {
@@ -341,7 +351,7 @@ export const auth = betterAuth({
 	},
 	advanced: {
 		// Rate limits key on the caller's address. Reading it from a header the client can't forge
-		// (see index.ts) stops anyone dodging the sign-in limit with a made-up X-Forwarded-For.
+		// (see index.ts) stops anyone dodging the login limit with a made-up X-Forwarded-For.
 		ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
 	},
 })

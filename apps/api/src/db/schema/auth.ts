@@ -29,9 +29,10 @@ export const user = sqliteTable("user", {
 	),
 	currency: text("currency"),
 	theme: text("theme"),
+	accent: text("accent"),
 })
 
-/** Signed-in devices. */
+/** Logged-in devices. */
 export const session = sqliteTable(
 	"session",
 	{
@@ -50,7 +51,7 @@ export const session = sqliteTable(
 	(table) => [index("session_userId_idx").on(table.userId)]
 )
 
-/** Credentials per sign-in provider (the password hash lives here). */
+/** Credentials per login provider (the password hash lives here). */
 export const account = sqliteTable(
 	"account",
 	{

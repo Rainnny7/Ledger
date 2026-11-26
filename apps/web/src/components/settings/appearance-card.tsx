@@ -8,20 +8,24 @@ import {
 } from "@/components/ui/card"
 import { demoMode } from "@/lib/demo"
 import {
-	THEMES,
-	type ThemeChoice,
-	type ThemeId,
+	ACCENTS,
+	MODES,
+	type AccentId,
+	type ModeChoice,
 	useAppTheme,
 } from "@/lib/theme"
 import { cn } from "cn"
 
-/** A miniature of the app in a theme: page, a card with a few lines, and an accent button. */
-function ThemePreview({
-	swatch,
+/** A miniature of the app: page, a card with a few lines, and an accent button. */
+function ModePreview({
+	page,
+	card,
+	accent,
 }: {
-	swatch: readonly [string, string, string]
+	page: string
+	card: string
+	accent: string
 }) {
-	const [page, card, accent] = swatch
 	return (
 		<span
 			aria-hidden
@@ -53,30 +57,30 @@ function ThemePreview({
 	)
 }
 
-const swatchOf = (id: ThemeId) =>
-	(THEMES.find((theme) => theme.id === id) ?? THEMES[0]).swatch
-const LIGHT_SWATCH = swatchOf("light")
-const DARK_SWATCH = swatchOf("dark")
-
-/** Theme picker, saved to the account (or the browser in demo mode). */
+/** Mode and accent pickers, saved to the account (or the browser in demo mode). */
 export function AppearanceCard() {
-	const { choice, change } = useAppTheme()
+	const { mode, accent, changeMode, changeAccent } = useAppTheme()
+	const lightMode = MODES.find((entry) => entry.id === "light")!
+	const darkMode = MODES.find((entry) => entry.id === "dark")!
+	const accentEntry = ACCENTS.find((entry) => entry.id === accent)!
+	/** The picked accent, in the shade the given mode uses. */
+	const accentFor = (dark: boolean) =>
+		dark ? accentEntry.dark : accentEntry.light
+
 	const options: {
-		id: ThemeChoice
+		id: ModeChoice
 		label: string
 		description: string
-		swatch?: readonly [string, string, string]
 	}[] = [
 		{
 			id: "system",
-			label: "Match system",
-			description: "Light or Sunset, following your device",
+			label: "System",
+			description: "Light or Dark, following your device",
 		},
-		...THEMES.map((theme) => ({
-			id: theme.id,
-			label: theme.label,
-			description: theme.description,
-			swatch: theme.swatch,
+		...MODES.map((entry) => ({
+			id: entry.id,
+			label: entry.label,
+			description: entry.description,
 		})),
 	]
 
@@ -86,67 +90,130 @@ export function AppearanceCard() {
 				<CardTitle>Appearance</CardTitle>
 				<CardDescription>
 					{demoMode
-						? "Pick a theme. In demo mode it’s kept in this browser only."
-						: "Pick a theme. It’s saved to your account, so it follows you to every device."}
+						? "Pick a mode and an accent colour. In demo mode they’re kept in this browser only."
+						: "Pick a mode and an accent colour. They’re saved to your account, so they follow you to every device."}
 				</CardDescription>
 			</CardHeader>
-			<CardContent>
-				<div
-					role="radiogroup"
-					aria-label="Theme"
-					className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
-				>
-					{options.map((option) => {
-						const selected = choice === option.id
-						return (
-							<button
-								key={option.id}
-								type="button"
-								role="radio"
-								aria-checked={selected}
-								onClick={(event) =>
-									change(option.id, event.currentTarget)
-								}
-								className={cn(
-									"grid gap-2.5 rounded-xl border p-2.5 text-left transition-colors outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50",
-									selected &&
-										"border-primary bg-primary/5 ring-1 ring-primary hover:bg-primary/10"
-								)}
-							>
-								{option.swatch ? (
-									<ThemePreview swatch={option.swatch} />
-								) : (
-									<span className="relative grid">
-										<ThemePreview swatch={LIGHT_SWATCH} />
-										<span className="absolute inset-0 grid [clip-path:inset(0_0_0_50%)]">
-											<ThemePreview
-												swatch={DARK_SWATCH}
+			<CardContent className="grid gap-6">
+				<div className="grid gap-3">
+					<h3 className="text-sm font-medium">Mode</h3>
+					<div
+						role="radiogroup"
+						aria-label="Mode"
+						className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+					>
+						{options.map((option) => {
+							const selected = mode === option.id
+							const entry = MODES.find(
+								(candidate) => candidate.id === option.id
+							)
+							return (
+								<button
+									key={option.id}
+									type="button"
+									role="radio"
+									aria-checked={selected}
+									onClick={(event) =>
+										changeMode(
+											option.id,
+											event.currentTarget
+										)
+									}
+									className={cn(
+										"grid gap-2.5 rounded-xl border p-2.5 text-left transition-colors outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50",
+										selected &&
+											"border-primary bg-primary/5 ring-1 ring-primary hover:bg-primary/10"
+									)}
+								>
+									{entry ? (
+										<ModePreview
+											page={entry.swatch[0]}
+											card={entry.swatch[1]}
+											accent={accentFor(entry.dark)}
+										/>
+									) : (
+										<span className="relative grid">
+											<ModePreview
+												page={lightMode.swatch[0]}
+												card={lightMode.swatch[1]}
+												accent={accentFor(false)}
 											/>
+											<span className="absolute inset-0 grid [clip-path:inset(0_0_0_50%)]">
+												<ModePreview
+													page={darkMode.swatch[0]}
+													card={darkMode.swatch[1]}
+													accent={accentFor(true)}
+												/>
+											</span>
 										</span>
-									</span>
-								)}
-								<span className="flex items-start gap-2 px-0.5">
-									<span className="grid min-w-0 flex-1 gap-0.5">
-										<span className="flex items-center gap-1.5 text-sm font-medium">
-											{!option.swatch && (
-												<Monitor className="size-3.5 text-muted-foreground" />
+									)}
+									<span className="flex items-start gap-2 px-0.5">
+										<span className="grid min-w-0 flex-1 gap-0.5">
+											<span className="flex items-center gap-1.5 text-sm font-medium">
+												{!entry && (
+													<Monitor className="size-3.5 text-muted-foreground" />
+												)}
+												{option.label}
+											</span>
+											<span className="text-xs leading-snug text-muted-foreground">
+												{option.description}
+											</span>
+										</span>
+										<Check
+											className={cn(
+												"mt-0.5 size-4 shrink-0 text-primary",
+												!selected && "invisible"
 											)}
-											{option.label}
-										</span>
-										<span className="text-xs leading-snug text-muted-foreground">
-											{option.description}
-										</span>
+										/>
 									</span>
+								</button>
+							)
+						})}
+					</div>
+				</div>
+
+				<div className="grid gap-3">
+					<h3 className="text-sm font-medium">Accent</h3>
+					<div
+						role="radiogroup"
+						aria-label="Accent colour"
+						className="flex flex-wrap gap-3"
+					>
+						{ACCENTS.map((entry) => {
+							const selected = accent === entry.id
+							return (
+								<button
+									key={entry.id}
+									type="button"
+									role="radio"
+									aria-checked={selected}
+									aria-label={entry.label}
+									title={entry.label}
+									onClick={(event) =>
+										changeAccent(
+											entry.id as AccentId,
+											event.currentTarget
+										)
+									}
+									className={cn(
+										"relative grid size-9 place-items-center rounded-full ring-1 ring-foreground/15 transition-shadow outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+										selected &&
+											"ring-2 ring-foreground/70 ring-offset-2 ring-offset-card"
+									)}
+									style={{
+										background: `linear-gradient(135deg, ${entry.light} 50%, ${entry.dark} 50%)`,
+									}}
+								>
 									<Check
 										className={cn(
-											"mt-0.5 size-4 shrink-0 text-primary",
-											!selected && "invisible"
+											"size-4 text-white mix-blend-difference",
+											!selected && "hidden"
 										)}
 									/>
-								</span>
-							</button>
-						)
-					})}
+								</button>
+							)
+						})}
+					</div>
 				</div>
 			</CardContent>
 		</Card>

@@ -8,6 +8,13 @@
 			"when": 1795647834061,
 			"tag": "0000_baseline",
 			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "6",
+			"when": 1795653213574,
+			"tag": "0001_appearance_accent",
+			"breakpoints": true
 		}
 	]
 }

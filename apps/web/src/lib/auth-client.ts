@@ -8,7 +8,7 @@ import {
 /** Better Auth client with 2FA, admin, and Ledger user preference fields. */
 export const authClient = createAuthClient({
 	baseURL: window.location.origin,
-	// Sign-in answers `{ twoFactorRedirect: true }` when a code is still needed; the sign-in form handles it.
+	// Login answers `{ twoFactorRedirect: true }` when a code is still needed; the login form handles it.
 	plugins: [
 		twoFactorClient(),
 		adminClient(),
@@ -28,8 +28,10 @@ export const authClient = createAuthClient({
 				},
 				// Settings → Preferences; the currency totals are converted to.
 				currency: { type: "string", required: false, input: true },
-				// Settings → Appearance; the colour theme, applied on every device you sign in on.
+				// Settings → Appearance; the mode (system / light / dark / AMOLED), applied on every device you log in on.
 				theme: { type: "string", required: false, input: true },
+				// Settings → Appearance; the accent colour, used with any mode.
+				accent: { type: "string", required: false, input: true },
 			},
 		}),
 	],

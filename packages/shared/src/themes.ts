@@ -56,9 +56,19 @@ export const modeMeta = (id: string | undefined) =>
  */
 export const ACCENTS = [
 	{ id: "rose", label: "Rose", light: "#b8466f", dark: "#f08fb3" },
-	{ id: "terracotta", label: "Terracotta", light: "#b0532e", dark: "#e8946e" },
+	{
+		id: "terracotta",
+		label: "Terracotta",
+		light: "#b0532e",
+		dark: "#e8946e",
+	},
 	{ id: "sage", label: "Sage", light: "#4d7a5d", dark: "#8fc2a0" },
-	{ id: "periwinkle", label: "Periwinkle", light: "#4f6fb0", dark: "#93abd9" },
+	{
+		id: "periwinkle",
+		label: "Periwinkle",
+		light: "#4f6fb0",
+		dark: "#93abd9",
+	},
 	{ id: "lavender", label: "Lavender", light: "#7556c9", dark: "#b9a3f5" },
 	{ id: "amber", label: "Amber", light: "#a8680a", dark: "#f0b35f" },
 	{ id: "coral", label: "Coral", light: "#c4503f", dark: "#f48c7a" },
