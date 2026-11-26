@@ -1,17 +1,7 @@
+import { WithContextMenu } from "@/components/layout/app-context-menu"
+import { AdminUserMenuItems } from "@/components/admin/user-menu"
 import { useQuery } from "@tanstack/react-query"
-import {
-	Ban,
-	Crown,
-	KeyRound,
-	Loader2,
-	LogOut,
-	MoreHorizontal,
-	ShieldCheck,
-	ShieldMinus,
-	Trash2,
-	UserCheck,
-	UserPlus,
-} from "lucide-react"
+import { Crown, Loader2, MoreHorizontal, ShieldCheck, UserPlus } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
@@ -29,8 +19,6 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { QueryError } from "@/components/ui/query-error"
@@ -149,14 +137,41 @@ export function UsersCard() {
 					const isOwner = user.id === ownerId
 					// Nobody else can manage the owner'session account.
 					const manageable = !isMe && (!isOwner || iAmOwner)
+					const busyUser = busy === user.id
+					const menuItems = manageable ? (
+						<AdminUserMenuItems
+							user={user}
+							iAmOwner={iAmOwner}
+							isAdmin={isAdmin}
+							disabled={busyUser}
+							onRole={() => setDialog({ type: "role", user })}
+							onPassword={() =>
+								setDialog({ type: "password", user })
+							}
+							onRevokeSessions={() =>
+								void act(user, "Logged out everywhere", () =>
+									authClient.admin.revokeUserSessions({
+										userId: user.id,
+									})
+								)
+							}
+							onUnban={() =>
+								void act(user, "Access restored", () =>
+									authClient.admin.unbanUser({ userId: user.id })
+								)
+							}
+							onBan={() => setDialog({ type: "ban", user })}
+							onDelete={() => setDialog({ type: "delete", user })}
+						/>
+					) : null
 					return (
-						<div
-							key={user.id}
-							className="flex animate-in items-center gap-3 rounded-lg px-2 py-2 transition-colors duration-300 fade-in-0 fill-mode-both hover:bg-muted/60"
-							style={{
-								animationDelay: `${Math.min(index, 10) * 30}ms`,
-							}}
-						>
+						<WithContextMenu key={user.id} menu={menuItems}>
+							<div
+								className="flex animate-in items-center gap-3 rounded-lg px-2 py-2 transition-colors duration-300 fade-in-0 fill-mode-both hover:bg-muted/60"
+								style={{
+									animationDelay: `${Math.min(index, 10) * 30}ms`,
+								}}
+							>
 							<Avatar className="size-8">
 								<AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
 									{userInitials(user)}
@@ -200,7 +215,7 @@ export function UsersCard() {
 									)}
 								</div>
 							</div>
-							{busy === user.id && (
+							{busyUser && (
 								<Loader2 className="size-4 animate-spin text-muted-foreground" />
 							)}
 							{manageable && (
@@ -211,7 +226,7 @@ export function UsersCard() {
 												variant="ghost"
 												size="icon"
 												aria-label={`Manage ${user.name || user.email}`}
-												disabled={busy === user.id}
+												disabled={busyUser}
 											/>
 										}
 									>
@@ -221,94 +236,12 @@ export function UsersCard() {
 										align="end"
 										className="w-52"
 									>
-										{iAmOwner && (
-											<DropdownMenuItem
-												onClick={() =>
-													setDialog({
-														type: "role",
-														user,
-													})
-												}
-											>
-												{isAdmin ? (
-													<ShieldMinus />
-												) : (
-													<ShieldCheck />
-												)}{" "}
-												{isAdmin
-													? "Remove admin"
-													: "Make admin"}
-											</DropdownMenuItem>
-										)}
-										<DropdownMenuItem
-											onClick={() =>
-												setDialog({
-													type: "password",
-													user,
-												})
-											}
-										>
-											<KeyRound /> Set temporary password
-										</DropdownMenuItem>
-										<DropdownMenuItem
-											onClick={() =>
-												void act(
-													user,
-													"Signed out everywhere",
-													() =>
-														authClient.admin.revokeUserSessions(
-															{ userId: user.id }
-														)
-												)
-											}
-										>
-											<LogOut /> Sign out everywhere
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										{user.banned ? (
-											<DropdownMenuItem
-												onClick={() =>
-													void act(
-														user,
-														"Access restored",
-														() =>
-															authClient.admin.unbanUser(
-																{
-																	userId: user.id,
-																}
-															)
-													)
-												}
-											>
-												<UserCheck /> Restore access
-											</DropdownMenuItem>
-										) : (
-											<DropdownMenuItem
-												onClick={() =>
-													setDialog({
-														type: "ban",
-														user,
-													})
-												}
-											>
-												<Ban /> Block sign-in
-											</DropdownMenuItem>
-										)}
-										<DropdownMenuItem
-											variant="destructive"
-											onClick={() =>
-												setDialog({
-													type: "delete",
-													user,
-												})
-											}
-										>
-											<Trash2 /> Delete user
-										</DropdownMenuItem>
+										{menuItems}
 									</DropdownMenuContent>
 								</DropdownMenu>
 							)}
 						</div>
+						</WithContextMenu>
 					)
 				})}
 			</CardContent>
@@ -364,7 +297,7 @@ export function UsersCard() {
 				onClose={() => setDialog(null)}
 				title="Block this person from signing in?"
 				description={(user) =>
-					`${user.name || user.email} is signed out everywhere and can’t sign in until you restore access. Their data is kept.`
+					`${user.name || user.email} is logged out everywhere and can’t sign in until you restore access. Their data is kept.`
 				}
 				action="Block sign-in"
 				run={async (user) => {

@@ -1,3 +1,4 @@
+import { WithContextMenu } from "@/components/layout/app-context-menu"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
 	DropdownMenu,
@@ -53,7 +54,17 @@ export function TipCard({
 				~{perYear(tip.yearly)}
 			</span>
 		)
-	const menu = (
+	const menuItems = (
+		<>
+			<DropdownMenuItem onClick={() => onDismiss(tip, 30)}>
+				<BellOff /> Snooze for 30 days
+			</DropdownMenuItem>
+			<DropdownMenuItem onClick={() => onDismiss(tip)}>
+				<EyeOff /> Not useful, hide it
+			</DropdownMenuItem>
+		</>
+	)
+	const menuButton = (
 		<DropdownMenu>
 			<DropdownMenuTrigger
 				render={
@@ -68,12 +79,7 @@ export function TipCard({
 				<MoreHorizontal />
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-48">
-				<DropdownMenuItem onClick={() => onDismiss(tip, 30)}>
-					<BellOff /> Snooze for 30 days
-				</DropdownMenuItem>
-				<DropdownMenuItem onClick={() => onDismiss(tip)}>
-					<EyeOff /> Not useful, hide it
-				</DropdownMenuItem>
+				{menuItems}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	)
@@ -81,18 +87,19 @@ export function TipCard({
 	// The dashboard's version: the finding in one sentence, then what to do about it.
 	if (compact) {
 		return (
-			<article
-				className={cn(
-					"flex flex-col gap-2 rounded-lg border p-3",
-					meta.card
-				)}
-			>
+			<WithContextMenu menu={menuItems} className="w-48">
+				<article
+					className={cn(
+						"flex flex-col gap-2 rounded-lg border p-3",
+						meta.card
+					)}
+				>
 				<div className="flex items-start gap-2.5">
 					<TipIcon kind={tip.kind} className="size-8" />
 					<h3 className="min-w-0 flex-1 self-center text-sm leading-snug font-medium">
 						{tip.title}
 					</h3>
-					{menu}
+					{menuButton}
 				</div>
 				<p className="text-sm text-muted-foreground">
 					{headline(tip.body)}
@@ -120,11 +127,13 @@ export function TipCard({
 					</div>
 				)}
 			</article>
+			</WithContextMenu>
 		)
 	}
 
 	return (
-		<article className={cn("flex gap-3 rounded-lg border p-4", meta.card)}>
+		<WithContextMenu menu={menuItems} className="w-48">
+			<article className={cn("flex gap-3 rounded-lg border p-4", meta.card)}>
 			<TipIcon kind={tip.kind} />
 			<div className="flex min-w-0 flex-1 flex-col gap-1.5">
 				<div className="flex items-start gap-2">
@@ -132,7 +141,7 @@ export function TipCard({
 						{tip.title}
 					</h3>
 					{saving}
-					{menu}
+					{menuButton}
 				</div>
 				<p className="text-sm text-muted-foreground">{tip.body}</p>
 				{tip.action && (
@@ -153,5 +162,6 @@ export function TipCard({
 				)}
 			</div>
 		</article>
+		</WithContextMenu>
 	)
 }

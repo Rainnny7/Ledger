@@ -1,3 +1,4 @@
+import { WithContextMenu } from "@/components/layout/app-context-menu"
 import { useQuery } from "@tanstack/react-query"
 import { Laptop, Loader2, LogOut, Smartphone } from "lucide-react"
 import { useState } from "react"
@@ -5,6 +6,7 @@ import { toast } from "sonner"
 import { toastError } from "@/lib/toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import {
 	Card,
 	CardAction,
@@ -54,9 +56,9 @@ export function DevicesCard() {
 		})
 		setBusy(null)
 		if (error) {
-			toastError(error.message ?? "Could not sign out that device")
+			toastError(error.message ?? "Could not log out that device")
 		} else {
-			toast.success("Device signed out")
+			toast.success("Device logged out")
 		}
 		void sessions.refetch()
 	}
@@ -66,9 +68,9 @@ export function DevicesCard() {
 		const { error } = await authClient.revokeOtherSessions()
 		setBusy(null)
 		if (error) {
-			toastError(error.message ?? "Could not sign out other devices")
+			toastError(error.message ?? "Could not log out other devices")
 		} else {
-			toast.success("Signed out everywhere else")
+			toast.success("Logged out everywhere else")
 		}
 		void sessions.refetch()
 	}
@@ -78,7 +80,7 @@ export function DevicesCard() {
 			<CardHeader>
 				<CardTitle>Devices</CardTitle>
 				<CardDescription>
-					Browsers signed in to your account. Sign out any you don’t
+					Browsers signed in to your account. Log out any you don’t
 					recognise.
 				</CardDescription>
 				{others.length > 0 && (
@@ -94,7 +96,7 @@ export function DevicesCard() {
 							) : (
 								<LogOut />
 							)}{" "}
-							Sign out others
+							Logout others
 						</Button>
 					</CardAction>
 				)}
@@ -113,11 +115,18 @@ export function DevicesCard() {
 					const device = describeAgent(session.userAgent)
 					const Icon = device.mobile ? Smartphone : Laptop
 					const isCurrent = session.id === currentId
-					return (
-						<div
-							key={session.id}
-							className="flex items-center gap-3 rounded-md px-2 py-2 text-sm"
+					const revoking = busy === session.id
+					const menuItems = !isCurrent ? (
+						<DropdownMenuItem
+							disabled={revoking}
+							onClick={() => void revoke(session)}
 						>
+							<LogOut /> Logout
+						</DropdownMenuItem>
+					) : null
+					return (
+						<WithContextMenu key={session.id} menu={menuItems}>
+							<div className="flex items-center gap-3 rounded-md px-2 py-2 text-sm">
 							<Icon className="size-5 shrink-0 text-muted-foreground" />
 							<div className="min-w-0 flex-1">
 								<div className="flex items-center gap-2 font-medium">
@@ -142,16 +151,17 @@ export function DevicesCard() {
 								<Button
 									variant="ghost"
 									size="sm"
-									disabled={busy === session.id}
+									disabled={revoking}
 									onClick={() => void revoke(session)}
 								>
-									{busy === session.id && (
+									{revoking && (
 										<Loader2 className="animate-spin" />
 									)}{" "}
-									Sign out
+									Logout
 								</Button>
 							)}
 						</div>
+						</WithContextMenu>
 					)
 				})}
 			</CardContent>
