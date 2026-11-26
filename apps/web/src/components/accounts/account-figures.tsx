@@ -115,6 +115,7 @@ export function OverdraftMeter({
 			</div>
 			{!compact || used > 0 ? (
 				<Progress
+					aria-label="Credit used"
 					value={pct}
 					className={cn(
 						"h-1.5",
@@ -151,6 +152,7 @@ export function CreditMeter({ account }: { account: Account }) {
 				</span>
 			</div>
 			<Progress
+				aria-label="Credit used"
 				value={Math.min(100, (used / limit) * 100)}
 				className="h-1.5"
 			/>
