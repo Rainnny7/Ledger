@@ -192,7 +192,7 @@ export function ChangeTemporaryPasswordPage() {
 							className="w-full"
 							onClick={() => void signOut()}
 						>
-							Sign out
+							Logout
 						</Button>
 					</CardFooter>
 				</form>

@@ -67,7 +67,7 @@ export const auth = betterAuth({
 						ip: clientIp(context),
 						actorId: current.user.id,
 						actorEmail: current.user.email,
-						action: "Signed out",
+						action: "Logged out",
 					})
 				}
 			}

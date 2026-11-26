@@ -522,14 +522,17 @@ function MenuItem({
 	icon: Icon,
 	children,
 	onClick,
+	variant,
 }: {
 	icon: AnimatedIcon
 	children: React.ReactNode
 	onClick: () => void
+	variant?: "default" | "destructive"
 }) {
 	const { ref: iconRef, handlers: iconHandlers } = useAnimatedIcon()
 	return (
 		<DropdownMenuItem
+			variant={variant}
 			onClick={onClick}
 			onMouseEnter={iconHandlers.onMouseEnter}
 			onMouseLeave={iconHandlers.onMouseLeave}
@@ -902,6 +905,7 @@ export function AppShell() {
 									<ThemeMenu />
 									<DropdownMenuSeparator />
 									<MenuItem
+										variant="destructive"
 										icon={LogoutIcon}
 										onClick={async () => {
 											await signOut()
@@ -916,7 +920,7 @@ export function AppShell() {
 											})
 										}}
 									>
-										Sign out
+										Logout
 									</MenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>

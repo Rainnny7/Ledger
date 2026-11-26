@@ -66,7 +66,7 @@ export function ActivityCard() {
 					log
 				</CardTitle>
 				<CardDescription>
-					Admin changes, sign-ins and sign-outs (failed attempts too),
+					Admin changes, sign-ins and logouts (failed attempts too),
 					with who did it and from where.
 				</CardDescription>
 				<CardAction>

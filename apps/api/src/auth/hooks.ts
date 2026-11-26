@@ -108,7 +108,7 @@ export const AUDITED = new Map([
 	["/admin/create-user", "Added user"],
 	["/admin/set-role", "Changed role"],
 	["/admin/set-user-password", "Set temporary password"],
-	["/admin/revoke-user-sessions", "Signed out everywhere"],
+	["/admin/revoke-user-sessions", "Logged out everywhere"],
 	["/admin/ban-user", "Blocked sign-in"],
 	["/admin/unban-user", "Restored access"],
 	["/admin/remove-user", "Deleted user"],
@@ -127,9 +127,9 @@ export const AUTH_EVENTS = new Map([
 	["/delete-user", "Deleted own account"],
 	["/two-factor/disable", "Turned off two-factor"],
 	["/two-factor/generate-backup-codes", "Made new backup codes"],
-	["/revoke-session", "Signed out a device"],
-	["/revoke-other-sessions", "Signed out other devices"],
-	["/revoke-sessions", "Signed out everywhere"],
+	["/revoke-session", "Logged out a device"],
+	["/revoke-other-sessions", "Logged out other devices"],
+	["/revoke-sessions", "Logged out everywhere"],
 ])
 /** Auth audit actions that represent failed sign-in attempts. */
 export const AUDIT_FAILURES = new Set([

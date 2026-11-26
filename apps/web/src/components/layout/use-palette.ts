@@ -101,7 +101,7 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 			})),
 			{
 				id: "c:signout",
-				label: "Sign out",
+				label: "Logout",
 				icon: LogOut,
 				keywords: "log out logout leave",
 				run: async () => {

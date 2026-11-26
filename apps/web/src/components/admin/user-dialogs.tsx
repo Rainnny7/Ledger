@@ -213,7 +213,7 @@ export function SetPasswordDialog({
 					<DialogTitle>Set action temporary password</DialogTitle>
 					<DialogDescription>
 						For {user?.name || user?.email}, if they’re locked out.
-						They’re signed out on every device, sign in once with
+						They’re logged out on every device, sign in once with
 						this password, and then have to choose action new one
 						that only they know.
 					</DialogDescription>

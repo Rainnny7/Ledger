@@ -65,7 +65,7 @@ export function ChangePasswordCard() {
 			setConfirm("")
 			toast.success(
 				signOutOthers
-					? "Password changed. Other devices were signed out."
+					? "Password changed. Other devices were logged out."
 					: "Password changed"
 			)
 			void queryClient.invalidateQueries({
@@ -166,7 +166,7 @@ export function ChangePasswordCard() {
 									setSignOutOthers(checked === true)
 								}
 							/>
-							Sign out my other devices
+							Logout my other devices
 						</Label>
 						<Button type="submit" disabled={busy || !valid}>
 							{busy && <Loader2 className="animate-spin" />}{" "}
