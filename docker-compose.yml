@@ -24,3 +24,18 @@ services:
             - ./data:/data
         # Chromium needs more shared memory than Docker's 64MB default
         shm_size: 1gb
+
+    # Optional: auto-pull newer ghcr.io/rainnny7/ledger images and restart ledger.
+    # Uncomment if you want hands-off updates (poll interval is seconds; 86400 = daily).
+    # Private/registry auth: mount a Docker config with ghcr credentials, e.g.
+    #   - ${DOCKER_CONFIG:-$HOME/.docker}/config.json:/config.json:ro
+    # and set DOCKER_CONFIG=/config.json in the environment below.
+    #
+    # watchtower:
+    #     image: containrrr/watchtower
+    #     container_name: watchtower
+    #     restart: unless-stopped
+    #     volumes:
+    #         - /var/run/docker.sock:/var/run/docker.sock
+    #     # --interval 86400 = daily; drop "ledger" to update every container on this host
+    #     command: --interval 86400 --cleanup ledger
