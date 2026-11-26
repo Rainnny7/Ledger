@@ -22,7 +22,7 @@ import {
 	type PaymentMethod,
 } from "../../finance/invoice-store.ts"
 
-// ---------------------------------------------------------------- public (share link, no sign-in)
+// ---------------------------------------------------------------- public (share link, no login)
 
 /** Elysia plugin wiring HTTP handlers for this area. */
 export const publicInvoices = new Elysia({ name: "publicInvoices" })

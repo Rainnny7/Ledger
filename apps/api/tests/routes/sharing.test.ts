@@ -19,7 +19,7 @@ const {
 	workPayment,
 } = await import("../../src/db/schema/index.ts")
 
-// Sign-in is Better Auth's job; here the x-user header stands in for the session cookie.
+// Login is Better Auth's job; here the x-user header stands in for the session cookie.
 mock.module("../../src/auth/index.ts", () => ({
 	auth: {
 		api: {

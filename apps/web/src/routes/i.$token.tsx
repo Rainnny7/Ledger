@@ -8,7 +8,7 @@ const PublicInvoicePage = lazy(() =>
 	}))
 )
 
-/** The share link you send people: no sign-in. */
+/** The share link you send people: no login. */
 export const Route = createFileRoute("/i/$token")({
 	component: PublicInvoiceRoute,
 })

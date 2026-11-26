@@ -27,7 +27,7 @@ interface DeviceSession {
 	updatedAt: Date | string
 }
 
-/** Lists signed-in devices and lets the user revoke any other session. */
+/** Lists logged-in devices and lets the user revoke any other session. */
 export function DevicesCard() {
 	const { data: current } = useSession()
 	const sessions = useQuery({
@@ -80,7 +80,7 @@ export function DevicesCard() {
 			<CardHeader>
 				<CardTitle>Devices</CardTitle>
 				<CardDescription>
-					Browsers signed in to your account. Log out any you don’t
+					Browsers logged in to your account. Log out any you don’t
 					recognise.
 				</CardDescription>
 				{others.length > 0 && (
@@ -141,7 +141,7 @@ export function DevicesCard() {
 									{[
 										session.ipAddress,
 										`active ${timeAgo(session.updatedAt)}`,
-										`signed in ${timeAgo(session.createdAt)}`,
+										`logged in ${timeAgo(session.createdAt)}`,
 									]
 										.filter(Boolean)
 										.join(" · ")}

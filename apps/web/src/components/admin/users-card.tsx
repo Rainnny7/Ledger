@@ -295,11 +295,11 @@ export function UsersCard() {
 			<AdminUserConfirmDialog
 				user={dialog?.type === "ban" ? dialog.user : null}
 				onClose={() => setDialog(null)}
-				title="Block this person from signing in?"
+				title="Block this person from logging in?"
 				description={(user) =>
-					`${user.name || user.email} is logged out everywhere and can’t sign in until you restore access. Their data is kept.`
+					`${user.name || user.email} is logged out everywhere and can’t log in until you restore access. Their data is kept.`
 				}
-				action="Block sign-in"
+				action="Block login"
 				run={async (user) => {
 					const { error } = await authClient.admin.banUser({
 						userId: user.id,
@@ -307,7 +307,7 @@ export function UsersCard() {
 					if (error) {
 						return error.message ?? "Could not block this user"
 					}
-					toast.success("Sign-in blocked")
+					toast.success("Login blocked")
 					refresh()
 					return null
 				}}
@@ -317,7 +317,7 @@ export function UsersCard() {
 				onClose={() => setDialog(null)}
 				title="Delete this user and their data?"
 				description={(user) =>
-					`${user.name || user.email}’session account, linked banks, saved bank sign-ins, transactions, subscriptions, goals and work hours are removed for good. This can’t be undone.`
+					`${user.name || user.email}’session account, linked banks, saved bank logins, transactions, subscriptions, goals and work hours are removed for good. This can’t be undone.`
 				}
 				action="Delete user"
 				confirmText={(user) => user.email}

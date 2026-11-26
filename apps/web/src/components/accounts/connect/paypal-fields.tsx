@@ -23,7 +23,7 @@ export function PaypalFields({
 				</summary>
 				<ol className="mt-2 ml-4 grid list-decimal gap-1.5 pb-1">
 					<li>
-						Sign in at{" "}
+						Log in at{" "}
 						<a
 							href="https://developer.paypal.com/dashboard/applications/live"
 							target="_blank"

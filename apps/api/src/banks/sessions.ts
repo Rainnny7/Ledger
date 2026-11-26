@@ -128,7 +128,7 @@ async function after(s: LoginSession, step: LoginStep): Promise<SessionView> {
 		return view(s)
 	}
 
-	s.step = { type: "syncing", message: "Signed in. Reading your accounts…" }
+	s.step = { type: "syncing", message: "Logged in. Reading your accounts…" }
 	touch(s)
 	void (async () => {
 		try {
@@ -251,7 +251,7 @@ async function startLoginLocked(opts: {
 			} catch {
 				// Encrypted with a different APP_SECRET: ask for the password again.
 				throw new Error(
-					`Saved sign-in details can no longer be read. Enter your ${provider.secretName} to reconnect.`
+					`Saved login details can no longer be read. Enter your ${provider.secretName} to reconnect.`
 				)
 			}
 		}
@@ -294,7 +294,7 @@ async function startLoginLocked(opts: {
 		}, "Browser launch")
 		return withBrowserTimeout(
 			() => scraper.login(username, password),
-			"Sign-in"
+			"Login"
 		)
 	})
 }
@@ -348,7 +348,7 @@ export async function endUserSessions(userId: string) {
 	}
 }
 
-/** Whether the user is in the middle of signing in to a bank themselves. */
+/** Whether the user is in the middle of logging in to a bank themselves. */
 export function hasOpenLogin(userId: string) {
 	for (const session of sessions.values()) {
 		if (
@@ -366,7 +366,7 @@ export function hasOpenLogin(userId: string) {
 export type BackgroundResult = "synced" | "needs-sign-in" | "skipped" | "failed"
 
 /**
- * Refreshes one connection with its saved sign-in details, without anyone watching: the
+ * Refreshes one connection with its saved login details, without anyone watching: the
  * scheduled "Refresh bank accounts" task. Reads only what's new since the last sync. When the
  * bank wants a two-factor code it stops there; the user reconnects from the dashboard as usual.
  */
@@ -385,12 +385,12 @@ async function syncInBackgroundLocked(
 		.where(eq(bankConnection.id, connectionId))
 		.get()
 	if (!row?.creds || !isProvider(row.institution)) {
-		return { result: "skipped", message: "No saved sign-in details" }
+		return { result: "skipped", message: "No saved login details" }
 	}
 	if (hasOpenLogin(row.userId)) {
 		return {
 			result: "skipped",
-			message: "The user is signing in right now",
+			message: "The user is logging in right now",
 		}
 	}
 
@@ -401,7 +401,7 @@ async function syncInBackgroundLocked(
 	} catch {
 		return {
 			result: "skipped",
-			message: "Saved sign-in details can no longer be read",
+			message: "Saved login details can no longer be read",
 		}
 	}
 	try {
@@ -409,7 +409,7 @@ async function syncInBackgroundLocked(
 			browserState = decrypt(row.state)
 		}
 	} catch {
-		/* stale key; sign in without it */
+		/* stale key; log in without it */
 	}
 
 	const provider = PROVIDERS[row.institution]
@@ -429,7 +429,7 @@ async function syncInBackgroundLocked(
 		)
 		const step = await withBrowserTimeout(
 			() => client.login(creds.username, creds.password),
-			"Sign-in"
+			"Login"
 		)
 		if (step.type === "error") {
 			const message = bankErrorForClient(step.message, "login", {

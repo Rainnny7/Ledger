@@ -6,7 +6,7 @@ const SIGN_IN_FAIL_MAX = 10
 const BACKOFF_CAP = 5000
 const signInFailures = new Map<string, number[]>()
 
-/** Shape check only — not deliverability; keeps failed sign-in audits from junk input. */
+/** Shape check only — not deliverability; keeps failed login audits from junk input. */
 export function isPlausibleEmail(email: string): boolean {
 	const normalizedEmail = email.trim()
 	return (
@@ -37,7 +37,7 @@ function trimBackoffMap() {
 	}
 }
 
-/** Per-email sign-in backoff (in memory, bounded). */
+/** Per-email login backoff (in memory, bounded). */
 export function signInBackoffBlocked(email: string): boolean {
 	const key = email.trim().toLowerCase()
 	const now = Date.now()
@@ -49,7 +49,7 @@ export function signInBackoffBlocked(email: string): boolean {
 	return recent.length >= SIGN_IN_FAIL_MAX
 }
 
-/** Track failed sign-ins for rate limiting by email. */
+/** Track failed logins for rate limiting by email. */
 export function recordSignInFailure(email: string) {
 	if (!isPlausibleEmail(email)) {
 		return
@@ -68,7 +68,7 @@ export function recordSignInFailure(email: string) {
 export const CLIENT_IP_HEADER = "x-ledger-client-ip"
 
 /**
- * Signing in as someone else, or editing their email behind their back, isn't something this app
+ * Logging in as someone else, or editing their email behind their back, isn't something this app
  * offers; leaving the endpoints reachable would only widen what a stolen admin session could do.
  */
 export const DISABLED_PATHS = new Set([
@@ -84,7 +84,7 @@ export const DISABLED_PATHS = new Set([
 /** Longest display name accepted anywhere a name is set. */
 export const NAME_MAX = 100
 
-/** What someone on a temporary password can still do: sign in, see who they are, change it, leave. */
+/** What someone on a temporary password can still do: log in, see who they are, change it, leave. */
 export const PASSWORD_CHANGE_ALLOWED = new Set([
 	"/get-session",
 	"/sign-out",
@@ -109,7 +109,7 @@ export const AUDITED = new Map([
 	["/admin/set-role", "Changed role"],
 	["/admin/set-user-password", "Set temporary password"],
 	["/admin/revoke-user-sessions", "Logged out everywhere"],
-	["/admin/ban-user", "Blocked sign-in"],
+	["/admin/ban-user", "Blocked login"],
 	["/admin/unban-user", "Restored access"],
 	["/admin/remove-user", "Deleted user"],
 ])
@@ -119,10 +119,10 @@ export const AUDITED = new Map([
  * first group are logged too, so repeated wrong passwords or codes stand out.
  */
 export const AUTH_EVENTS = new Map([
-	["/sign-in/email", "Signed in"],
+	["/sign-in/email", "Logged in"],
 	["/sign-up/email", "Signed up"],
-	["/two-factor/verify-totp", "Signed in"],
-	["/two-factor/verify-backup-code", "Signed in"],
+	["/two-factor/verify-totp", "Logged in"],
+	["/two-factor/verify-backup-code", "Logged in"],
 	["/change-password", "Changed password"],
 	["/delete-user", "Deleted own account"],
 	["/two-factor/disable", "Turned off two-factor"],
@@ -131,7 +131,7 @@ export const AUTH_EVENTS = new Map([
 	["/revoke-other-sessions", "Logged out other devices"],
 	["/revoke-sessions", "Logged out everywhere"],
 ])
-/** Auth audit actions that represent failed sign-in attempts. */
+/** Auth audit actions that represent failed login attempts. */
 export const AUDIT_FAILURES = new Set([
 	"/sign-in/email",
 	"/two-factor/verify-totp",

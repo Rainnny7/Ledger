@@ -81,7 +81,7 @@ export function ChangePasswordCard() {
 			<CardHeader>
 				<CardTitle>Password</CardTitle>
 				<CardDescription>
-					Change the password you sign in to Ledger with.
+					Change the password you log in to Ledger with.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

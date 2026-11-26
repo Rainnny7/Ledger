@@ -3,7 +3,7 @@
  */
 import type { Locator } from "playwright"
 
-/** TD EasyWeb sign-in entry URL. */
+/** TD EasyWeb login entry URL. */
 export const LOGIN_URL = "https://easyweb.td.com/"
 /** Safety cap on accounts scraped in one TD session. */
 export const MAX_ACCOUNTS = 20

@@ -72,7 +72,7 @@ export const demoPersona: DemoPersona =
 export const DEMO_READ_ONLY =
 	"Demo mode is read-only. Exit demo mode to make changes."
 
-/** The made-up person shown instead of the signed-in user while in demo mode. */
+/** The made-up person shown instead of the logged-in user while in demo mode. */
 export const DEMO_IDENTITY = {
 	name: demoPersona.name,
 	email: `${demoPersona.name.toLowerCase().replace(/\s+/g, ".")}@example.com`,

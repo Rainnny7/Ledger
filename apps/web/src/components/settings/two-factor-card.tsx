@@ -38,7 +38,7 @@ type SetupStep =
 	| { type: "scan"; uri: string; backupCodes: string[] }
 	| { type: "codes"; backupCodes: string[] }
 
-/** Enable or disable authenticator-app two-factor sign-in, including backup codes. */
+/** Enable or disable authenticator-app two-factor login, including backup codes. */
 export function TwoFactorCard() {
 	const { data } = useSession()
 	const enabled = !!(
@@ -61,7 +61,7 @@ export function TwoFactorCard() {
 				</CardTitle>
 				<CardDescription>
 					Ask for a code from an authenticator app (1Password, Google
-					Authenticator, Authy…) every time you sign in on a new
+					Authenticator, Authy…) every time you log in on a new
 					device.
 				</CardDescription>
 				<CardAction className="flex gap-2">
@@ -97,7 +97,7 @@ export function TwoFactorCard() {
 				open={dialog === "disable"}
 				onClose={() => setDialog(null)}
 				title="Turn off two-factor authentication?"
-				description="Signing in will only need your password. Your backup codes stop working."
+				description="Logging in will only need your password. Your backup codes stop working."
 				action="Turn off"
 				destructive
 				run={async (password) => {

@@ -25,7 +25,7 @@ import { detectCurrency } from "@/lib/currency"
 import { usePageTitle } from "@/lib/page-title"
 import { useAppConfig } from "@/lib/queries"
 
-/** Sign in or register (when the server allows it). */
+/** Log in or register (when the server allows it). */
 export function AuthPage({ mode }: { mode: "login" | "register" }) {
 	const navigate = useNavigate()
 	const [name, setName] = useState("")
@@ -43,10 +43,10 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
 	const closed = isRegister && config?.registrationOpen === false
 	usePageTitle(
 		needsCode
-			? "Two-factor sign-in"
+			? "Two-factor login"
 			: isRegister
 				? "Create account"
-				: "Sign in"
+				: "Log in"
 	)
 
 	async function onSubmit(event: React.FormEvent) {
@@ -120,7 +120,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
 								: "Enter the 6-digit code from your authenticator app."
 							: isRegister
 								? "Sign up to start tracking your bank accounts."
-								: "Sign in to see your balances and transactions."}
+								: "Log in to see your balances and transactions."}
 					</CardDescription>
 				</CardHeader>
 				<form onSubmit={onSubmit}>
@@ -241,7 +241,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
 							<Alert>
 								<AlertDescription>
 									Sign-ups are closed on this server. Ask its
-									admin to add you, or sign in if you already
+									admin to add you, or log in if you already
 									have an account.
 								</AlertDescription>
 							</Alert>
@@ -262,7 +262,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
 								? "Verify"
 								: isRegister
 									? "Create account"
-									: "Sign in"}
+									: "Log in"}
 						</Button>
 						{needsCode && (
 							<button
@@ -274,7 +274,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
 									setError(null)
 								}}
 							>
-								Back to sign in
+								Back to log in
 							</button>
 						)}
 						{!needsCode &&
@@ -287,7 +287,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
 										to={isRegister ? "/login" : "/register"}
 										className="font-medium text-foreground underline underline-offset-4"
 									>
-										{isRegister ? "Sign in" : "Create one"}
+										{isRegister ? "Log in" : "Create one"}
 									</Link>
 								</p>
 							)}

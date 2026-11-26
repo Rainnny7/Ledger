@@ -33,7 +33,7 @@ type AuditFilter = "all" | "admin" | "auth"
 
 const PAGE_SIZE = 25
 
-/** The audit log: admin changes and sign-ins. */
+/** The audit log: admin changes and logins. */
 export function ActivityCard() {
 	const [filter, setFilter] = useState<AuditFilter>("all")
 	const [page, setPage] = useState(0)
@@ -66,7 +66,7 @@ export function ActivityCard() {
 					log
 				</CardTitle>
 				<CardDescription>
-					Admin changes, sign-ins and logouts (failed attempts too),
+					Admin changes, logins and logouts (failed attempts too),
 					with who did it and from where.
 				</CardDescription>
 				<CardAction>
@@ -83,7 +83,7 @@ export function ActivityCard() {
 					>
 						<ToggleGroupItem value="all">All</ToggleGroupItem>
 						<ToggleGroupItem value="admin">Admin</ToggleGroupItem>
-						<ToggleGroupItem value="auth">Sign-ins</ToggleGroupItem>
+						<ToggleGroupItem value="auth">Logins</ToggleGroupItem>
 					</ToggleGroup>
 				</CardAction>
 			</CardHeader>

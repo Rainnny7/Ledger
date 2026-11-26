@@ -14,7 +14,7 @@ export function Greeting() {
 				: hour < 17
 					? "afternoon"
 					: "evening"
-	// Demo mode shows the made-up person, never the signed-in user's own name.
+	// Demo mode shows the made-up person, never the logged-in user's own name.
 	const name = demoMode ? DEMO_IDENTITY.name : data?.user.name
 	const first = name?.trim().split(/\s+/)[0]
 	return <>{`Good ${part}${first ? `, ${first}` : ""}`}</>

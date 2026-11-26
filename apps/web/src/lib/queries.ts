@@ -232,7 +232,7 @@ export const useAccountDetails = (id: string, enabled: boolean) =>
 		})
 	)
 
-/** Public server settings (no sign-in needed). */
+/** Public server settings (no login needed). */
 const UPDATE_STALE = 6 * 60 * 60_000
 
 /** Whether a newer GitHub release is out (admins only; endpoint returns 403 otherwise). */

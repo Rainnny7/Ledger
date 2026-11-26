@@ -60,10 +60,10 @@ export function ConnectProviderHeader({
 				</DialogTitle>
 				<DialogDescription>
 					{resync
-						? `Signing in as ${usernameMasked}`
+						? `Logging in as ${usernameMasked}`
 						: provider === "paypal"
 							? "Paste the Client ID and Secret of your PayPal REST app."
-							: "Sign in with your EasyWeb username or Access Card."}
+							: "Log in with your EasyWeb username or Access Card."}
 				</DialogDescription>
 			</div>
 		</div>

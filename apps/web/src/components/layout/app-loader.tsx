@@ -45,7 +45,7 @@ function LoaderText() {
 
 /**
  * The full-page loader: the Ledger mark building itself, column by column.
- * It's pinned to the middle of the window, so going from the boot screen to signing in to loading
+ * It's pinned to the middle of the window, so going from the boot screen to logging in to loading
  * a page never moves it. The same markup is in index.html for before the app's code arrives, and
  * every copy runs on one clock, so a remount carries on mid-animation instead of starting over.
  *

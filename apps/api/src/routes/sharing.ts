@@ -302,7 +302,7 @@ interface InviteRow {
 	permission: string
 }
 
-/** Invitations waiting for the signed-in user, with who is sharing what so they can judge it. */
+/** Invitations waiting for the logged-in user, with who is sharing what so they can judge it. */
 sharing.get("/invites", ({ user }) => {
 	const rows: InviteRow[] = db
 		.select({

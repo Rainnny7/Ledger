@@ -22,7 +22,7 @@ createRoot(document.getElementById("root")!).render(
 	</StrictMode>
 )
 
-// Skeleton bones use the theme's colours; load after first paint so sign-in stays lean.
+// Skeleton bones use the theme's colours; load after first paint so login stays lean.
 void Promise.all([
 	import("boneyard-js/react"),
 	import("./bones/registry.ts"),

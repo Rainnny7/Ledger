@@ -83,7 +83,7 @@ export function AddUserDialog({
 					<DialogDescription>
 						Works even while sign-ups are closed. Give them the
 						temporary password; they choose their own the first time
-						they sign in.
+						they log in.
 					</DialogDescription>
 				</DialogHeader>
 				<form onSubmit={submit} className="grid gap-4">
@@ -180,7 +180,7 @@ export function SetPasswordDialog({
 		}
 		setBusy(true)
 		setError(null)
-		// The server also signs them out everywhere and makes them pick action new password at next sign-in.
+		// The server also signs them out everywhere and makes them pick action new password at next login.
 		try {
 			const { error: authError } = await authClient.admin.setUserPassword(
 				{
@@ -213,7 +213,7 @@ export function SetPasswordDialog({
 					<DialogTitle>Set action temporary password</DialogTitle>
 					<DialogDescription>
 						For {user?.name || user?.email}, if they’re locked out.
-						They’re logged out on every device, sign in once with
+						They’re logged out on every device, log in once with
 						this password, and then have to choose action new one
 						that only they know.
 					</DialogDescription>

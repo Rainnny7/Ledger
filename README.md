@@ -41,11 +41,11 @@ I wanted one place to see my transactions, how much I'm earning, what subscripti
 - **Subscriptions**: track recurring payments on any schedule, see them on a calendar, and get suggestions for recurring charges it spots in your transactions.
 - **Goals**: save up for something or pay something off. Log payments as you go and it tells you what you need to put in each month to hit your deadline.
 - **Work**: log hours for side work, bill them, and track each payment until you're paid in full.
-- **Invoices**: make an invoice from scratch or from a Work bill in a few clicks, pick from three PDF designs, and choose how you want to be paid (e-Transfer, PayPal.me, PayPal checkout, crypto, bank transfer, cash and more). Share a link the client can open without signing in, or send them the PDF. Payments made through PayPal checkout are marked paid on the spot.
+- **Invoices**: make an invoice from scratch or from a Work bill in a few clicks, pick from three PDF designs, and choose how you want to be paid (e-Transfer, PayPal.me, PayPal checkout, crypto, bank transfer, cash and more). Share a link the client can open without logging in, or send them the PDF. Payments made through PayPal checkout are marked paid on the spot.
 - **Taxes**: mark transactions business or personal, review by category, and export a year’s figures or CSV for your accountant.
 - **Advisor**: tips from your own numbers—where spending runs high, subscriptions worth a look, and a simple health score—with tips you can dismiss or bring back.
 - **Sharing & contacts**: share a goal, subscription or job with another Ledger user, as view-only or editable. Pick them from **Contacts** (in the user menu) or type their email. They need an account on the same server; only the owner can delete, archive or change who it's shared with, and the owner's bank accounts are never shown.
-- **Settings**: default currency, invoice defaults, password and two-factor sign-in, and **colour themes** (light/dark plus several accent themes—or match the system).
+- **Settings**: default currency, invoice defaults, password and two-factor login, and **colour themes** (a mode: system, light, dark or AMOLED; plus an accent colour).
 - **Admin**: manage users, open or close sign-ups, run background tasks, download database backups, read the audit log, and see **update notifications** when a newer release is on GitHub (with upgrade commands to copy).
 - **Demo mode**: fills every page with made-up data, handy for showing it off (the screenshots here use it).
 - **Any currency**: accounts, goals, subscriptions and bills can each have their own currency. Totals are converted into your default currency (picked in Settings, or guessed from your time zone) using live mid-market rates (refreshed hourly, falling back to the ECB's daily reference rates).
@@ -112,7 +112,7 @@ You'll need [Bun](https://bun.sh) 1.3+ (the API runs on Bun and uses `bun:sqlite
 
 ```bash
 bun install
-bunx playwright install chromium   # used to sign in to TD EasyWeb
+bunx playwright install chromium   # used to log in to TD EasyWeb
 cp .env.example .env               # optional, every setting has a default
 bun run dev                        # API on :3001, app on http://localhost:5173
 ```
@@ -148,7 +148,7 @@ Data lives in the `./data` mount (database, secret, backups). Full steps—Compo
 - Your bank password is only saved if you tick **Save credentials**. Saved credentials, API keys and account numbers are encrypted with AES-256-GCM using `APP_SECRET` (generated into `data/.secret` if you don't set one; to pick your own, run `openssl rand -hex 32`).
 - Everything lives in a local SQLite database in `data/`. It's git-ignored; don't commit or share it.
 - Passwords need at least 10 characters with a lowercase and uppercase letter, a number and a symbol. The server enforces this too.
-- Sign-in is rate-limited, sign-ups are closed after the first account unless an admin opens them, and the server sends strict security headers.
+- Login is rate-limited, sign-ups are closed after the first account unless an admin opens them, and the server sends strict security headers.
 - Automated access may be against your bank's terms of service. Use it for your own accounts, at your own risk.
 
 ## Configuration
@@ -162,7 +162,7 @@ All optional. See [`.env.example`](.env.example). For deployment details see [SE
 | `PUBLIC_URL`         | `APP_URL`                                                 | Address used for invoice share links and PayPal webhooks (must be public `https://` for webhooks) |
 | `APP_SECRET`         | generated in `DATA_DIR/.secret`                           | Signs sessions and encrypts saved credentials (32+ characters if you set it)                      |
 | `DATA_DIR`           | repo `data/`                                              | Where the database and backups live                                                               |
-| `TD_HEADLESS`        | `true`                                                    | `false` to watch the browser sign in                                                              |
+| `TD_HEADLESS`        | `true`                                                    | `false` to watch the browser log in                                                              |
 | `TD_BROWSER_CHANNEL` |                                                           | e.g. `chrome` to use your installed Chrome                                                        |
 | `ALLOW_REGISTRATION` | `false`                                                   | Whether sign-ups start open after the first account                                               |
 | `TRUST_PROXY`        | `false`                                                   | `true` behind a reverse proxy, so rate limits see the real client IP                              |

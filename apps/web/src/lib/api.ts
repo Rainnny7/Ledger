@@ -27,7 +27,7 @@ export interface Connection {
 	lastEventAt?: string | null
 	/** When the background refresh will next sync it on its own; null when it won't. */
 	nextSyncAt?: string | null
-	/** Auto-refresh hit a two-factor prompt and is paused until you sign in yourself. */
+	/** Auto-refresh hit a two-factor prompt and is paused until you log in yourself. */
 	needsSignIn?: boolean
 }
 
@@ -691,7 +691,7 @@ async function request<T>(
 			...init.headers,
 		},
 	})
-	// Signed out elsewhere or the session ran out: re-check it, and the app falls back to the sign-in page.
+	// Signed out elsewhere or the session ran out: re-check it, and the app falls back to the login page.
 	if (response.status === 401) {
 		authClient.$store.notify("$sessionSignal")
 	}
@@ -1106,7 +1106,7 @@ export async function fetchAllTransactions(
 	return { transactions: all, categories }
 }
 
-/** The share link: no sign-in, so it skips the signed-in /api/banks helper. */
+/** The share link: no login, so it skips the logged-in /api/banks helper. */
 async function publicRequest<T>(
 	path: string,
 	init: RequestInit = {}

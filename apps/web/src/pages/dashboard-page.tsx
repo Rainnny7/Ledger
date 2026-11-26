@@ -45,7 +45,7 @@ async function removeConnection(c: Connection) {
 		!(await confirmDialog({
 			title: `Remove ${c.label}?`,
 			description:
-				"Its accounts, transactions and saved sign-in are deleted from Ledger. Your bank account itself isn’t touched.",
+				"Its accounts, transactions and saved login are deleted from Ledger. Your bank account itself isn’t touched.",
 			action: "Remove",
 			destructive: true,
 		}))

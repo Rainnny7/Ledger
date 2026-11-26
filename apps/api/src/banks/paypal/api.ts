@@ -90,7 +90,7 @@ async function accessToken(connectionId: string) {
 	})
 	if (!response.ok) {
 		throw new PaypalApiError(
-			`PayPal sign-in failed (HTTP ${response.status}).`,
+			`PayPal login failed (HTTP ${response.status}).`,
 			response.status
 		)
 	}

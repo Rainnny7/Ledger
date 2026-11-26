@@ -97,7 +97,7 @@ export function ChangeTemporaryPasswordPage() {
 						) : (
 							"Your account"
 						)}{" "}
-						is signed in with a temporary password from an admin.
+						is logged in with a temporary password from an admin.
 						Replace it with one only you know to continue.
 					</CardDescription>
 				</CardHeader>

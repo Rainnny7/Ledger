@@ -107,7 +107,7 @@ export class PaypalClient implements BankClient {
 		if (!response.ok) {
 			return {
 				type: "error",
-				message: `PayPal sign-in failed (HTTP ${response.status}).`,
+				message: `PayPal login failed (HTTP ${response.status}).`,
 			}
 		}
 		const body = (await response.json()) as { access_token?: string }
@@ -182,7 +182,7 @@ export class PaypalClient implements BankClient {
 		sinceFor: (externalKey: string) => string | null = () => null
 	): Promise<ScrapedAccount[]> {
 		if (!this.token) {
-			throw new PaypalError("Not signed in to PayPal.")
+			throw new PaypalError("Not logged in to PayPal.")
 		}
 		onProgress?.("Reading your PayPal balances…")
 		const bal = await this.get<BalancesResponse>("/v1/reporting/balances", {

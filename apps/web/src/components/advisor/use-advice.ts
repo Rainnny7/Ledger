@@ -34,7 +34,7 @@ const demoStore = {
 }
 
 /**
- * The Advisor report for the signed-in person (or the demo), with hidden tips taken out.
+ * The Advisor report for the logged-in person (or the demo), with hidden tips taken out.
  * Shares every query with the dashboard, so it costs nothing extra there.
  */
 export function useAdvice() {

@@ -8,7 +8,7 @@ import { transactionRoutes } from "./transactions.ts"
 /** Type values accepted by validation and routes. */
 export type { EnrichedTx } from "./types.ts"
 
-/** Budgets, transactions, subscriptions, goals and advice, all behind the signed-in session. */
+/** Budgets, transactions, subscriptions, goals and advice, all behind the logged-in session. */
 export const finance = new Elysia({ name: "finance" })
 	.use(budgetRoutes)
 	.use(transactionRoutes)

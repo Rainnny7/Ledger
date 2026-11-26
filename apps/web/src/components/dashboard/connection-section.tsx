@@ -230,7 +230,7 @@ export function ConnectionSection({
 						</div>
 						<div className="text-xs text-destructive/80">
 							{connection.lastError ??
-								"Auto-refresh is paused until you sign in once. Your transactions won’t update on their own until then."}
+								"Auto-refresh is paused until you log in once. Your transactions won’t update on their own until then."}
 						</div>
 					</div>
 					<Button
@@ -239,7 +239,7 @@ export function ConnectionSection({
 						onClick={() => onRefresh(connection)}
 					>
 						{connection.lastError ? <RefreshCw /> : <KeyRound />}{" "}
-						{connection.lastError ? "Try again" : "Sign in"}
+						{connection.lastError ? "Try again" : "Log in"}
 					</Button>
 				</div>
 			)}

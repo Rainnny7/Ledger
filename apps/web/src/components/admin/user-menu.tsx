@@ -58,7 +58,7 @@ export function AdminUserMenuItems({
 				</DropdownMenuItem>
 			) : (
 				<DropdownMenuItem disabled={disabled} onClick={onBan}>
-					<Ban /> Block sign-in
+					<Ban /> Block login
 				</DropdownMenuItem>
 			)}
 			<DropdownMenuItem

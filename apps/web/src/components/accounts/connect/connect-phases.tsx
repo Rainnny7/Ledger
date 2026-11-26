@@ -51,7 +51,7 @@ export function ConnectPickScreen({
 						title={td ? "TD Bank" : PROVIDERS[id].label}
 						description={
 							td
-								? "Sign in with EasyWeb, or upload PDF statements"
+								? "Log in with EasyWeb, or upload PDF statements"
 								: PROVIDERS[id].blurb
 						}
 						onClick={() => {
@@ -85,7 +85,7 @@ export function ConnectTdMethodScreen({
 						<KeyRound className="size-4" />
 					</ChoiceIcon>
 				}
-				title="Sign in with EasyWeb"
+				title="Log in with EasyWeb"
 				description="Live balances and up to 18 months of transactions, refreshed automatically"
 				onClick={() => setPhase({ type: "form" })}
 			/>
@@ -97,7 +97,7 @@ export function ConnectTdMethodScreen({
 					</ChoiceIcon>
 				}
 				title="Upload statements"
-				description="PDF statements or a .zip from EasyWeb, for history past 18 months. No sign-in needed"
+				description="PDF statements or a .zip from EasyWeb, for history past 18 months. No login needed"
 				onClick={() => onUploadStatements?.()}
 			/>
 			<DialogFooter>
@@ -265,7 +265,7 @@ export function ConnectSyncingScreen({
 		<div className="flex animate-in flex-col items-center gap-3 py-8 text-center fade-in-0 zoom-in-95">
 			<Loader2 className="size-8 animate-spin text-muted-foreground" />
 			<p className="text-sm font-medium">
-				{phase.type === "syncing" ? phase.message : "Signed in…"}
+				{phase.type === "syncing" ? phase.message : "Logged in…"}
 			</p>
 			<p className="max-w-xs text-xs text-muted-foreground">
 				The first sync reads {historyLabel} of history and can take a

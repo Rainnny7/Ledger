@@ -392,7 +392,7 @@ export class TdScraper implements BankClient {
 				type: "mfa_push",
 				prompt:
 					this.promptFrom(text) ||
-					"Approve the sign-in from the TD app on your phone.",
+					"Approve the login from the TD app on your phone.",
 			}
 		}
 		return null

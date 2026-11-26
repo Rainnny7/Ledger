@@ -75,12 +75,12 @@ export function SyncTime({
 	const nextLine = next
 		? `Next auto-sync ${formatTimestamp(next)} (${formatRelative(next)})`
 		: needsSignIn
-			? "Auto-sync is waiting for you to sign in with a two-factor code"
+			? "Auto-sync is waiting for you to log in with a two-factor code"
 			: error
 				? "Auto-sync is paused until this connection is fixed"
 				: !savedCredentials
-					? "No auto-sync: sign-in details aren’t saved, so it only refreshes when you do"
-					: "Auto-sync is waiting for you to sign in with a two-factor code"
+					? "No auto-sync: login details aren’t saved, so it only refreshes when you do"
+					: "Auto-sync is waiting for you to log in with a two-factor code"
 	return (
 		<Tooltip>
 			<TooltipTrigger

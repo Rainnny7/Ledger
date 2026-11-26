@@ -51,7 +51,7 @@ function clientAddress(
  * Checks every `/api/` request before anything is parsed: refuses oversized bodies, rejects
  * cross-site form posts (JSON requests are already blocked by CORS preflight), and stamps the
  * caller's address into a header the auth hooks read (replacing any client-sent copy, so it can't
- * be used to dodge the sign-in limits).
+ * be used to dodge the login limits).
  *
  * A chunked JSON body (no Content-Length) is refused outright; browsers always send the length
  * for the JSON bodies this app posts. Chunked statement uploads are capped by the server's

@@ -26,7 +26,7 @@ interface Props {
 	/** Re-read the full history instead of only what's new since the last sync. */
 	full?: boolean
 	onConnected?: (connectionId: string) => void
-	/** Offered on the pick screen: add TD history from statement files instead of signing in. */
+	/** Offered on the pick screen: add TD history from statement files instead of logging in. */
 	onUploadStatements?: () => void
 }
 

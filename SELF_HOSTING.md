@@ -1,6 +1,6 @@
 # Self-hosting Ledger
 
-Ledger is a single process: the built web app and API on one port (`3001` by default), with Playwright’s Chromium for TD EasyWeb sign-in.
+Ledger is a single process: the built web app and API on one port (`3001` by default), with Playwright’s Chromium for TD EasyWeb login.
 
 ## Table of contents
 
@@ -96,7 +96,7 @@ Enable with `systemctl enable --now ledger.service`. For Docker, prefer `docker 
 
 ## Reverse proxy
 
-Put TLS and your hostname in front of Ledger; set **`TRUST_PROXY=true`** so sign-in rate limits use the client IP from `X-Forwarded-For` (only safe when untrusted clients cannot reach the app directly).
+Put TLS and your hostname in front of Ledger; set **`TRUST_PROXY=true`** so login rate limits use the client IP from `X-Forwarded-For` (only safe when untrusted clients cannot reach the app directly).
 
 Set **`APP_URL`** to the public origin users open (e.g. `https://ledger.example.com`). Set **`PUBLIC_URL`** to the same value unless invoice share links or PayPal webhooks must use another public `https://` URL.
 
@@ -198,7 +198,7 @@ Review release notes before auto-upgrading production; database migrations are f
 
 | Symptom                                            | What to try                                                                                                                                                          |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TD sign-in hangs or Chromium crashes in Docker     | Confirm `shm_size: 1gb` (or `docker run --shm-size=1g`). Try `TD_HEADLESS=false` on a machine with a display, or `TD_BROWSER_CHANNEL=chrome` if Chrome is installed. |
+| TD login hangs or Chromium crashes in Docker     | Confirm `shm_size: 1gb` (or `docker run --shm-size=1g`). Try `TD_HEADLESS=false` on a machine with a display, or `TD_BROWSER_CHANNEL=chrome` if Chrome is installed. |
 | Port already in use                                | Change `PORT` and the published port mapping (`3001:3001`).                                                                                                          |
 | Everyone logged out / saved bank passwords invalid | Usually a new or changed `APP_SECRET`. Restore `data/.secret` or the previous env value; otherwise re-enter bank credentials.                                        |
 | PayPal webhooks never arrive                       | `PUBLIC_URL` must be a reachable public `https://` URL; reverse proxy must forward to Ledger.                                                                        |

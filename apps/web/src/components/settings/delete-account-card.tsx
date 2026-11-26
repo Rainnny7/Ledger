@@ -24,7 +24,7 @@ export function DeleteAccountCard() {
 				<CardTitle>Delete account</CardTitle>
 				<CardDescription>
 					Permanently delete your account and everything in it: linked
-					banks, saved bank sign-ins, accounts, transactions,
+					banks, saved bank logins, accounts, transactions,
 					categories and subscriptions. This can’t be undone.
 				</CardDescription>
 				<CardAction>

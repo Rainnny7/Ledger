@@ -95,7 +95,7 @@ async function refreshBanks(): Promise<string> {
 			continue
 		}
 		// The bank wanted a code last time. Trying again would only prompt the user's phone, so wait
-		// until they've signed in themselves (which moves last_synced_at on).
+		// until they've logged in themselves (which moves last_synced_at on).
 		if (getSetting(needsSignInKey(row.id)) === (row.lastSyncedAt ?? "")) {
 			counts.waiting++
 			continue
@@ -128,7 +128,7 @@ async function refreshBanks(): Promise<string> {
 		.run()
 
 	if (rows.length === 0) {
-		return "No connections with saved sign-in details"
+		return "No connections with saved login details"
 	}
 	const parts = [`Refreshed ${counts.synced} of ${rows.length}`]
 	if (counts.fresh) {
@@ -136,7 +136,7 @@ async function refreshBanks(): Promise<string> {
 	}
 	if (counts.needsSignIn + counts.waiting) {
 		parts.push(
-			`${counts.needsSignIn + counts.waiting} need a two-factor sign-in`
+			`${counts.needsSignIn + counts.waiting} need a two-factor login`
 		)
 	}
 	if (counts.failed) {
@@ -273,7 +273,7 @@ const TASKS: Task[] = [
 	{
 		id: "tidy-up",
 		label: "Tidy up",
-		description: "Removes expired sign-in sessions and one-time codes.",
+		description: "Removes expired login sessions and one-time codes.",
 		intervalMs: 24 * HOUR,
 		run: tidyUp,
 	},
@@ -315,7 +315,7 @@ export function listTasks() {
 
 /**
  * When the background refresh will next pick up a connection, or null when it won't on its own (no
- * saved sign-in, an error to fix, or the bank waiting on a two-factor code).
+ * saved login, an error to fix, or the bank waiting on a two-factor code).
  */
 export function nextAutoSyncAt(c: {
 	id: string

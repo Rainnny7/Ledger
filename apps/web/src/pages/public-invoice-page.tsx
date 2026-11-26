@@ -12,7 +12,7 @@ import { PublicInvoiceView } from "@/components/invoices/public/invoice-view"
 
 const key = (token: string) => ["public-invoice", token] as const
 
-/** The page the person you billed opens: the invoice, the PDF, and every way to pay. No sign-in. */
+/** The page the person you billed opens: the invoice, the PDF, and every way to pay. No login. */
 export function PublicInvoicePage() {
 	const { token = "" } = useParams({ strict: false })
 	const [back, setBack] = useQueryStates(

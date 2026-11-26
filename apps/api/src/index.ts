@@ -224,8 +224,8 @@ const apiNotFound = ({
 	status: (code: 404, body: object) => unknown
 }) => status(404, { error: "Not found" })
 
-/** Everything under /api/banks needs a signed-in user; unknown paths there answer 401 before 404. */
-const signedIn = new Elysia({ name: "signed-in-routes", prefix: "/api/banks" })
+/** Everything under /api/banks needs a logged-in user; unknown paths there answer 401 before 404. */
+const signedIn = new Elysia({ name: "logged-in-routes", prefix: "/api/banks" })
 	.use(sessionUser)
 	.use(banks)
 	.use(finance)
@@ -270,7 +270,7 @@ app.use(apiErrors)
 		{ parse: "none" }
 	)
 	.use(signedIn)
-	// Share links: anyone with the link can see that one invoice (and pay it), no sign-in.
+	// Share links: anyone with the link can see that one invoice (and pay it), no login.
 	.group("/api/public", (group) => group.use(publicInvoices))
 	// PayPal's instant updates. Each delivery is checked with PayPal before anything is done with it.
 	.post(
@@ -309,7 +309,7 @@ app.use(apiErrors)
 				hostname !== "127.0.0.1"
 			) {
 				console.warn(
-					`[security] APP_URL (${env.APP_URL}) is not https: sign-in cookies and passwords travel unencrypted.`
+					`[security] APP_URL (${env.APP_URL}) is not https: login cookies and passwords travel unencrypted.`
 				)
 			}
 			startScheduler()

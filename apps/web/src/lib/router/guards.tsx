@@ -12,9 +12,9 @@ const ChangeTemporaryPasswordPage = lazy(() =>
 
 /**
  * Set while this browser has a session, so a reload can put the app's header up straight away
- * instead of waiting on the session check. If the session turns out to be gone, it's off to sign in.
+ * instead of waiting on the session check. If the session turns out to be gone, it's off to log in.
  */
-const SIGNED_IN_KEY = "ledger.signed-in"
+const SIGNED_IN_KEY = "ledger.logged-in"
 
 function rememberSignedIn(signedIn: boolean) {
 	try {
@@ -36,7 +36,7 @@ function probablySignedIn() {
 	}
 }
 
-/** Sends signed-out visitors to sign-in; signed-in users continue (or pick a new password first). */
+/** Sends signed-out visitors to login; logged-in users continue (or pick a new password first). */
 export function RequireAuthLayout() {
 	const { data, isPending } = useSession()
 	useEffect(() => {
@@ -80,7 +80,7 @@ export function NotInDemoLayout() {
 	return <Outlet />
 }
 
-/** Sign-in and register are only for people who aren't already signed in. */
+/** Login and register are only for people who aren't already logged in. */
 export function GuestOnlyLayout() {
 	const { data, isPending } = useSession()
 	if (isPending) {

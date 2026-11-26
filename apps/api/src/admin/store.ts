@@ -77,7 +77,7 @@ export function emailOf(userId: string): string | null {
 	)
 }
 
-/** admin: something done from the Admin page. auth: signing in or out, passwords, 2FA, devices. */
+/** admin: something done from the Admin page. auth: logging in or out, passwords, 2FA, devices. */
 export type AuditKind = "admin" | "auth"
 
 /** One row written to the admin/auth audit log. */

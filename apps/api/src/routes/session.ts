@@ -4,10 +4,10 @@ import { apiErrors } from "../http/errors.ts"
 import { personaOf, userIdOf } from "../demo/personas.ts"
 import { ensureDemoData } from "../demo/seed.ts"
 
-/** The signed-in user as Better Auth reports them. */
+/** The logged-in user as Better Auth reports them. */
 export type SessionUser = typeof auth.$Infer.Session.user
 
-/** Signed in on a temporary password: only the change-password screen works until it's replaced. */
+/** Logged in on a temporary password: only the change-password screen works until it's replaced. */
 const mustChangePassword = (user: object) =>
 	(user as { mustChangePassword?: boolean }).mustChangePassword === true
 const PASSWORD_CHANGE_REQUIRED = {
@@ -16,7 +16,7 @@ const PASSWORD_CHANGE_REQUIRED = {
 }
 
 /**
- * Signed-in access to `/api/banks/*`: answers 401 without a session, 403 while a temporary
+ * Logged-in access to `/api/banks/*`: answers 401 without a session, 403 while a temporary
  * password is still in place, and otherwise provides `user` to every handler. Responses are never
  * cached. Demo mode (the X-Ledger-Demo header) swaps in the made-up demo user's id, read-only.
  */

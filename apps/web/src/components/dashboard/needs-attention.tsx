@@ -70,8 +70,8 @@ export function NeedsAttention({
 					id: `c:${connection.id}`,
 					icon: ShieldAlert,
 					tone: "danger",
-					title: `${connection.label} needs a two-factor sign-in`,
-					detail: "Auto-refresh is paused until you sign in once",
+					title: `${connection.label} needs a two-factor login`,
+					detail: "Auto-refresh is paused until you log in once",
 					to: "/",
 				})
 			}

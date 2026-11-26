@@ -47,7 +47,7 @@ export interface MfaOption {
 }
 
 /**
- * One sign-in conversation with a provider. Browser-driven banks implement every step; API-based
+ * One login conversation with a provider. Browser-driven banks implement every step; API-based
  * ones (PayPal) succeed or fail straight from `login` and never reach the 2FA steps.
  */
 export interface BankClient {

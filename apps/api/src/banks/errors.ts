@@ -49,7 +49,7 @@ function isScraperAuthMessage(message: string): boolean {
 export type BankErrorKind = "login" | "sync" | "connect"
 
 const GENERIC: Record<BankErrorKind, string> = {
-	login: "Could not complete sign-in. Check your credentials and try again.",
+	login: "Could not complete login. Check your credentials and try again.",
 	sync: "Could not read your accounts. Try connecting again.",
 	connect:
 		"Could not connect to your bank right now. Please try again in a few minutes.",
