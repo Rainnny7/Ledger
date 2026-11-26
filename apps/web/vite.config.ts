@@ -71,20 +71,45 @@ function gitHash(env: Record<string, string>) {
 const escapeForScript = (value: unknown) =>
 	JSON.stringify(value).replace(/</g, "\\u003c")
 
+/** Where the theme boot script is served. It's a file, not inline, because the production CSP forbids inline scripts. */
+const THEME_BOOT_PATH = "/theme-boot.js"
+
+function themeBootSource() {
+	const modes = Object.fromEntries(
+		MODES.map((mode) => [
+			mode.id,
+			[mode.className, mode.swatch[0], mode.dark],
+		])
+	)
+	const accents = Object.fromEntries(
+		ACCENT_IDS.map((id) => [id, accentClassName(id)])
+	)
+	return `(function(){try{var M=${escapeForScript(modes)},A=${escapeForScript(accents)},c=localStorage.getItem("theme")||"system",a=localStorage.getItem("accent");if(c==="system"||!M[c])c=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var m=M[c],r=document.documentElement;r.classList.add(m[0],A[A.hasOwnProperty(a)?a:${escapeForScript(DEFAULT_ACCENT)}]);r.style.colorScheme=m[2]?"dark":"light";r.style.backgroundColor=m[1]}catch(e){}})()`
+}
+
 const themeBoot = (): Plugin => ({
 	name: "theme-boot",
 	transformIndexHtml(html) {
-		const modes = Object.fromEntries(
-			MODES.map((mode) => [
-				mode.id,
-				[mode.className, mode.swatch[0], mode.dark],
-			])
+		return html.replace(
+			"<!-- %THEME_BOOT% -->",
+			`<script src="${THEME_BOOT_PATH}"></script>`
 		)
-		const accents = Object.fromEntries(
-			ACCENT_IDS.map((id) => [id, accentClassName(id)])
-		)
-		const script = `<script>(function(){try{var M=${escapeForScript(modes)},A=${escapeForScript(accents)},c=localStorage.getItem("theme")||"system",a=localStorage.getItem("accent");if(c==="system"||!M[c])c=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var m=M[c],r=document.documentElement;r.classList.add(m[0],A[A.hasOwnProperty(a)?a:${escapeForScript(DEFAULT_ACCENT)}]);r.style.colorScheme=m[2]?"dark":"light";r.style.backgroundColor=m[1]}catch(e){}})()</script>`
-		return html.replace("<!-- %THEME_BOOT% -->", script)
+	},
+	configureServer(server) {
+		server.middlewares.use((request, response, next) => {
+			if (request.url?.split("?")[0] !== THEME_BOOT_PATH) {
+				return next()
+			}
+			response.setHeader("Content-Type", "text/javascript; charset=utf-8")
+			response.end(themeBootSource())
+		})
+	},
+	generateBundle() {
+		this.emitFile({
+			type: "asset",
+			fileName: THEME_BOOT_PATH.slice(1),
+			source: themeBootSource(),
+		})
 	},
 })
 
