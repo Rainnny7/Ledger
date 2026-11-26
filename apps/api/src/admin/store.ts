@@ -7,7 +7,16 @@
  * owner out or quietly take over.
  */
 import { randomUUID } from "node:crypto"
-import { and, asc, desc, eq, notLike, sql, type SQL } from "drizzle-orm"
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	notLike,
+	sql,
+	type SQL,
+} from "drizzle-orm"
 import { db, getSetting, setSetting } from "../db/connection.ts"
 import { adminAudit, user } from "../db/schema/index.ts"
 import { isInstanceOwnerFor } from "./owner-gate.ts"
@@ -149,12 +158,20 @@ export interface AuditRow {
 	ip: string | null
 }
 
-/** Recent audit events, optionally filtered by kind. */
+/** Paginated audit events, optionally filtered by kind. */
 export function recentAudit({
 	kind,
-	limit = 100,
-}: { kind?: AuditKind; limit?: number } = {}) {
-	return db
+	limit = 25,
+	offset = 0,
+}: { kind?: AuditKind; limit?: number; offset?: number } = {}) {
+	const where = kind ? eq(adminAudit.kind, kind) : undefined
+	const total =
+		db
+			.select({ total: count() })
+			.from(adminAudit)
+			.where(where)
+			.get()?.total ?? 0
+	const entries = db
 		.select({
 			id: adminAudit.id,
 			at: adminAudit.at,
@@ -166,10 +183,12 @@ export function recentAudit({
 			ip: adminAudit.ip,
 		})
 		.from(adminAudit)
-		.where(kind ? eq(adminAudit.kind, kind) : undefined)
+		.where(where)
 		.orderBy(desc(adminAudit.at), sql`rowid DESC`)
 		.limit(limit)
+		.offset(offset)
 		.all() as AuditRow[]
+	return { entries, total }
 }
 
 /** Whether a user must replace a temporary password before using the app. */

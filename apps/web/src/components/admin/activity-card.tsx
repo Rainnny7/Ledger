@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
-import { History } from "lucide-react"
+import { ChevronLeft, ChevronRight, History } from "lucide-react"
 import { useState } from "react"
 import { Hint } from "@/components/common/hint"
+import { Button } from "@/components/ui/button"
 import {
 	Card,
 	CardAction,
@@ -30,19 +31,33 @@ interface AuditEntry {
 
 type AuditFilter = "all" | "admin" | "auth"
 
+const PAGE_SIZE = 25
+
 /** The audit log: admin changes and sign-ins. */
 export function ActivityCard() {
 	const [filter, setFilter] = useState<AuditFilter>("all")
-	const [showAll, setShowAll] = useState(false)
+	const [page, setPage] = useState(0)
 	const audit = useQuery({
-		queryKey: [...auditKey, filter],
-		queryFn: () =>
-			adminFetch<{ entries: AuditEntry[] }>(
-				filter === "all" ? "audit" : `audit?kind=${filter}`
-			),
+		queryKey: [...auditKey, filter, page],
+		queryFn: () => {
+			const params = new URLSearchParams({
+				limit: String(PAGE_SIZE),
+				offset: String(page * PAGE_SIZE),
+			})
+			if (filter !== "all") {
+				params.set("kind", filter)
+			}
+			return adminFetch<{ entries: AuditEntry[]; total: number }>(
+				`audit?${params}`
+			)
+		},
 	})
 	const entries = audit.data?.entries ?? []
-	const shown = showAll ? entries : entries.slice(0, 25)
+	const total = audit.data?.total ?? 0
+	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+	const rangeStart = total === 0 ? 0 : page * PAGE_SIZE + 1
+	const rangeEnd = Math.min((page + 1) * PAGE_SIZE, total)
+
 	return (
 		<Card>
 			<CardHeader>
@@ -57,9 +72,12 @@ export function ActivityCard() {
 				<CardAction>
 					<ToggleGroup
 						value={[filter]}
-						onValueChange={(values) =>
-							values[0] && setFilter(values[0] as AuditFilter)
-						}
+						onValueChange={(values) => {
+							if (values[0]) {
+								setFilter(values[0] as AuditFilter)
+								setPage(0)
+							}
+						}}
 						variant="outline"
 						size="sm"
 					>
@@ -77,14 +95,14 @@ export function ActivityCard() {
 						onRetry={() => void audit.refetch()}
 					/>
 				)}
-				{audit.data && entries.length === 0 && (
+				{audit.data && total === 0 && (
 					<p className="text-sm text-muted-foreground">
 						Nothing yet.
 					</p>
 				)}
 				{entries.length > 0 && (
 					<ul className="grid gap-0.5 text-sm">
-						{shown.map((entry) => {
+						{entries.map((entry) => {
 							const failed = entry.action.endsWith("(failed)")
 							return (
 								<li
@@ -125,14 +143,47 @@ export function ActivityCard() {
 						})}
 					</ul>
 				)}
-				{entries.length > 25 && (
-					<button
-						type="button"
-						className="mt-2 text-xs font-medium text-primary hover:underline"
-						onClick={() => setShowAll((visible) => !visible)}
-					>
-						{showAll ? "Show less" : `Show all ${entries.length}`}
-					</button>
+				{total > PAGE_SIZE && (
+					<div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+						<p className="text-xs text-muted-foreground">
+							{rangeStart.toLocaleString()}–
+							{rangeEnd.toLocaleString()} of{" "}
+							{total.toLocaleString()}
+						</p>
+						<div className="flex items-center gap-1">
+							<Button
+								variant="outline"
+								size="icon-sm"
+								aria-label="Previous page"
+								disabled={page === 0 || audit.isFetching}
+								onClick={() =>
+									setPage((current) =>
+										Math.max(0, current - 1)
+									)
+								}
+							>
+								<ChevronLeft className="size-4" />
+							</Button>
+							<span className="min-w-16 text-center text-xs text-muted-foreground">
+								{page + 1} / {totalPages}
+							</span>
+							<Button
+								variant="outline"
+								size="icon-sm"
+								aria-label="Next page"
+								disabled={
+									page >= totalPages - 1 || audit.isFetching
+								}
+								onClick={() =>
+									setPage((current) =>
+										Math.min(totalPages - 1, current + 1)
+									)
+								}
+							>
+								<ChevronRight className="size-4" />
+							</Button>
+						</div>
+					</div>
 				)}
 			</CardContent>
 		</Card>

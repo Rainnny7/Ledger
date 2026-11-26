@@ -53,8 +53,16 @@ const taskParam = z.object({
 	id: z.enum(["bank-refresh", "fx-rates", "backup", "tidy-up"]),
 })
 const backupNameParam = z.object({ name: boundedString(120) })
+const AUDIT_PAGE_SIZE = 25
 const auditQuery = z.object({
 	kind: z.enum(["admin", "auth"]).optional(),
+	limit: z.coerce
+		.number()
+		.int()
+		.min(1)
+		.max(200)
+		.default(AUDIT_PAGE_SIZE),
+	offset: z.coerce.number().int().min(0).default(0),
 })
 
 /** Instance settings for admins. User management itself goes through Better Auth's /api/auth/admin/*. */
@@ -197,9 +205,12 @@ admin.get(
 )
 admin.get(
 	"/audit",
-	({ query }) => ({
-		entries: recentAudit({ kind: query.kind, limit: 200 }),
-	}),
+	({ query }) =>
+		recentAudit({
+			kind: query.kind,
+			limit: query.limit,
+			offset: query.offset,
+		}),
 	{ query: auditQuery }
 )
 
