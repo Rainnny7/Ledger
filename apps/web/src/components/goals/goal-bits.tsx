@@ -1,3 +1,4 @@
+import { m, useReducedMotion } from "motion/react"
 import { createElement } from "react"
 import { Money } from "@/components/common/money"
 import {
@@ -43,9 +44,14 @@ export function GoalRing({
 	stroke?: number
 	className?: string
 }) {
+	const reduceMotion = useReducedMotion()
 	const radius = (size - stroke) / 2
 	const len = 2 * Math.PI * radius
 	const color = goalColor(goal.color)
+	const progressTransition = {
+		duration: reduceMotion ? 0 : 0.7,
+		ease: "easeOut" as const,
+	}
 	return (
 		<div
 			className={cn("relative shrink-0", className)}
@@ -66,7 +72,7 @@ export function GoalRing({
 					strokeWidth={stroke}
 					className="stroke-muted"
 				/>
-				<circle
+				<m.circle
 					cx={size / 2}
 					cy={size / 2}
 					r={radius}
@@ -75,8 +81,9 @@ export function GoalRing({
 					strokeWidth={stroke}
 					strokeLinecap="round"
 					strokeDasharray={len}
-					strokeDashoffset={len * (1 - goal.progress)}
-					className="transition-[stroke-dashoffset] duration-700 ease-out"
+					initial={{ strokeDashoffset: len }}
+					animate={{ strokeDashoffset: len * (1 - goal.progress) }}
+					transition={progressTransition}
 				/>
 			</svg>
 			<span className="absolute inset-0 grid place-items-center text-sm font-semibold tabular-nums">
@@ -94,6 +101,8 @@ export function GoalBar({
 	goal: Pick<Goal, "progress" | "color">
 	className?: string
 }) {
+	const reduceMotion = useReducedMotion()
+	const widthPercent = `${Math.max(goal.progress > 0 ? 2 : 0, goal.progress * 100)}%`
 	return (
 		<div
 			className={cn(
@@ -101,11 +110,14 @@ export function GoalBar({
 				className
 			)}
 		>
-			<div
-				className="h-full rounded-full transition-[width] duration-700 ease-out"
-				style={{
-					width: `${Math.max(goal.progress > 0 ? 2 : 0, goal.progress * 100)}%`,
-					backgroundColor: goalColor(goal.color),
+			<m.div
+				className="h-full rounded-full"
+				style={{ backgroundColor: goalColor(goal.color) }}
+				initial={{ width: "0%" }}
+				animate={{ width: widthPercent }}
+				transition={{
+					duration: reduceMotion ? 0 : 0.7,
+					ease: "easeOut",
 				}}
 			/>
 		</div>

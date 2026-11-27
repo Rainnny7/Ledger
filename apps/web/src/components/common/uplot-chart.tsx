@@ -13,6 +13,42 @@ import "@/components/common/uplot-chart.css"
 import { Button } from "@/components/ui/button"
 import { cn } from "cn"
 
+/** How long the series take to sweep in from the left on first render and on new data. */
+const REVEAL_DURATION_MILLISECONDS = 800
+
+/**
+ * Sweeps a chart's series in from left to right by animating `progressRef` from 0 to 1 and
+ * repainting each frame; the clip itself is applied by the `drawAxes`/`draw` hooks, so axes,
+ * grid and labels stay put. Skipped (progress jumps to 1) when the user prefers reduced motion.
+ */
+function animateReveal(
+	chart: uPlot,
+	progressRef: { current: number },
+	frameRef: { current: number | null }
+) {
+	if (frameRef.current != null) {
+		cancelAnimationFrame(frameRef.current)
+		frameRef.current = null
+	}
+	if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+		progressRef.current = 1
+		return
+	}
+	const startTime = performance.now()
+	progressRef.current = 0
+	const step = (now: number) => {
+		const linear = Math.min(
+			1,
+			(now - startTime) / REVEAL_DURATION_MILLISECONDS
+		)
+		// Cubic ease-out: fast start, gentle settle.
+		progressRef.current = 1 - (1 - linear) ** 3
+		chart.redraw(false, false)
+		frameRef.current = linear < 1 ? requestAnimationFrame(step) : null
+	}
+	frameRef.current = requestAnimationFrame(step)
+}
+
 /** Colours and font a chart needs, read from the active theme's CSS variables. */
 export type ChartTheme = {
 	/** Money in / balance hue. */
@@ -119,6 +155,11 @@ export function UPlotChart({
 	const chartRef = useRef<uPlot | null>(null)
 	const dataRef = useRef(data)
 	const fullRangeRef = useRef<[number, number] | null>(null)
+	// Share of the plot width (0..1) the series are drawn across; animated by animateReveal.
+	const revealProgressRef = useRef(1)
+	const revealFrameRef = useRef<number | null>(null)
+	// The reveal plays on the first build only, not when a theme switch or resize rebuilds it.
+	const hasRevealedRef = useRef(false)
 	const [hoverIndex, setHoverIndex] = useState<number | null>(null)
 	const [zoomed, setZoomed] = useState(false)
 
@@ -200,6 +241,25 @@ export function UPlotChart({
 					drag: { x: true, y: false, setScale: false },
 				},
 				hooks: {
+					// Clip the series (drawn between these two hooks) to the revealed share of the plot.
+					drawAxes: [
+						(drawing) => {
+							drawing.ctx.save()
+							if (revealProgressRef.current < 1) {
+								drawing.ctx.beginPath()
+								drawing.ctx.rect(
+									0,
+									0,
+									drawing.bbox.left +
+										drawing.bbox.width *
+											revealProgressRef.current,
+									drawing.ctx.canvas.height
+								)
+								drawing.ctx.clip()
+							}
+						},
+					],
+					draw: [(drawing) => drawing.ctx.restore()],
 					setCursor: [showHover],
 					setSelect: [
 						(selecting) => {
@@ -224,6 +284,10 @@ export function UPlotChart({
 			host
 		)
 		chartRef.current = chart
+		if (!hasRevealedRef.current) {
+			hasRevealedRef.current = true
+			animateReveal(chart, revealProgressRef, revealFrameRef)
+		}
 		fullRangeRef.current = [
 			chart.scales.x.min ?? 0,
 			chart.scales.x.max ?? 0,
@@ -251,6 +315,11 @@ export function UPlotChart({
 
 		return () => {
 			observer.disconnect()
+			if (revealFrameRef.current != null) {
+				cancelAnimationFrame(revealFrameRef.current)
+				revealFrameRef.current = null
+				revealProgressRef.current = 1
+			}
 			chart.destroy()
 			chartRef.current = null
 		}
@@ -264,6 +333,8 @@ export function UPlotChart({
 			return
 		}
 		chart.setData(data)
+		// A new range (e.g. a time-range switch) sweeps in like the first render.
+		animateReveal(chart, revealProgressRef, revealFrameRef)
 		fullRangeRef.current = [
 			chart.scales.x.min ?? 0,
 			chart.scales.x.max ?? 0,
