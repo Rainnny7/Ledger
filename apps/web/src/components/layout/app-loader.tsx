@@ -28,11 +28,14 @@ function LoaderText() {
 	useEffect(() => {
 		let timer: number
 		const schedule = () => {
-			timer = window.setTimeout(() => {
-				setMessage(currentMessage())
-				setSwapped(true)
-				schedule()
-			}, PERIOD_MS - (performance.now() % PERIOD_MS))
+			timer = window.setTimeout(
+				() => {
+					setMessage(currentMessage())
+					setSwapped(true)
+					schedule()
+				},
+				PERIOD_MS - (performance.now() % PERIOD_MS)
+			)
 		}
 		schedule()
 		return () => window.clearTimeout(timer)

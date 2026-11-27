@@ -229,13 +229,13 @@ export function ApiKeysCard() {
 							type="submit"
 							disabled={creating || !name.trim()}
 						>
-						{creating ? (
-							<Loader2 className="animate-spin" />
-						) : (
-							<PlusIcon size={24} className="flex" />
-						)}{" "}
-						Create key
-					</Button>
+							{creating ? (
+								<Loader2 className="animate-spin" />
+							) : (
+								<PlusIcon size={24} className="flex" />
+							)}{" "}
+							Create key
+						</Button>
 					</div>
 				</form>
 				{keys.error && !keys.data && (

@@ -55,98 +55,105 @@ export function TaxCategoryCard({
 					</p>
 				) : (
 					<div className="overflow-x-auto">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead className="pl-4">Category</TableHead>
-								<TableHead className="text-right">In</TableHead>
-								<TableHead className="text-right">
-									Out
-								</TableHead>
-								<TableHead className="pr-4 text-right">
-									<span className="inline-flex items-center gap-1 text-primary">
-										<BriefcaseBusiness className="size-3.5" />{" "}
-										Business
-									</span>
-								</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{report.byCategory.map((line) => {
-								const business =
-									line.businessOut || line.businessIn
-								return (
-									<TableRow
-										key={line.category}
-										className="cursor-pointer"
-									>
-										<TableCell className="pl-4">
-											<Link
-												{...hrefTarget(
-													txLink({
-														category: line.category,
-													})
-												)}
-												className="flex items-center gap-2.5"
-											>
-												<CategoryIcon
-													category={line.category}
-													className="print:hidden"
-												/>
-												<span className="min-w-0">
-													<span className="block truncate font-medium">
-														{
-															CATEGORY_META[
-																line.category
-															].label
-														}
-													</span>
-													<span className="block text-xs text-muted-foreground">
-														{line.count} transaction
-														{line.count === 1
-															? ""
-															: "s"}
-													</span>
-												</span>
-											</Link>
-										</TableCell>
-										<TableCell className="text-right tabular-nums">
-											{line.moneyIn
-												? formatMoney(
-														line.moneyIn,
-														home
-													)
-												: "—"}
-										</TableCell>
-										<TableCell className="text-right tabular-nums">
-											{line.moneyOut
-												? formatMoney(
-														line.moneyOut,
-														home
-													)
-												: "—"}
-										</TableCell>
-										<TableCell
-											className={cn(
-												"pr-4 text-right tabular-nums",
-												business
-													? "font-medium text-primary"
-													: "text-muted-foreground"
-											)}
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead className="pl-4">
+										Category
+									</TableHead>
+									<TableHead className="text-right">
+										In
+									</TableHead>
+									<TableHead className="text-right">
+										Out
+									</TableHead>
+									<TableHead className="pr-4 text-right">
+										<span className="inline-flex items-center gap-1 text-primary">
+											<BriefcaseBusiness className="size-3.5" />{" "}
+											Business
+										</span>
+									</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{report.byCategory.map((line) => {
+									const business =
+										line.businessOut || line.businessIn
+									return (
+										<TableRow
+											key={line.category}
+											className="cursor-pointer"
 										>
-											{business
-												? formatMoney(
-														line.businessOut ||
-															line.businessIn,
-														home
-													)
-												: "—"}
-										</TableCell>
-									</TableRow>
-								)
-							})}
-						</TableBody>
-					</Table>
+											<TableCell className="pl-4">
+												<Link
+													{...hrefTarget(
+														txLink({
+															category:
+																line.category,
+														})
+													)}
+													className="flex items-center gap-2.5"
+												>
+													<CategoryIcon
+														category={line.category}
+														className="print:hidden"
+													/>
+													<span className="min-w-0">
+														<span className="block truncate font-medium">
+															{
+																CATEGORY_META[
+																	line
+																		.category
+																].label
+															}
+														</span>
+														<span className="block text-xs text-muted-foreground">
+															{line.count}{" "}
+															transaction
+															{line.count === 1
+																? ""
+																: "s"}
+														</span>
+													</span>
+												</Link>
+											</TableCell>
+											<TableCell className="text-right tabular-nums">
+												{line.moneyIn
+													? formatMoney(
+															line.moneyIn,
+															home
+														)
+													: "—"}
+											</TableCell>
+											<TableCell className="text-right tabular-nums">
+												{line.moneyOut
+													? formatMoney(
+															line.moneyOut,
+															home
+														)
+													: "—"}
+											</TableCell>
+											<TableCell
+												className={cn(
+													"pr-4 text-right tabular-nums",
+													business
+														? "font-medium text-primary"
+														: "text-muted-foreground"
+												)}
+											>
+												{business
+													? formatMoney(
+															line.businessOut ||
+																line.businessIn,
+															home
+														)
+													: "—"}
+											</TableCell>
+										</TableRow>
+									)
+								})}
+							</TableBody>
+						</Table>
 					</div>
 				)}
 			</CardContent>

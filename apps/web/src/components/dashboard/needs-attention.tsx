@@ -66,7 +66,7 @@ export function NeedsAttention({
 					tone: "danger",
 					title: `${connection.label} isn’t syncing`,
 					detail: connection.lastError,
-					to: `/#connection-${connection.id}`
+					to: `/#connection-${connection.id}`,
 				})
 			} else if (connection.needsSignIn) {
 				out.push({
@@ -75,7 +75,7 @@ export function NeedsAttention({
 					tone: "danger",
 					title: `${connection.label} needs a two-factor login`,
 					detail: "Auto-refresh is paused until you log in once",
-					to: `/#connection-${connection.id}`
+					to: `/#connection-${connection.id}`,
 				})
 			}
 		}

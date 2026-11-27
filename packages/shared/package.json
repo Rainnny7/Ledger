@@ -1,17 +1,17 @@
 {
-  "name": "@ledger/shared",
-  "version": "1.0.1",
-  "private": true,
-  "type": "module",
-  "exports": {
-    "./*": "./src/*.ts"
-  },
-  "scripts": {
-    "typecheck": "tsc",
-    "test": "bun test"
-  },
-  "devDependencies": {
-    "@types/bun": "^1.4.5",
-    "typescript": "~7.0.2"
-  }
+	"name": "@ledger/shared",
+	"version": "1.0.1",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./*": "./src/*.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc",
+		"test": "bun test"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.4.5",
+		"typescript": "~7.0.2"
+	}
 }

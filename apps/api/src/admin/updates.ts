@@ -97,7 +97,10 @@ export function pickNewestDevBranch(branchNames: string[]): string | null {
 		if (
 			DEV_BRANCH_PATTERN.test(name) &&
 			(newest === null ||
-				semverNewer(name.slice("ver/".length), newest.slice("ver/".length)))
+				semverNewer(
+					name.slice("ver/".length),
+					newest.slice("ver/".length)
+				))
 		) {
 			newest = name
 		}
@@ -130,10 +133,7 @@ export function installCommands(
 function baseInfo(
 	channel: ReleaseChannel,
 	imageTag: string | null
-): Omit<
-	UpdateInfo,
-	"latest" | "available" | "url" | "notes" | "publishedAt"
-> {
+): Omit<UpdateInfo, "latest" | "available" | "url" | "notes" | "publishedAt"> {
 	const install: UpdateInstall = env.LEDGER_INSTALL
 	return {
 		current: readCurrentVersion(),

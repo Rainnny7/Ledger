@@ -166,14 +166,14 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							setQuery(next)
 							changed()
 						}}
-						className="col-span-2 min-w-0 w-full md:col-span-1 md:min-w-48 md:flex-1"
+						className="col-span-2 w-full min-w-0 md:col-span-1 md:min-w-48 md:flex-1"
 					/>
 					<TransactionsFilterSelect
 						label="Account"
 						items={accountItems}
 						value={accountId}
 						onChange={(next) => (setAccountId(next), changed())}
-						className="min-w-0 w-full md:w-44"
+						className="w-full min-w-0 md:w-44"
 					/>
 					<TransactionsFilterSelect
 						label="Period"
@@ -189,7 +189,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							setPeriod(next as RangeKey)
 							changed()
 						}}
-						className="min-w-0 w-full md:w-36"
+						className="w-full min-w-0 md:w-36"
 					/>
 					<TransactionsFilterSelect
 						label="Category"
@@ -199,7 +199,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							setCategory(next as Category | "all"),
 							changed()
 						)}
-						className="min-w-0 w-full md:w-44"
+						className="w-full min-w-0 md:w-44"
 					/>
 					<TransactionsFilterSelect
 						label="Tax Tag"
@@ -209,7 +209,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							setTag(next as typeof tag),
 							changed()
 						)}
-						className="min-w-0 w-full md:w-36"
+						className="w-full min-w-0 md:w-36"
 					/>
 					<Tabs
 						value={flow}

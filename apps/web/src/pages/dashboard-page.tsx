@@ -242,7 +242,9 @@ export function DashboardPage() {
 						prompt={`Summarize my finances for this calendar month. Net worth about ${formatMoney(net, converter.home)}, spending ${formatMoney(spend.now, converter.home)} so far vs ${formatMoney(spend.prev, converter.home)} on the same days last month. Call out top categories, subscriptions due soon, and goals progress.`}
 					/>
 					<Button
-						onClick={() => setDialog({ open: true, connection: null })}
+						onClick={() =>
+							setDialog({ open: true, connection: null })
+						}
 					>
 						<PlusIcon size={24} className="flex" /> Add account
 					</Button>

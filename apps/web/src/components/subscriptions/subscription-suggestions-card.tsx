@@ -72,7 +72,10 @@ export function SubscriptionSuggestionsCard({
 							</div>
 						</div>
 						<div className="flex shrink-0 items-center gap-0.5">
-							<Button size="sm" onClick={() => onTrack(suggestion)}>
+							<Button
+								size="sm"
+								onClick={() => onTrack(suggestion)}
+							>
 								Track
 							</Button>
 							<Button

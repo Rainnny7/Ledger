@@ -30,7 +30,10 @@ function BootLoader() {
 	const [resolved, setResolved] = useState(false)
 	useEffect(() => {
 		const markResolved = () => {
-			if (router.state.status === "idle" && router.state.matches.length > 0) {
+			if (
+				router.state.status === "idle" &&
+				router.state.matches.length > 0
+			) {
 				setResolved(true)
 			}
 		}

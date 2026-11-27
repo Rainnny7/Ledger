@@ -66,101 +66,112 @@ export function TaxPeriodCard({
 					</p>
 				) : (
 					<div className="overflow-x-auto">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead className="pl-4">
-									{view === "months" ? "Month" : "Quarter"}
-								</TableHead>
-								<TableHead className="text-right">In</TableHead>
-								<TableHead className="text-right">
-									Out
-								</TableHead>
-								<TableHead className="pr-4 text-right">
-									Net
-								</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{(view === "months"
-								? report.byMonth.map((month) => ({
-										key: month.month,
-										label: monthName(month.month),
-										...month,
-									}))
-								: quarters(report.byMonth).map((quarter) => ({
-										key: quarter.quarter,
-										label: quarter.quarter.slice(5),
-										...quarter,
-									}))
-							).map((row) => {
-								const net = row.moneyIn - row.moneyOut
-								return (
-									<TableRow key={row.key}>
-										<TableCell className="pl-4 font-medium">
-											{row.label}
-										</TableCell>
-										<TableCell className="text-right tabular-nums">
-											{formatMoney(row.moneyIn, home)}
-										</TableCell>
-										<TableCell className="text-right tabular-nums">
-											{formatMoney(row.moneyOut, home)}
-										</TableCell>
-										<TableCell
-											className={cn(
-												"pr-4 text-right tabular-nums",
-												net < 0
-													? "text-destructive"
-													: "text-emerald-600 dark:text-emerald-400"
-											)}
-										>
-											{formatMoney(net, home, {
-												sign: true,
-											})}
-										</TableCell>
-									</TableRow>
-								)
-							})}
-						</TableBody>
-						<TableFooter>
-							<TableRow>
-								<TableCell className="pl-4">Total</TableCell>
-								<TableCell className="text-right tabular-nums">
-									{formatMoney(
-										report.byMonth.reduce(
-											(total, month) =>
-												total + month.moneyIn,
-											0
-										),
-										home
-									)}
-								</TableCell>
-								<TableCell className="text-right tabular-nums">
-									{formatMoney(
-										report.byMonth.reduce(
-											(total, month) =>
-												total + month.moneyOut,
-											0
-										),
-										home
-									)}
-								</TableCell>
-								<TableCell className="pr-4 text-right tabular-nums">
-									{formatMoney(
-										report.byMonth.reduce(
-											(total, month) =>
-												total +
-												month.moneyIn -
-												month.moneyOut,
-											0
-										),
-										home,
-										{ sign: true }
-									)}
-								</TableCell>
-							</TableRow>
-						</TableFooter>
-					</Table>
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead className="pl-4">
+										{view === "months"
+											? "Month"
+											: "Quarter"}
+									</TableHead>
+									<TableHead className="text-right">
+										In
+									</TableHead>
+									<TableHead className="text-right">
+										Out
+									</TableHead>
+									<TableHead className="pr-4 text-right">
+										Net
+									</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{(view === "months"
+									? report.byMonth.map((month) => ({
+											key: month.month,
+											label: monthName(month.month),
+											...month,
+										}))
+									: quarters(report.byMonth).map(
+											(quarter) => ({
+												key: quarter.quarter,
+												label: quarter.quarter.slice(5),
+												...quarter,
+											})
+										)
+								).map((row) => {
+									const net = row.moneyIn - row.moneyOut
+									return (
+										<TableRow key={row.key}>
+											<TableCell className="pl-4 font-medium">
+												{row.label}
+											</TableCell>
+											<TableCell className="text-right tabular-nums">
+												{formatMoney(row.moneyIn, home)}
+											</TableCell>
+											<TableCell className="text-right tabular-nums">
+												{formatMoney(
+													row.moneyOut,
+													home
+												)}
+											</TableCell>
+											<TableCell
+												className={cn(
+													"pr-4 text-right tabular-nums",
+													net < 0
+														? "text-destructive"
+														: "text-emerald-600 dark:text-emerald-400"
+												)}
+											>
+												{formatMoney(net, home, {
+													sign: true,
+												})}
+											</TableCell>
+										</TableRow>
+									)
+								})}
+							</TableBody>
+							<TableFooter>
+								<TableRow>
+									<TableCell className="pl-4">
+										Total
+									</TableCell>
+									<TableCell className="text-right tabular-nums">
+										{formatMoney(
+											report.byMonth.reduce(
+												(total, month) =>
+													total + month.moneyIn,
+												0
+											),
+											home
+										)}
+									</TableCell>
+									<TableCell className="text-right tabular-nums">
+										{formatMoney(
+											report.byMonth.reduce(
+												(total, month) =>
+													total + month.moneyOut,
+												0
+											),
+											home
+										)}
+									</TableCell>
+									<TableCell className="pr-4 text-right tabular-nums">
+										{formatMoney(
+											report.byMonth.reduce(
+												(total, month) =>
+													total +
+													month.moneyIn -
+													month.moneyOut,
+												0
+											),
+											home,
+											{ sign: true }
+										)}
+									</TableCell>
+								</TableRow>
+							</TableFooter>
+						</Table>
 					</div>
 				)}
 			</CardContent>

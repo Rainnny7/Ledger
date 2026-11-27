@@ -257,7 +257,10 @@ export function ChangePasswordCard() {
 							</Label>
 							<div className="flex items-center gap-2">
 								<SavedIndicator saved={saved} />
-								<Button type="submit" disabled={busy || !setValid}>
+								<Button
+									type="submit"
+									disabled={busy || !setValid}
+								>
 									{busy && (
 										<Loader2 className="animate-spin" />
 									)}{" "}

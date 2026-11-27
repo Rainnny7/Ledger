@@ -7,16 +7,7 @@
  * owner out or quietly take over.
  */
 import { randomUUID } from "node:crypto"
-import {
-	and,
-	asc,
-	count,
-	desc,
-	eq,
-	notLike,
-	sql,
-	type SQL,
-} from "drizzle-orm"
+import { and, asc, count, desc, eq, notLike, sql, type SQL } from "drizzle-orm"
 import { db, getSetting, setSetting } from "../db/connection.ts"
 import { adminAudit, user } from "../db/schema/index.ts"
 import type { ReleaseChannel } from "./updates.ts"
@@ -167,11 +158,8 @@ export function recentAudit({
 }: { kind?: AuditKind; limit?: number; offset?: number } = {}) {
 	const where = kind ? eq(adminAudit.kind, kind) : undefined
 	const total =
-		db
-			.select({ total: count() })
-			.from(adminAudit)
-			.where(where)
-			.get()?.total ?? 0
+		db.select({ total: count() }).from(adminAudit).where(where).get()
+			?.total ?? 0
 	const entries = db
 		.select({
 			id: adminAudit.id,

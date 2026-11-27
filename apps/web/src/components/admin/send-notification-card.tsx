@@ -51,7 +51,11 @@ export function SendNotificationCard() {
 		queryKey: usersKey,
 		queryFn: async () => {
 			const { data, error } = await authClient.admin.listUsers({
-				query: { limit: 500, sortBy: "createdAt", sortDirection: "asc" },
+				query: {
+					limit: 500,
+					sortBy: "createdAt",
+					sortDirection: "asc",
+				},
 			})
 			if (error) {
 				throw new Error(error.message ?? "Could not load users")
@@ -63,8 +67,7 @@ export function SendNotificationCard() {
 	})
 	const smtp = useQuery({
 		queryKey: smtpKey,
-		queryFn: () =>
-			adminFetch<{ configured: boolean }>("smtp"),
+		queryFn: () => adminFetch<{ configured: boolean }>("smtp"),
 	})
 	const [audience, setAudience] = useState<"all" | "pick">("all")
 	const [picked, setPicked] = useState<string[]>([])
@@ -105,7 +108,9 @@ export function SendNotificationCard() {
 					email: emailAlso,
 				}),
 			})
-			toast.success(`Sent to ${result.sent} user${result.sent === 1 ? "" : "s"}`)
+			toast.success(
+				`Sent to ${result.sent} user${result.sent === 1 ? "" : "s"}`
+			)
 			flash()
 			setTitle("")
 			setBody("")
@@ -126,7 +131,8 @@ export function SendNotificationCard() {
 					Send Notification
 				</CardTitle>
 				<CardDescription>
-					Deliver an in-app notification to everyone or specific people.
+					Deliver an in-app notification to everyone or specific
+					people.
 				</CardDescription>
 				<CardAction className="flex items-center gap-2">
 					<SavedIndicator saved={saved} />
@@ -135,9 +141,7 @@ export function SendNotificationCard() {
 						disabled={sending || !!users.error}
 						onClick={() => void send()}
 					>
-						{sending ? (
-							<Loader2 className="animate-spin" />
-						) : null}
+						{sending ? <Loader2 className="animate-spin" /> : null}
 						Send
 					</Button>
 				</CardAction>

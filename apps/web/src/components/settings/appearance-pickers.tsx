@@ -201,8 +201,7 @@ export function AppearanceAccentPicker() {
 							style={{
 								background: `linear-gradient(135deg, ${entry.light} 50%, ${entry.dark} 50%)`,
 							}}
-						>
-						</button>
+						></button>
 					)
 				})}
 			</div>

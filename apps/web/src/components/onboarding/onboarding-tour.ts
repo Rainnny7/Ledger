@@ -8,7 +8,8 @@ const TOUR_STEP_DEFINITIONS: {
 	{
 		element: '[data-tour="nav-bank-accounts"]',
 		title: "Bank Accounts",
-		description: "Your linked accounts, balances, and overdraft at a glance.",
+		description:
+			"Your linked accounts, balances, and overdraft at a glance.",
 	},
 	{
 		element: '[data-tour="nav-transactions"]',

@@ -8,7 +8,9 @@ export function RoutePage({ children }: { children: ReactNode }) {
 	const location = useLocation()
 	return (
 		<ErrorBoundary resetKey={location.pathname}>
-			<Suspense fallback={<AppLoader inPage={pageShown} delayed={pageShown} />}>
+			<Suspense
+				fallback={<AppLoader inPage={pageShown} delayed={pageShown} />}
+			>
 				<PageShown />
 				{children}
 			</Suspense>

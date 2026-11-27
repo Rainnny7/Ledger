@@ -99,7 +99,9 @@ export function ReleaseChannelCard() {
 					<SelectTrigger
 						aria-label="Release Channel"
 						disabled={
-							busy || settings.isPending || info?.install !== "docker"
+							busy ||
+							settings.isPending ||
+							info?.install !== "docker"
 						}
 					>
 						<SelectValue />
@@ -133,8 +135,9 @@ export function ReleaseChannelCard() {
 						) : (
 							<p className="text-xs text-muted-foreground">
 								One-click switching needs the Docker socket
-								mounted into the container (see SELF_HOSTING.md).
-								Without it, run these on the server:
+								mounted into the container (see
+								SELF_HOSTING.md). Without it, run these on the
+								server:
 							</p>
 						)}
 						{!info.canSwitch ? (
@@ -164,9 +167,9 @@ export function ReleaseChannelCard() {
 					</div>
 				) : (
 					<p className="text-xs text-muted-foreground">
-						Release channels only apply to Docker installs. From-source
-						installs update with git: check out the branch you want,
-						then pull and rebuild.
+						Release channels only apply to Docker installs.
+						From-source installs update with git: check out the
+						branch you want, then pull and rebuild.
 					</p>
 				)}
 			</CardContent>

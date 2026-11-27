@@ -2,10 +2,7 @@ import assert from "node:assert/strict"
 import { before, test } from "node:test"
 import { db, runMigrations, setSetting } from "../../src/db/connection.ts"
 import { notification, user } from "../../src/db/schema/index.ts"
-import {
-	getSmtpConfig,
-	saveSmtpConfig,
-} from "../../src/mail/smtp.ts"
+import { getSmtpConfig, saveSmtpConfig } from "../../src/mail/smtp.ts"
 import {
 	countUnread,
 	listNotifications,
@@ -79,9 +76,7 @@ test("mail failure does not block notifyUser", async () => {
 		email: true,
 	})
 	assert.equal(listNotifications(U1).length, priorCount + 1)
-	setNotificationMailSender(
-		(await import("../../src/mail/smtp.ts")).sendMail
-	)
+	setNotificationMailSender((await import("../../src/mail/smtp.ts")).sendMail)
 })
 
 test("getSmtpConfig never returns the password", () => {

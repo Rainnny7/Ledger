@@ -76,7 +76,9 @@
 	--input: oklch(0.9 0.006 320);
 	--ring: #a8680a;
 	--chart-1: var(--primary); /* money in / balance: the accent */
-	--chart-2: oklch(from var(--primary) l c calc(h + 180)); /* money out: the accent's complement, same lightness and chroma */
+	--chart-2: oklch(
+		from var(--primary) l c calc(h + 180)
+	); /* money out: the accent's complement, same lightness and chroma */
 	--chart-3: #7c4dcc;
 	--chart-4: #f08a24;
 	--chart-5: #f2c230;
@@ -440,8 +442,8 @@
 	::before,
 	::after {
 		transition-property:
-			color, background-color, border-color, outline-color, text-decoration-color, fill, stroke,
-			box-shadow, opacity;
+			color, background-color, border-color, outline-color,
+			text-decoration-color, fill, stroke, box-shadow, opacity;
 		transition-duration: 200ms;
 		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 	}

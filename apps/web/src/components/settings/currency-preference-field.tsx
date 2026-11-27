@@ -56,8 +56,7 @@ export function CurrencyPreferenceField({
 	return (
 		<div
 			className={
-				className ??
-				"flex flex-wrap items-start justify-between gap-4"
+				className ?? "flex flex-wrap items-start justify-between gap-4"
 			}
 		>
 			<Label
@@ -72,10 +71,8 @@ export function CurrencyPreferenceField({
 					Totals across accounts, goals, subscriptions and jobs are
 					shown in this currency, converting others at daily reference
 					rates
-					{fx?.date
-						? ` (last updated ${formatDate(fx.date)})`
-						: ""}
-					. New goals, subscriptions and jobs start in it too.
+					{fx?.date ? ` (last updated ${formatDate(fx.date)})` : ""}.
+					New goals, subscriptions and jobs start in it too.
 					{descriptionSuffix}
 				</span>
 			</Label>

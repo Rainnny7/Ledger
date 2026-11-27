@@ -54,7 +54,14 @@ import {
 	shiftAskLedgerQueue,
 	subscribeAskLedger,
 } from "@/lib/ask-ledger"
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react"
 
 const CHAT_API = "/api/banks/chat"
 const CHAT_SUGGESTIONS_API = "/api/banks/chat/suggestions"

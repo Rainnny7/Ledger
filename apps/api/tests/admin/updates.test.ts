@@ -43,6 +43,9 @@ test("docker commands name the image tag for the channel", () => {
 	assert.match(stable[0], /ghcr\.io\/rainnny7\/ledger:latest$/)
 	const dev = installCommands("docker", "ver-1.0.1-dev")
 	assert.match(dev[0], /ledger:ver-1\.0\.1-dev$/)
-	assert.deepEqual(dev.slice(1), ["docker compose pull", "docker compose up -d"])
+	assert.deepEqual(dev.slice(1), [
+		"docker compose pull",
+		"docker compose up -d",
+	])
 	assert.equal(installCommands("source", null)[0], "git pull")
 })

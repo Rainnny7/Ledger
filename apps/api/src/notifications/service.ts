@@ -161,7 +161,5 @@ export function deleteNotification(userId: string, id: string): void {
 
 /** Deletes every notification for the user. */
 export function clearAll(userId: string): void {
-	db.delete(notification)
-		.where(eq(notification.userId, userId))
-		.run()
+	db.delete(notification).where(eq(notification.userId, userId)).run()
 }

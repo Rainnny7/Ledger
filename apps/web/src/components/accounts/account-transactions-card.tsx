@@ -139,7 +139,7 @@ export function AccountTransactionsCard({
 							setQuery(next)
 							resetPage()
 						}}
-						className="col-span-2 min-w-0 w-full md:col-span-1 md:min-w-48 md:flex-1"
+						className="col-span-2 w-full min-w-0 md:col-span-1 md:min-w-48 md:flex-1"
 					/>
 					<Select
 						items={accountPeriodItems}
@@ -151,7 +151,7 @@ export function AccountTransactionsCard({
 							resetPage()
 						}}
 					>
-						<SelectTrigger className="min-w-0 w-full md:w-36">
+						<SelectTrigger className="w-full min-w-0 md:w-36">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -175,7 +175,7 @@ export function AccountTransactionsCard({
 							resetPage()
 						}}
 					>
-						<SelectTrigger className="min-w-0 w-full md:w-44">
+						<SelectTrigger className="w-full min-w-0 md:w-44">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>

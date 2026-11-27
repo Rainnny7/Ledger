@@ -65,7 +65,11 @@ export function AskLedgerButton({
 						type="button"
 						variant="outline"
 						size="icon-xs"
-						className={cn("shrink-0", askLedgerAccentClass, className)}
+						className={cn(
+							"shrink-0",
+							askLedgerAccentClass,
+							className
+						)}
 						aria-label={label}
 						onClick={handleClick}
 					/>

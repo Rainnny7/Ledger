@@ -113,7 +113,7 @@ function PaletteList({
 			ref={listRef}
 			id="palette-list"
 			role="listbox"
-			className="scroll-fade-y min-h-0 flex-1 overflow-y-auto p-1.5"
+			className="min-h-0 flex-1 scroll-fade-y overflow-y-auto p-1.5"
 		>
 			{items.length === 0 && (
 				<p className="px-3 py-8 text-center text-sm text-muted-foreground">

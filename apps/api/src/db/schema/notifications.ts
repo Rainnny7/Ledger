@@ -17,7 +17,5 @@ export const notification = sqliteTable(
 		readAt: text("read_at"),
 		createdAt: timestampNow("created_at"),
 	},
-	(table) => [
-		index("notification_user_read").on(table.userId, table.readAt),
-	]
+	(table) => [index("notification_user_read").on(table.userId, table.readAt)]
 )

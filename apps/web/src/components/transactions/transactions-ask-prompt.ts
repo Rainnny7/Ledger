@@ -50,7 +50,9 @@ export function transactionsSpendingAskPrompt(
 		filters.push(`account ${context.accountName}`)
 	}
 	if (context.since && context.until) {
-		filters.push(`dates ${formatShortDate(context.since)}–${formatShortDate(context.until)}`)
+		filters.push(
+			`dates ${formatShortDate(context.since)}–${formatShortDate(context.until)}`
+		)
 	} else if (context.period !== "all") {
 		filters.push(`period ${rangeLabel(context.period)}`)
 	}

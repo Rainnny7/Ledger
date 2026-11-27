@@ -38,8 +38,7 @@ export function UpdateStatus() {
 	const current = data?.current ?? "—"
 	const buildVersion = import.meta.env.VITE_APP_VERSION
 	const prerelease =
-		isPrereleaseVersion(current) ||
-		isPrereleaseVersion(buildVersion)
+		isPrereleaseVersion(current) || isPrereleaseVersion(buildVersion)
 	let detail = isError ? "check failed" : "up to date"
 	if (data?.available && data.latest) {
 		detail = `v${data.latest} available`

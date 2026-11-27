@@ -137,40 +137,40 @@ export function DevicesCard() {
 					return (
 						<WithContextMenu key={session.id} menu={menuItems}>
 							<div className="flex items-center gap-3 rounded-md px-2 py-2 text-sm">
-							<Icon className="size-5 shrink-0 text-muted-foreground" />
-							<div className="min-w-0 flex-1">
-								<div className="flex items-center gap-2 font-medium">
-									{device.label}
-									{isCurrent && (
-										<Badge variant="secondary">
-											This device
-										</Badge>
-									)}
+								<Icon className="size-5 shrink-0 text-muted-foreground" />
+								<div className="min-w-0 flex-1">
+									<div className="flex items-center gap-2 font-medium">
+										{device.label}
+										{isCurrent && (
+											<Badge variant="secondary">
+												This device
+											</Badge>
+										)}
+									</div>
+									<div className="truncate text-xs text-muted-foreground">
+										{[
+											session.ipAddress,
+											`active ${timeAgo(session.updatedAt)}`,
+											`logged in ${timeAgo(session.createdAt)}`,
+										]
+											.filter(Boolean)
+											.join(" · ")}
+									</div>
 								</div>
-								<div className="truncate text-xs text-muted-foreground">
-									{[
-										session.ipAddress,
-										`active ${timeAgo(session.updatedAt)}`,
-										`logged in ${timeAgo(session.createdAt)}`,
-									]
-										.filter(Boolean)
-										.join(" · ")}
-								</div>
+								{!isCurrent && (
+									<Button
+										variant="ghost"
+										size="sm"
+										disabled={revoking}
+										onClick={() => void revoke(session)}
+									>
+										{revoking && (
+											<Loader2 className="animate-spin" />
+										)}{" "}
+										Logout
+									</Button>
+								)}
 							</div>
-							{!isCurrent && (
-								<Button
-									variant="ghost"
-									size="sm"
-									disabled={revoking}
-									onClick={() => void revoke(session)}
-								>
-									{revoking && (
-										<Loader2 className="animate-spin" />
-									)}{" "}
-									Logout
-								</Button>
-							)}
-						</div>
 						</WithContextMenu>
 					)
 				})}
