@@ -1,9 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import {
-	installCommands,
-	semverNewer,
-} from "../../src/admin/updates.ts"
+import { installCommands, semverNewer } from "../../src/admin/updates.ts"
 
 test("semverNewer ignores a leading v", () => {
 	assert.equal(semverNewer("v0.2.0", "0.1.0"), true)

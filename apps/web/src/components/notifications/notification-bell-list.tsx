@@ -24,7 +24,13 @@ function AnimatedNotificationRow({
 	onToggleRead: (item: NotificationItem) => void
 	onDelete: (id: string) => void
 	onExitComplete: (id: string) => void
-	rowExit: { opacity: number; x?: number; height?: number; marginTop?: number; marginBottom?: number }
+	rowExit: {
+		opacity: number
+		x?: number
+		height?: number
+		marginTop?: number
+		marginBottom?: number
+	}
 	transition: { duration: number; ease: "easeOut" }
 }) {
 	const exitingRef = useRef(false)
@@ -83,7 +89,9 @@ export function NotificationBellList({
 	const rowExit = reduceMotion
 		? { opacity: 0 }
 		: { opacity: 0, x: -10, height: 0, marginTop: 0, marginBottom: 0 }
-	const headingExit = reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }
+	const headingExit = reduceMotion
+		? { opacity: 0 }
+		: { opacity: 0, height: 0 }
 	const transition = {
 		duration: reduceMotion ? 0.12 : EXIT_DURATION,
 		ease: "easeOut" as const,

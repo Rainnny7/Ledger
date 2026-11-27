@@ -15,8 +15,8 @@ function VerifyEmail({ linkUrl }: { linkUrl: string }): ReactElement {
 			footer="If you didn't request this, you can ignore this email."
 		>
 			<EmailText>
-				Confirm that this address belongs to you to finish setting up your
-				Ledger account.
+				Confirm that this address belongs to you to finish setting up
+				your Ledger account.
 			</EmailText>
 			<EmailButton href={linkUrl}>Verify this email address</EmailButton>
 			<EmailLinkFallback href={linkUrl} />

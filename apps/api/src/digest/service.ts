@@ -152,10 +152,7 @@ function digestMoney(currency: string, amount: number): string {
 }
 
 /** Short in-app copy for a digest; email uses the full `text` body. */
-function digestInAppBody(
-	digest: SpendingDigest,
-	prose: DigestProse
-): string {
+function digestInAppBody(digest: SpendingDigest, prose: DigestProse): string {
 	const month = digestMonthLabel(digest.period)
 	const summary = `You spent ${digestMoney(digest.currency, digest.spent)} and earned ${digestMoney(digest.currency, digest.income)} in ${month}.`
 	for (const key of [

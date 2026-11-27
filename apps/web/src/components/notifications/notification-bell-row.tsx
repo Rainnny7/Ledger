@@ -26,14 +26,23 @@ const KIND_META: Record<
 	{ icon: LucideIcon; tileClass: string }
 > = {
 	info: { icon: Info, tileClass: "bg-blue-500/15 text-blue-600" },
-	success: { icon: CheckCircle2, tileClass: "bg-green-500/15 text-green-600" },
-	warning: { icon: TriangleAlert, tileClass: "bg-amber-500/15 text-amber-600" },
+	success: {
+		icon: CheckCircle2,
+		tileClass: "bg-green-500/15 text-green-600",
+	},
+	warning: {
+		icon: TriangleAlert,
+		tileClass: "bg-amber-500/15 text-amber-600",
+	},
 	alert: { icon: CircleAlert, tileClass: "bg-red-500/15 text-destructive" },
 }
 
 const SOURCE_META: Record<string, { icon: LucideIcon; tileClass: string }> = {
 	admin: { icon: Megaphone, tileClass: "bg-violet-500/15 text-violet-600" },
-	security: { icon: ShieldCheck, tileClass: "bg-emerald-500/15 text-emerald-600" },
+	security: {
+		icon: ShieldCheck,
+		tileClass: "bg-emerald-500/15 text-emerald-600",
+	},
 	digest: { icon: ChartPie, tileClass: "bg-orange-500/15 text-orange-600" },
 }
 
@@ -67,7 +76,7 @@ export function NotificationBellRow({
 		<div
 			className={cn(
 				"group relative flex gap-2 rounded-lg px-2 py-2 transition-colors",
-				"hover:bg-muted/60 focus-within:bg-muted/60"
+				"focus-within:bg-muted/60 hover:bg-muted/60"
 			)}
 		>
 			<button
@@ -90,7 +99,9 @@ export function NotificationBellRow({
 							unread ? "font-medium" : "font-normal"
 						)}
 					>
-						<span className="min-w-0 flex-1 truncate">{item.title}</span>
+						<span className="min-w-0 flex-1 truncate">
+							{item.title}
+						</span>
 						{unread && (
 							<span
 								className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary"
@@ -120,7 +131,7 @@ export function NotificationBellRow({
 					</Tooltip>
 				</span>
 			</button>
-			<div className="absolute top-1.5 right-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+			<div className="absolute top-1.5 right-1 flex gap-0.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
 				<Tooltip>
 					<TooltipTrigger
 						render={

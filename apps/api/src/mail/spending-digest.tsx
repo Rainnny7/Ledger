@@ -73,12 +73,22 @@ function BarRow({
 		>
 			<tbody>
 				<tr>
-					<td style={{ padding: "0 0 4px", fontSize: "14px", color: EMAIL_COLORS.text }}>
+					<td
+						style={{
+							padding: "0 0 4px",
+							fontSize: "14px",
+							color: EMAIL_COLORS.text,
+						}}
+					>
 						{label}
 					</td>
 					<td
 						align="right"
-						style={{ padding: "0 0 4px", fontSize: "14px", color: EMAIL_COLORS.text }}
+						style={{
+							padding: "0 0 4px",
+							fontSize: "14px",
+							color: EMAIL_COLORS.text,
+						}}
 					>
 						{value}
 					</td>
@@ -90,14 +100,18 @@ function BarRow({
 							width="100%"
 							cellPadding={0}
 							cellSpacing={0}
-							style={{ backgroundColor: EMAIL_COLORS.track, borderRadius: "4px" }}
+							style={{
+								backgroundColor: EMAIL_COLORS.track,
+								borderRadius: "4px",
+							}}
 						>
 							<tbody>
 								<tr>
 									<td
 										width={`${width}%`}
 										style={{
-											backgroundColor: EMAIL_COLORS.primary,
+											backgroundColor:
+												EMAIL_COLORS.primary,
 											height: "8px",
 											lineHeight: "8px",
 											fontSize: 0,
@@ -106,7 +120,14 @@ function BarRow({
 									>
 										&nbsp;
 									</td>
-									<td style={{ fontSize: 0, lineHeight: "8px" }}>&nbsp;</td>
+									<td
+										style={{
+											fontSize: 0,
+											lineHeight: "8px",
+										}}
+									>
+										&nbsp;
+									</td>
 								</tr>
 							</tbody>
 						</table>
@@ -182,7 +203,9 @@ function Stat({
 			>
 				{name}
 			</div>
-			<div style={{ fontSize: "22px", fontWeight: 600, color }}>{value}</div>
+			<div style={{ fontSize: "22px", fontWeight: 600, color }}>
+				{value}
+			</div>
 		</td>
 	)
 }
@@ -240,7 +263,9 @@ function changeText(digest: SpendingDigest): string {
  * `prose` only supplies the surrounding sentences. The HTML uses table-and-inline-CSS bars so it
  * renders in mail clients without images or scripts.
  */
-export async function spendingDigestMailContent(options: SpendingDigestMailOptions) {
+export async function spendingDigestMailContent(
+	options: SpendingDigestMailOptions
+) {
 	const { digest, prose, unsubscribeUrl, appUrl } = options
 	const money = moneyFormatter(digest.currency)
 	const label = monthLabel(digest.period)
@@ -312,8 +337,8 @@ export async function spendingDigestMailContent(options: SpendingDigestMailOptio
 			title={`Your ${label} spending`}
 			footer={
 				<>
-					You're getting this because you turned on the monthly digest in
-					Ledger.{" "}
+					You're getting this because you turned on the monthly digest
+					in Ledger.{" "}
 					<Link
 						href={unsubscribeUrl}
 						style={{ color: EMAIL_COLORS.muted }}
@@ -329,7 +354,11 @@ export async function spendingDigestMailContent(options: SpendingDigestMailOptio
 					<tr>
 						<Stat name="Spent" value={money(digest.spent)} />
 						<Stat name="Income" value={money(digest.income)} />
-						<Stat name="Net" value={money(digest.net)} color={netColor} />
+						<Stat
+							name="Net"
+							value={money(digest.net)}
+							color={netColor}
+						/>
 					</tr>
 				</tbody>
 			</table>

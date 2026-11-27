@@ -23,6 +23,7 @@
 		"routeTree.gen.ts",
 		"data",
 		"bun.lock",
-		"apps/web/src/bones"
+		"apps/web/src/bones",
+		"apps/api/drizzle/meta"
 	]
 }

@@ -401,7 +401,9 @@ export const useMarkNotificationRead = () =>
 						method: "POST",
 					}),
 		onMutate: async (id) => {
-			await queryClient.cancelQueries({ queryKey: queryKeys.notifications })
+			await queryClient.cancelQueries({
+				queryKey: queryKeys.notifications,
+			})
 			const previous = patchNotifications((data) => {
 				const readAt = notificationsNow()
 				let touchedUnread = false
@@ -447,7 +449,9 @@ export const useMarkNotificationUnread = () =>
 						method: "POST",
 					}),
 		onMutate: async (id) => {
-			await queryClient.cancelQueries({ queryKey: queryKeys.notifications })
+			await queryClient.cancelQueries({
+				queryKey: queryKeys.notifications,
+			})
 			const previous = patchNotifications((data) => {
 				let touchedRead = false
 				const items = data.items.map((item) => {
@@ -489,7 +493,9 @@ export const useMarkAllNotificationsRead = () =>
 						method: "POST",
 					}),
 		onMutate: async () => {
-			await queryClient.cancelQueries({ queryKey: queryKeys.notifications })
+			await queryClient.cancelQueries({
+				queryKey: queryKeys.notifications,
+			})
 			const previous = patchNotifications((data) => {
 				const readAt = notificationsNow()
 				return {
@@ -526,7 +532,9 @@ export const useDeleteNotification = () =>
 						method: "DELETE",
 					}),
 		onMutate: async (id) => {
-			await queryClient.cancelQueries({ queryKey: queryKeys.notifications })
+			await queryClient.cancelQueries({
+				queryKey: queryKeys.notifications,
+			})
 			const previous = patchNotifications((data) => {
 				const removed = data.items.find((item) => item.id === id)
 				return {
@@ -562,14 +570,19 @@ export const useClearAllNotifications = () =>
 				? demoNotificationsOk()
 				: notificationsRequest<{ ok: true }>("", { method: "DELETE" }),
 		onMutate: async () => {
-			await queryClient.cancelQueries({ queryKey: queryKeys.notifications })
+			await queryClient.cancelQueries({
+				queryKey: queryKeys.notifications,
+			})
 			const previous = queryClient.getQueryData<NotificationsData>(
 				queryKeys.notifications
 			)
-			queryClient.setQueryData<NotificationsData>(queryKeys.notifications, {
-				items: [],
-				unreadCount: 0,
-			})
+			queryClient.setQueryData<NotificationsData>(
+				queryKeys.notifications,
+				{
+					items: [],
+					unreadCount: 0,
+				}
+			)
 			return { previous }
 		},
 		onError: (_error, _vars, context) => {

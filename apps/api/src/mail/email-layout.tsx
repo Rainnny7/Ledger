@@ -83,7 +83,9 @@ export function EmailLayout({
 				<Container style={styles.container}>
 					<Text style={styles.brand}>Ledger</Text>
 					<Section style={styles.card}>
-						{title ? <Text style={styles.title}>{title}</Text> : null}
+						{title ? (
+							<Text style={styles.title}>{title}</Text>
+						) : null}
 						{children}
 					</Section>
 					<Text style={styles.footer}>
@@ -150,13 +152,21 @@ export function EmailButton({
 export function EmailLinkFallback({ href }: { href: string }): ReactElement {
 	return (
 		<>
-			<Hr style={{ borderColor: EMAIL_COLORS.border, margin: "8px 0 16px" }} />
+			<Hr
+				style={{
+					borderColor: EMAIL_COLORS.border,
+					margin: "8px 0 16px",
+				}}
+			/>
 			<EmailText muted>
 				Button not working? Paste this link into your browser:
 				<br />
 				<Link
 					href={href}
-					style={{ color: EMAIL_COLORS.primary, wordBreak: "break-all" }}
+					style={{
+						color: EMAIL_COLORS.primary,
+						wordBreak: "break-all",
+					}}
 				>
 					{href}
 				</Link>

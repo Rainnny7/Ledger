@@ -23,7 +23,11 @@ function atOffset(today: Date, offsetMs: number): string {
 }
 
 /** Sample in-app notifications for a demo persona (refreshed on every reseed). */
-export function seedDemoNotifications(today: Date, persona: Persona, userId: string) {
+export function seedDemoNotifications(
+	today: Date,
+	persona: Persona,
+	userId: string
+) {
 	db.delete(notification).where(eq(notification.userId, userId)).run()
 
 	const currency = persona.currency
@@ -42,8 +46,7 @@ export function seedDemoNotifications(today: Date, persona: Persona, userId: str
 	const budgetCategory = persona.budgets[0]?.[0] ?? "groceries"
 	const budgetLimit = persona.budgets[0]?.[1] ?? 400
 	const budgetSpent = Math.round(budgetLimit * 1.12)
-	const goalName =
-		persona.id === "musk" ? "Mars habitat fund" : "Japan trip"
+	const goalName = persona.id === "musk" ? "Mars habitat fund" : "Japan trip"
 
 	const minute = 60_000
 	const hour = 60 * minute

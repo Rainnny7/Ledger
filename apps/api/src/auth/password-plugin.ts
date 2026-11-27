@@ -135,7 +135,8 @@ export function passwordPlugin(): BetterAuthPlugin {
 						})
 						token = newSession.token
 					}
-					const subject = "A password was added to your Ledger account"
+					const subject =
+						"A password was added to your Ledger account"
 					const { text, html } = await passwordAddedMailContent()
 					try {
 						await notifyUser({

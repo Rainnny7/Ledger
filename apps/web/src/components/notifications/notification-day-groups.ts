@@ -17,9 +17,7 @@ export function notificationDayGroup(createdAt: string): NotificationDayGroup {
 	if (created === today) {
 		return "today"
 	}
-	const yesterday = isoDate(
-		new Date(Date.now() - 24 * 60 * 60 * 1000)
-	)
+	const yesterday = isoDate(new Date(Date.now() - 24 * 60 * 60 * 1000))
 	if (created === yesterday) {
 		return "yesterday"
 	}
