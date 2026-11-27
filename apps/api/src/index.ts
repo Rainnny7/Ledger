@@ -59,6 +59,7 @@ import {
 } from "./admin/docker-switch.ts"
 import { clearUpdateCache, getUpdateInfo } from "./admin/updates.ts"
 import { boundedString, id, jsonBody } from "./http/validation.ts"
+import { isSmtpConfigured } from "./mail/smtp.ts"
 
 runMigrations()
 getOwnerId()
@@ -371,6 +372,7 @@ app.use(apiErrors)
 		aiChat: aiChatAvailable(),
 		mcp: mcpEnabled(),
 		turnstileSiteKey,
+		emailLinks: isSmtpConfigured(),
 	}))
 	.use(
 		authLookup({

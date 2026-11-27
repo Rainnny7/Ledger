@@ -34,6 +34,7 @@ import { Label } from "@/components/ui/label"
 import { QrCode } from "@/components/common/qr-code"
 import { twoFactor, useSession } from "@/lib/auth-client"
 import { PasswordDialog } from "@/components/settings/password-dialog"
+import { useHasPassword } from "@/lib/queries"
 
 type SetupStep =
 	| { type: "password" }
@@ -49,6 +50,9 @@ export function TwoFactorCard() {
 	const [dialog, setDialog] = useState<null | "setup" | "disable" | "codes">(
 		null
 	)
+	const hasPassword = useHasPassword()
+	// Accounts without a password (email-link logins) are vouched for by their recent login instead.
+	const requirePassword = hasPassword.data?.hasPassword !== false
 
 	return (
 		<Card>
@@ -92,6 +96,7 @@ export function TwoFactorCard() {
 				</CardAction>
 			</CardHeader>
 			<SetupDialog
+				requirePassword={requirePassword}
 				open={dialog === "setup"}
 				onClose={() => setDialog(null)}
 			/>
@@ -102,8 +107,13 @@ export function TwoFactorCard() {
 				description="Logging in will only need your password. Your backup codes stop working."
 				action="Turn off"
 				destructive
+				requirePassword={requirePassword}
 				run={async (password) => {
-					const { error } = await twoFactor.disable({ password })
+					const { error } = await twoFactor.disable(
+						requirePassword
+							? { password }
+							: ({} as { password: string })
+					)
 					if (error) {
 						return error.message ?? "Could not turn off 2FA"
 					}
@@ -112,6 +122,7 @@ export function TwoFactorCard() {
 				}}
 			/>
 			<RegenerateCodesDialog
+				requirePassword={requirePassword}
 				open={dialog === "codes"}
 				onClose={() => setDialog(null)}
 			/>
@@ -122,7 +133,9 @@ export function TwoFactorCard() {
 function SetupDialog({
 	open,
 	onClose,
+	requirePassword,
 }: {
+	requirePassword: boolean
 	open: boolean
 	onClose: () => void
 }) {
@@ -144,9 +157,9 @@ function SetupDialog({
 		setBusy(true)
 		setError(null)
 		try {
-			const { data, error: enableError } = await twoFactor.enable({
-				password,
-			})
+			const { data, error: enableError } = await twoFactor.enable(
+				requirePassword ? { password } : ({} as { password: string })
+			)
 			if (enableError || !data || !("totpURI" in data)) {
 				return setError(enableError?.message ?? "Could not start setup")
 			}
@@ -200,7 +213,9 @@ function SetupDialog({
 					<DialogTitle>Set Up Two-Factor Authentication</DialogTitle>
 					<DialogDescription>
 						{step.type === "password" &&
-							"Confirm your password to continue."}
+							(requirePassword
+								? "Confirm your password to continue."
+								: "Continue to get a QR code for your authenticator app.")}
 						{step.type === "scan" &&
 							"Scan this with your authenticator app, then enter the 6-digit code it shows."}
 						{step.type === "codes" &&
@@ -214,22 +229,29 @@ function SetupDialog({
 				)}
 				{step.type === "password" && (
 					<form onSubmit={begin} className="grid gap-4">
-						<div className="grid gap-2">
-							<Label htmlFor="2fa-password">Password</Label>
-							<Input
-								id="2fa-password"
-								type="password"
-								autoComplete="current-password"
-								value={password}
-								onChange={(event) =>
-									setPassword(event.target.value)
-								}
-								autoFocus
-								required
-							/>
-						</div>
+						{requirePassword && (
+							<div className="grid gap-2">
+								<Label htmlFor="2fa-password">Password</Label>
+								<Input
+									id="2fa-password"
+									type="password"
+									autoComplete="current-password"
+									value={password}
+									onChange={(event) =>
+										setPassword(event.target.value)
+									}
+									autoFocus
+									required
+								/>
+							</div>
+						)}
 						<DialogFooter>
-							<Button type="submit" disabled={busy || !password}>
+							<Button
+								type="submit"
+								disabled={
+									busy || (requirePassword && !password)
+								}
+							>
 								{busy && <Loader2 className="animate-spin" />}{" "}
 								Continue
 							</Button>
@@ -300,7 +322,9 @@ function SetupDialog({
 function RegenerateCodesDialog({
 	open,
 	onClose,
+	requirePassword,
 }: {
+	requirePassword: boolean
 	open: boolean
 	onClose: () => void
 }) {
@@ -347,10 +371,13 @@ function RegenerateCodesDialog({
 			title="Generate new backup codes?"
 			description="Your current backup codes will stop working."
 			action="Generate"
+			requirePassword={requirePassword}
 			run={async (password) => {
-				const { data, error } = await twoFactor.generateBackupCodes({
-					password,
-				})
+				const { data, error } = await twoFactor.generateBackupCodes(
+					requirePassword
+						? { password }
+						: ({} as { password: string })
+				)
 				if (error || !data) {
 					return error?.message ?? "Could not generate codes"
 				}

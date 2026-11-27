@@ -55,6 +55,20 @@ export function friendlyAuthProblem(
 				"Your access to this Ledger has been turned off. Ask its admin to restore it.",
 		}
 	}
+	if (code === "EMAIL_NOT_VERIFIED") {
+		return {
+			title: "Verify your email first",
+			message:
+				"Open the verification link we emailed you. Logging in with your password sends a new one.",
+		}
+	}
+	if (code === "INVALID_TWO_FACTOR_COOKIE") {
+		return {
+			title: "Login link session expired",
+			message:
+				"Your login link session expired. Request a new link and try again.",
+		}
+	}
 	if (code === "WEAK_PASSWORD") {
 		return {
 			title: "Choose a stronger password",

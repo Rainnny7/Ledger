@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as AuthedRouteRouteImport } from './routes/_authed/route'
 import { Route as GuestRouteRouteImport } from './routes/_guest/route'
+import { Route as EmailVerifiedRouteImport } from './routes/email-verified'
 import { Route as AuthedAppRouteRouteImport } from './routes/_authed/_app/route'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as ITokenRouteImport } from './routes/i.$token'
@@ -24,6 +25,7 @@ import { Route as AuthedAppSubscriptionsRouteImport } from './routes/_authed/_ap
 import { Route as AuthedAppTaxesRouteImport } from './routes/_authed/_app/taxes'
 import { Route as AuthedAppTransactionsRouteImport } from './routes/_authed/_app/transactions'
 import { Route as AuthedAppWorkRouteImport } from './routes/_authed/_app/work'
+import { Route as GuestLoginLinkRouteImport } from './routes/_guest/login_.link'
 import { Route as AuthedAppRealContactsRouteImport } from './routes/_authed/_app/_real/contacts'
 import { Route as AuthedAppAccountsIdRouteImport } from './routes/_authed/_app/accounts.$id'
 import { Route as AuthedAppInvoicesIndexRouteImport } from './routes/_authed/_app/invoices/index'
@@ -41,6 +43,11 @@ const AuthedRouteRoute = AuthedRouteRouteImport.update({
 } as any)
 const GuestRouteRoute = GuestRouteRouteImport.update({
   id: '/_guest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailVerifiedRoute = EmailVerifiedRouteImport.update({
+  id: '/email-verified',
+  path: '/email-verified',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedAppRouteRoute = AuthedAppRouteRouteImport.update({
@@ -101,6 +108,11 @@ const AuthedAppWorkRoute = AuthedAppWorkRouteImport.update({
   path: '/work',
   getParentRoute: () => AuthedAppRouteRoute,
 } as any)
+const GuestLoginLinkRoute = GuestLoginLinkRouteImport.update({
+  id: '/login_/link',
+  path: '/login/link',
+  getParentRoute: () => GuestRouteRoute,
+} as any)
 const AuthedAppRealContactsRoute = AuthedAppRealContactsRouteImport.update({
   id: '/contacts',
   path: '/contacts',
@@ -130,6 +142,7 @@ const AuthedAppInvoicesNewRoute = AuthedAppInvoicesNewRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthedAppIndexRoute
   '/$': typeof SplatRoute
+  '/email-verified': typeof EmailVerifiedRoute
   '/login': typeof GuestLoginRoute
   '/i/$token': typeof ITokenRoute
   '/advisor': typeof AuthedAppAdvisorRoute
@@ -139,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/taxes': typeof AuthedAppTaxesRoute
   '/transactions': typeof AuthedAppTransactionsRoute
   '/work': typeof AuthedAppWorkRoute
+  '/login/link': typeof GuestLoginLinkRoute
   '/contacts': typeof AuthedAppRealContactsRoute
   '/accounts/$id': typeof AuthedAppAccountsIdRoute
   '/invoices/$id': typeof AuthedAppInvoicesIdRoute
@@ -148,6 +162,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof AuthedAppIndexRoute
   '/$': typeof SplatRoute
+  '/email-verified': typeof EmailVerifiedRoute
   '/login': typeof GuestLoginRoute
   '/i/$token': typeof ITokenRoute
   '/advisor': typeof AuthedAppAdvisorRoute
@@ -157,6 +172,7 @@ export interface FileRoutesByTo {
   '/taxes': typeof AuthedAppTaxesRoute
   '/transactions': typeof AuthedAppTransactionsRoute
   '/work': typeof AuthedAppWorkRoute
+  '/login/link': typeof GuestLoginLinkRoute
   '/contacts': typeof AuthedAppRealContactsRoute
   '/accounts/$id': typeof AuthedAppAccountsIdRoute
   '/invoices/$id': typeof AuthedAppInvoicesIdRoute
@@ -168,6 +184,7 @@ export interface FileRoutesById {
   '/_authed': typeof AuthedRouteRouteWithChildren
   '/_guest': typeof GuestRouteRouteWithChildren
   '/$': typeof SplatRoute
+  '/email-verified': typeof EmailVerifiedRoute
   '/_authed/_app': typeof AuthedAppRouteRouteWithChildren
   '/_guest/login': typeof GuestLoginRoute
   '/i/$token': typeof ITokenRoute
@@ -179,6 +196,7 @@ export interface FileRoutesById {
   '/_authed/_app/taxes': typeof AuthedAppTaxesRoute
   '/_authed/_app/transactions': typeof AuthedAppTransactionsRoute
   '/_authed/_app/work': typeof AuthedAppWorkRoute
+  '/_guest/login_/link': typeof GuestLoginLinkRoute
   '/_authed/_app/': typeof AuthedAppIndexRoute
   '/_authed/_app/_real/contacts': typeof AuthedAppRealContactsRoute
   '/_authed/_app/accounts/$id': typeof AuthedAppAccountsIdRoute
@@ -191,6 +209,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
+    | '/email-verified'
     | '/login'
     | '/i/$token'
     | '/advisor'
@@ -200,6 +219,7 @@ export interface FileRouteTypes {
     | '/taxes'
     | '/transactions'
     | '/work'
+    | '/login/link'
     | '/contacts'
     | '/accounts/$id'
     | '/invoices/$id'
@@ -209,6 +229,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$'
+    | '/email-verified'
     | '/login'
     | '/i/$token'
     | '/advisor'
@@ -218,6 +239,7 @@ export interface FileRouteTypes {
     | '/taxes'
     | '/transactions'
     | '/work'
+    | '/login/link'
     | '/contacts'
     | '/accounts/$id'
     | '/invoices/$id'
@@ -228,6 +250,7 @@ export interface FileRouteTypes {
     | '/_authed'
     | '/_guest'
     | '/$'
+    | '/email-verified'
     | '/_authed/_app'
     | '/_guest/login'
     | '/i/$token'
@@ -239,6 +262,7 @@ export interface FileRouteTypes {
     | '/_authed/_app/taxes'
     | '/_authed/_app/transactions'
     | '/_authed/_app/work'
+    | '/_guest/login_/link'
     | '/_authed/_app/'
     | '/_authed/_app/_real/contacts'
     | '/_authed/_app/accounts/$id'
@@ -251,6 +275,7 @@ export interface RootRouteChildren {
   AuthedRouteRoute: typeof AuthedRouteRouteWithChildren
   GuestRouteRoute: typeof GuestRouteRouteWithChildren
   SplatRoute: typeof SplatRoute
+  EmailVerifiedRoute: typeof EmailVerifiedRoute
   ITokenRoute: typeof ITokenRoute
 }
 
@@ -275,6 +300,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof GuestRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-verified': {
+      id: '/email-verified'
+      path: '/email-verified'
+      fullPath: '/email-verified'
+      preLoaderRoute: typeof EmailVerifiedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed/_app': {
@@ -360,6 +392,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/work'
       preLoaderRoute: typeof AuthedAppWorkRouteImport
       parentRoute: typeof AuthedAppRouteRoute
+    }
+    '/_guest/login_/link': {
+      id: '/_guest/login_/link'
+      path: '/login/link'
+      fullPath: '/login/link'
+      preLoaderRoute: typeof GuestLoginLinkRouteImport
+      parentRoute: typeof GuestRouteRoute
     }
     '/_authed/_app/_real/contacts': {
       id: '/_authed/_app/_real/contacts'
@@ -460,10 +499,12 @@ const AuthedRouteRouteWithChildren = AuthedRouteRoute._addFileChildren(
 
 interface GuestRouteRouteChildren {
   GuestLoginRoute: typeof GuestLoginRoute
+  GuestLoginLinkRoute: typeof GuestLoginLinkRoute
 }
 
 const GuestRouteRouteChildren: GuestRouteRouteChildren = {
   GuestLoginRoute: GuestLoginRoute,
+  GuestLoginLinkRoute: GuestLoginLinkRoute,
 }
 
 const GuestRouteRouteWithChildren = GuestRouteRoute._addFileChildren(
@@ -474,6 +515,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRouteRoute: AuthedRouteRouteWithChildren,
   GuestRouteRoute: GuestRouteRouteWithChildren,
   SplatRoute: SplatRoute,
+  EmailVerifiedRoute: EmailVerifiedRoute,
   ITokenRoute: ITokenRoute,
 }
 export const routeTree = rootRouteImport

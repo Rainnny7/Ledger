@@ -43,7 +43,14 @@ import { cn } from "cn"
  * Where the visitor is: typing their email, entering their password, creating an account, told
  * that sign-ups are closed, or entering a two-factor code.
  */
-type Step = "email" | "password" | "register" | "closed" | "code"
+type Step =
+	| "email"
+	| "password"
+	| "register"
+	| "closed"
+	| "code"
+	| "sent"
+	| "verify"
 
 /** What to say at the top of the card for each step. */
 const STEP_COPY: Record<Step, { title: string; description: string }> = {
@@ -68,6 +75,46 @@ const STEP_COPY: Record<Step, { title: string; description: string }> = {
 		title: "Two-Factor Authentication",
 		description: "Enter the 6-digit code from your authenticator app.",
 	},
+	sent: {
+		title: "Check Your Email",
+		description: "",
+	},
+	verify: {
+		title: "Verify Your Email",
+		description: "",
+	},
+}
+
+/** What a failed login or verification link (the `?error=` on this page) means, in plain words. */
+function problemFromLinkError(errorCode: string): AuthProblem {
+	switch (errorCode) {
+		case "banned":
+			return {
+				title: "Access Turned Off",
+				message:
+					"Your access to this Ledger has been turned off. Ask its admin to restore it.",
+			}
+		case "REGISTRATION_CLOSED":
+		case "new_user_signup_disabled":
+			return {
+				title: "Sign-Ups Are Closed",
+				message:
+					"This server isn’t accepting new accounts right now. Ask its admin to add you.",
+			}
+		case "user_not_found":
+		case "USER_NOT_FOUND":
+			return {
+				title: "No Account Found",
+				message:
+					"We couldn’t find an account for that link. Enter your email to log in or sign up.",
+			}
+		default:
+			return {
+				title: "Link Expired or Invalid",
+				message:
+					"That link may have expired or already been used. Request a new one or log in with your password.",
+			}
+	}
 }
 
 const SUBMIT_LABEL: Record<Step, string> = {
@@ -76,6 +123,8 @@ const SUBMIT_LABEL: Record<Step, string> = {
 	register: "Create Account",
 	closed: "Use a different email",
 	code: "Verify",
+	sent: "Use a different email",
+	verify: "Back to log in",
 }
 
 /** A problem to show, and the field it belongs to (flagged invalid for assistive tech). */
@@ -111,16 +160,24 @@ export function AuthPage() {
 	const navigate = useNavigate()
 	const config = useAppConfig()
 	const { widget, getToken } = useCaptcha(config?.turnstileSiteKey)
-	const [step, setStep] = useState<Step>("email")
+	// A login link for an account with 2FA lands here with the code step already pending.
+	const initialSearch = new URLSearchParams(window.location.search)
+	const [step, setStep] = useState<Step>(() =>
+		initialSearch.get("twoFactor") ? "code" : "email"
+	)
 	const [email, setEmail] = useState("")
 	const [name, setName] = useState("")
 	const [password, setPassword] = useState("")
 	const [confirmPassword, setConfirmPassword] = useState("")
-	const [problem, setProblem] = useState<FormProblem | null>(null)
+	const [problem, setProblem] = useState<FormProblem | null>(() => {
+		const errorCode = initialSearch.get("error")
+		return errorCode ? problemFromLinkError(errorCode) : null
+	})
 	const [pending, setPending] = useState(false)
 	const [code, setCode] = useState("")
 	const [useBackup, setUseBackup] = useState(false)
 	const [trustDevice, setTrustDevice] = useState(false)
+	const [magicLinkEnabled, setMagicLinkEnabled] = useState(false)
 	const emailRef = useRef<HTMLInputElement>(null)
 	const nameRef = useRef<HTMLInputElement>(null)
 	const passwordRef = useRef<HTMLInputElement>(null)
@@ -133,8 +190,29 @@ export function AuthPage() {
 					description:
 						"Enter one of the backup codes you saved when you turned on 2FA.",
 				}
-			: STEP_COPY[step]
+			: step === "verify"
+				? {
+						...STEP_COPY.verify,
+						description: `We sent a verification link to ${email.trim()}. Open it, then log in.`,
+					}
+				: step === "sent"
+					? {
+							...STEP_COPY.sent,
+							description: `We sent a login link to ${email.trim()}. It expires in 10 minutes.`,
+						}
+					: STEP_COPY[step]
 	usePageTitle(copy.title)
+
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.search)
+		if (params.has("error") || params.has("twoFactor")) {
+			params.delete("error")
+			params.delete("twoFactor")
+			const query = params.toString()
+			const next = `${window.location.pathname}${query ? `?${query}` : ""}`
+			window.history.replaceState(null, "", next)
+		}
+	}, [])
 
 	// Move to the first field that just appeared.
 	useEffect(() => {
@@ -144,6 +222,8 @@ export function AuthPage() {
 			register: nameRef,
 			closed: null,
 			code: codeRef,
+			sent: null,
+			verify: null,
 		}[step]
 		target?.current?.focus()
 	}, [step])
@@ -158,7 +238,48 @@ export function AuthPage() {
 		setStep("email")
 		setPassword("")
 		setConfirmPassword("")
+		setMagicLinkEnabled(false)
 		setProblem(null)
+	}
+
+	async function requestMagicLink() {
+		if (pending) {
+			return
+		}
+		const trimmedEmail = email.trim()
+		if (isRegister && !name.trim()) {
+			setProblem({
+				title: "Name required",
+				message: "Enter your name to sign up with an email link.",
+				field: undefined,
+			})
+			nameRef.current?.focus()
+			return
+		}
+		setPending(true)
+		setProblem(null)
+		try {
+			const fetchOptions = {
+				headers: captchaHeaders(await getToken()),
+			}
+			const { error } = await signIn.magicLink({
+				email: trimmedEmail,
+				name: isRegister ? name.trim() : undefined,
+				callbackURL: "/",
+				newUserCallbackURL: "/",
+				errorCallbackURL: "/login",
+				fetchOptions,
+			})
+			if (error) {
+				setProblem(friendlyAuthProblem(error))
+			} else {
+				setStep("sent")
+			}
+		} catch (error) {
+			setProblem(problemFromThrown(error))
+		} finally {
+			setPending(false)
+		}
 	}
 
 	/** Edits clear the last error, so it never lingers beside a field that has changed. */
@@ -187,6 +308,13 @@ export function AuthPage() {
 				toastWelcome(verified?.user?.name)
 				return
 			}
+			if (error.code === "INVALID_TWO_FACTOR_COOKIE") {
+				setProblem(friendlyAuthProblem(error))
+				setStep("email")
+				setCode("")
+				setMagicLinkEnabled(false)
+				return
+			}
 			setProblem(
 				error.status === 429
 					? friendlyAuthProblem(error)
@@ -213,8 +341,14 @@ export function AuthPage() {
 			await verifyCode(code)
 			return
 		}
-		if (step === "closed") {
+		if (step === "closed" || step === "sent") {
 			changeEmail()
+			return
+		}
+		if (step === "verify") {
+			setPassword("")
+			setConfirmPassword("")
+			setStep("password")
 			return
 		}
 		setPending(true)
@@ -224,6 +358,7 @@ export function AuthPage() {
 			if (step === "email") {
 				const found = await lookupEmail(trimmedEmail, await getToken())
 				setEmail(trimmedEmail)
+				setMagicLinkEnabled(found.magicLink)
 				setStep(
 					found.exists
 						? "password"
@@ -258,6 +393,11 @@ export function AuthPage() {
 							? "password"
 							: undefined,
 				})
+			} else if (isRegister && data && data.token === null) {
+				// The server holds the account until the address is confirmed, so there is no session yet.
+				setPassword("")
+				setConfirmPassword("")
+				setStep("verify")
 			} else if (
 				data &&
 				"twoFactorRedirect" in data &&
@@ -304,7 +444,11 @@ export function AuthPage() {
 						<AuthError problem={problem} />
 
 						<Reveal
-							open={step !== "code"}
+							open={
+								step !== "code" &&
+								step !== "sent" &&
+								step !== "verify"
+							}
 							spaced={false}
 							className="gap-0"
 						>
@@ -512,12 +656,37 @@ export function AuthPage() {
 						<Button
 							type="submit"
 							className="w-full"
-							variant={step === "closed" ? "outline" : "default"}
+							variant={
+								step === "closed" ||
+								step === "sent" ||
+								step === "verify"
+									? "outline"
+									: "default"
+							}
 							disabled={submitDisabled}
 						>
 							{pending && <Loader2 className="animate-spin" />}
 							{SUBMIT_LABEL[step]}
 						</Button>
+						{(step === "password" || isRegister) &&
+						magicLinkEnabled ? (
+							<Button
+								type="button"
+								variant="outline"
+								className="w-full"
+								disabled={
+									pending || (isRegister && !name.trim())
+								}
+								onClick={() => void requestMagicLink()}
+							>
+								{pending && (
+									<Loader2 className="animate-spin" />
+								)}
+								{isRegister
+									? "Sign up with an email link instead"
+									: "Email me a login link"}
+							</Button>
+						) : null}
 						{step === "code" && (
 							<button
 								type="button"

@@ -58,6 +58,7 @@ test("lookup reports an existing account, ignoring case and spaces", async () =>
 	assert.deepEqual(await response.json(), {
 		exists: true,
 		registrationOpen: true,
+		magicLink: false,
 	})
 })
 
@@ -66,6 +67,7 @@ test("lookup reports an unknown email as free to register", async () => {
 	assert.deepEqual(await response.json(), {
 		exists: false,
 		registrationOpen: true,
+		magicLink: false,
 	})
 })
 
@@ -76,6 +78,7 @@ test("lookup reports when sign-ups are closed", async () => {
 	assert.deepEqual(await response.json(), {
 		exists: false,
 		registrationOpen: false,
+		magicLink: false,
 	})
 })
 

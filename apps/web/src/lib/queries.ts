@@ -315,7 +315,26 @@ export type AppConfig = {
 	mcp: boolean
 	/** Public Cloudflare Turnstile site key; null when captcha is off. */
 	turnstileSiteKey: string | null
+	/** Whether the server can send login, verify, and delete confirmation links. */
+	emailLinks: boolean
 }
+
+/** Whether the signed-in user has a credential password (passwordless magic-link accounts do not). */
+export const useHasPassword = (enabled = true) =>
+	useQuery({
+		queryKey: ["auth", "has-password"],
+		queryFn: async () => {
+			const response = await fetch("/api/auth/password/status", {
+				credentials: "include",
+			})
+			if (!response.ok) {
+				throw new Error("Could not load account details")
+			}
+			return (await response.json()) as { hasPassword: boolean }
+		},
+		enabled,
+		staleTime: 5 * 60_000,
+	})
 
 /** Whether open registration is enabled (from a public config endpoint). */
 export const useAppConfig = () =>

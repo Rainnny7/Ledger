@@ -1,7 +1,11 @@
 import { captchaHeaders } from "@/components/auth/use-captcha"
 
 /** What the server knows about an email address, before anyone has logged in. */
-export type EmailLookup = { exists: boolean; registrationOpen: boolean }
+export type EmailLookup = {
+	exists: boolean
+	registrationOpen: boolean
+	magicLink: boolean
+}
 
 /** A failed lookup, carrying the HTTP status and server code for friendly error mapping. */
 export class LookupError extends Error {

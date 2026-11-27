@@ -14,6 +14,7 @@ import { ApiKeysCard } from "@/components/settings/api-keys-card"
 import { AppearanceCard } from "@/components/settings/appearance-card"
 import { ChangePasswordCard } from "@/components/settings/change-password-card"
 import { DeleteAccountCard } from "@/components/settings/delete-account-card"
+import { EmailVerificationCard } from "@/components/settings/email-verification-card"
 import { DevicesCard } from "@/components/settings/devices-card"
 import { McpAccessCard } from "@/components/settings/mcp-access-card"
 import { OnboardingCard } from "@/components/settings/onboarding-card"
@@ -89,6 +90,9 @@ export function SettingsSecurityPanel() {
 				</div>
 			) : (
 				<>
+					<SettingsSection sectionId="email">
+						<EmailVerificationCard />
+					</SettingsSection>
 					<SettingsSection sectionId="password">
 						<ChangePasswordCard />
 					</SettingsSection>

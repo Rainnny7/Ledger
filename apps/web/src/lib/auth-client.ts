@@ -3,6 +3,7 @@ import { createAuthClient } from "better-auth/react"
 import {
 	adminClient,
 	inferAdditionalFields,
+	magicLinkClient,
 	twoFactorClient,
 } from "better-auth/client/plugins"
 
@@ -11,6 +12,7 @@ export const authClient = createAuthClient({
 	baseURL: window.location.origin,
 	// Login answers `{ twoFactorRedirect: true }` when a code is still needed; the login form handles it.
 	plugins: [
+		magicLinkClient(),
 		twoFactorClient(),
 		adminClient(),
 		// Settings → API keys.

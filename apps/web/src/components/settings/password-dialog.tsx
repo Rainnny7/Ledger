@@ -24,6 +24,7 @@ export function PasswordDialog({
 	destructive,
 	confirmWord,
 	keepOpen,
+	requirePassword = true,
 	run,
 }: {
 	open: boolean
@@ -36,6 +37,8 @@ export function PasswordDialog({
 	confirmWord?: string
 	/** Leave the dialog open on success (the caller shows a follow-up step). */
 	keepOpen?: boolean
+	/** Ask for the password; off for accounts that have none (they confirm by email instead). */
+	requirePassword?: boolean
 	/** Returns an error message, or null on success. */
 	run: (password: string) => Promise<string | null>
 }) {
@@ -97,20 +100,22 @@ export function PasswordDialog({
 							/>
 						</div>
 					)}
-					<div className="grid gap-2">
-						<Label htmlFor="confirm-password">Password</Label>
-						<Input
-							id="confirm-password"
-							type="password"
-							autoComplete="current-password"
-							value={password}
-							onChange={(event) =>
-								setPassword(event.target.value)
-							}
-							autoFocus={!confirmWord}
-							required
-						/>
-					</div>
+					{requirePassword && (
+						<div className="grid gap-2">
+							<Label htmlFor="confirm-password">Password</Label>
+							<Input
+								id="confirm-password"
+								type="password"
+								autoComplete="current-password"
+								value={password}
+								onChange={(event) =>
+									setPassword(event.target.value)
+								}
+								autoFocus={!confirmWord}
+								required
+							/>
+						</div>
+					)}
 					<DialogFooter>
 						<Button type="button" variant="outline" onClick={close}>
 							Cancel
@@ -120,7 +125,7 @@ export function PasswordDialog({
 							variant={destructive ? "destructive" : "default"}
 							disabled={
 								busy ||
-								!password ||
+								(requirePassword && !password) ||
 								(!!confirmWord && word !== confirmWord)
 							}
 						>
