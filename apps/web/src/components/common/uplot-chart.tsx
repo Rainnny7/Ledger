@@ -327,6 +327,8 @@ export function UPlotChart({
 				cancelAnimationFrame(revealFrameRef.current)
 				revealFrameRef.current = null
 				revealProgressRef.current = 1
+				// The reveal was cut short (e.g. StrictMode's mount-unmount-mount), so the next build replays it.
+				hasRevealedRef.current = false
 			}
 			chart.destroy()
 			chartRef.current = null
