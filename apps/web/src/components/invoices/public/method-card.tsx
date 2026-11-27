@@ -108,7 +108,14 @@ export function PublicMethodCard({
 					variant="outline"
 					size="sm"
 					className="mt-1 justify-self-start"
-					render={<a href={link} target="_blank" rel="noreferrer" />}
+					render={
+						<a
+							href={link}
+							target="_blank"
+							rel="noreferrer"
+							aria-label={`Pay with ${method.label}`}
+						/>
+					}
 					nativeButton={false}
 				>
 					<ExternalLinkIcon size={24} className="flex" /> Pay with{" "}

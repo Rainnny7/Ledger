@@ -23,8 +23,8 @@ export function Party({
 				{label}
 			</span>
 			<span className="font-medium">{party.name || "—"}</span>
-			{partyLines(party).map((line, index) => (
-				<span key={index} className="break-words text-muted-foreground">
+			{partyLines(party).map((line) => (
+				<span key={line} className="break-words text-muted-foreground">
 					{line}
 				</span>
 			))}

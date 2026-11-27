@@ -81,6 +81,7 @@ export function InvoicePreview({
 						href={url ?? undefined}
 						target="_blank"
 						rel="noreferrer"
+						aria-label="Open invoice PDF in new tab"
 					/>
 				}
 				nativeButton={false}
@@ -117,7 +118,7 @@ export function InvoicePreview({
 			)}
 			<div className="hidden overflow-hidden rounded-xl border bg-muted/40 lg:block">
 				{url ? (
-					// oxlint-disable-next-line react/iframe-missing-sandbox -- blob PDF preview; sandbox blanks the browser PDF viewer
+					// oxlint-disable-next-line react/iframe-missing-sandbox, react-doctor/iframe-missing-sandbox -- blob PDF preview; sandbox blanks the browser PDF viewer
 					<iframe
 						title="Invoice PDF preview"
 						src={`${url}#toolbar=0&navpanes=0&view=FitH`}
