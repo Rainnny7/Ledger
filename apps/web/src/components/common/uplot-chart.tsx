@@ -17,9 +17,9 @@ import { cn } from "cn"
 const REVEAL_DURATION_MILLISECONDS = 800
 
 /**
- * Sweeps a chart's series in from left to right by animating `progressRef` from 0 to 1 and
- * repainting each frame; the clip itself is applied by the `drawAxes`/`draw` hooks, so axes,
- * grid and labels stay put. Skipped (progress jumps to 1) when the user prefers reduced motion.
+ * Plays a chart's entry animation by easing `progressRef` from 0 to 1 and repainting each frame;
+ * the `drawAxes`/`draw` hooks turn the progress into a left-to-right sweep or an upward grow (see
+ * `ChartReveal`), so axes, grid and labels stay put. Skipped (progress jumps to 1) when the user prefers reduced motion.
  */
 function animateReveal(
 	chart: uPlot,
@@ -82,6 +82,12 @@ export type TooltipRow = {
 /** Content of the hover tooltip for one data index. */
 export type TooltipContent = { title: string; rows: TooltipRow[] }
 
+/**
+ * How the series enter: "sweep" clips them in from left to right (suits lines and areas), "grow"
+ * scales them up from the y = 0 baseline so bars rise from the bottom together.
+ */
+export type ChartReveal = "sweep" | "grow"
+
 /** A legend entry rendered above the plot. */
 export type LegendItem = { color: string; label: string }
 
@@ -140,6 +146,7 @@ export function UPlotChart({
 	data,
 	renderTooltip,
 	hover,
+	reveal = "sweep",
 	ariaLabel,
 	legend,
 	className,
@@ -151,6 +158,8 @@ export function UPlotChart({
 	renderTooltip: (index: number) => TooltipContent
 	/** "point" keeps the crosshair/markers the options configure; "band" shades the hovered slot. */
 	hover: "point" | "band"
+	/** Entry animation; defaults to a left-to-right sweep. */
+	reveal?: ChartReveal
 	/** Text summary read by screen readers in place of the canvas. */
 	ariaLabel: string
 	legend?: LegendItem[]
@@ -249,11 +258,20 @@ export function UPlotChart({
 					drag: { x: true, y: false, setScale: false },
 				},
 				hooks: {
-					// Clip the series (drawn between these two hooks) to the revealed share of the plot.
+					// Series are drawn between these two hooks: limit them to the revealed share of the plot.
 					drawAxes: [
 						(drawing) => {
 							drawing.ctx.save()
-							if (revealProgressRef.current < 1) {
+							if (revealProgressRef.current >= 1) {
+								return
+							}
+							if (reveal === "grow") {
+								// Squash vertically towards the zero line, in canvas pixels.
+								const baseline = drawing.valToPos(0, "y", true)
+								drawing.ctx.translate(0, baseline)
+								drawing.ctx.scale(1, revealProgressRef.current)
+								drawing.ctx.translate(0, -baseline)
+							} else {
 								drawing.ctx.beginPath()
 								drawing.ctx.rect(
 									0,
@@ -334,7 +352,7 @@ export function UPlotChart({
 			chartRef.current = null
 		}
 		// oxlint-disable-next-line react/exhaustive-effect-dependencies
-	}, [buildOptions, themeKey, hover])
+	}, [buildOptions, themeKey, hover, reveal])
 
 	// New data goes through setData (which also resets zoom) instead of rebuilding.
 	useEffect(() => {

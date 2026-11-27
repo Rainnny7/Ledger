@@ -433,6 +433,7 @@ export function CashflowChart({
 			data={chartData}
 			renderTooltip={renderTooltip}
 			hover="band"
+			reveal="grow"
 			ariaLabel={summary}
 			className={className}
 			legend={[
