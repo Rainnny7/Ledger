@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router"
 import { TipCard } from "@/components/advisor/advisor-bits"
 import { perYear } from "@/components/advisor/advisor-meta"
 import { useAdvice } from "@/components/advisor/use-advice"
-import { buttonVariants } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button-variants"
 import { ReservedSlot } from "@/components/common/reserved-slot"
 import { cn } from "cn"
 

@@ -1,6 +1,7 @@
 import { WithContextMenu } from "@/components/layout/app-context-menu"
 import { ArrowRightIcon } from "@/components/icons/arrow-right"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button-variants"
 import {
 	DropdownMenu,
 	DropdownMenuContent,
