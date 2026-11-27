@@ -5,6 +5,7 @@ import { SearchIcon } from "@/components/icons/search"
 import { ArrowRightIcon } from "@/components/icons/arrow-right"
 import { SlotIcon } from "@/components/icons/slot-icon"
 import { useAnimatedIcon } from "@/components/icons/use-animated-icon"
+import { useScrollFade } from "@/components/common/use-scroll-fade"
 import { usePalette } from "@/components/layout/use-palette"
 import { cn } from "cn"
 
@@ -106,12 +107,13 @@ function PaletteList({
 	setActive: (index: number | ((current: number) => number)) => void
 	go: (item: PaletteItem | undefined) => void
 }) {
+	useScrollFade(listRef)
 	return (
 		<div
 			ref={listRef}
 			id="palette-list"
 			role="listbox"
-			className="min-h-0 flex-1 overflow-y-auto p-1.5"
+			className="scroll-fade-y min-h-0 flex-1 overflow-y-auto p-1.5"
 		>
 			{items.length === 0 && (
 				<p className="px-3 py-8 text-center text-sm text-muted-foreground">

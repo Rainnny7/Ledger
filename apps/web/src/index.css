@@ -857,3 +857,16 @@
 ::view-transition-new(root) {
 	z-index: 2;
 }
+
+/* Vertical scroll fade: edges dissolve while more content lies beyond them (see use-scroll-fade.ts). */
+@utility scroll-fade-y {
+	--fade-top: 0px;
+	--fade-bottom: 0px;
+	mask-image: linear-gradient(
+		to bottom,
+		transparent,
+		#000 var(--fade-top),
+		#000 calc(100% - var(--fade-bottom)),
+		transparent
+	);
+}
