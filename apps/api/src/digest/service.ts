@@ -22,7 +22,7 @@ import {
 	getNotificationPreferences,
 	notifyUser,
 } from "../notifications/service.ts"
-import { spendingDigestMailContent } from "../mail/spending-digest.ts"
+import { spendingDigestMailContent } from "../mail/spending-digest.tsx"
 import { todayIso } from "../time/today.ts"
 import { type DigestProse, generateDigestProse } from "./prose.ts"
 import { digestUnsubscribeUrl } from "./unsubscribe.ts"
@@ -188,7 +188,7 @@ async function deliverDigest(
 	prose: DigestProse
 ) {
 	const unsubscribeUrl = digestUnsubscribeUrl(userId)
-	const { subject, text, html } = spendingDigestMailContent({
+	const { subject, text, html } = await spendingDigestMailContent({
 		digest,
 		prose,
 		unsubscribeUrl,
@@ -265,5 +265,5 @@ export async function runSpendingDigestTask(): Promise<string> {
 	if (failed) {
 		parts.push(`${failed} failed`)
 	}
-	return parts.join(" Â· ")
+	return parts.join(" · ")
 }

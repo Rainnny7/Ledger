@@ -16,6 +16,7 @@ import {
 } from "@/lib/api"
 import { addDays, isoDate } from "@/lib/format"
 import { type RangeKey, rangeStart } from "@/lib/ranges"
+import { demoMode, demoPersona } from "@/lib/demo"
 import { toastError } from "@/lib/toast"
 
 /**
@@ -148,6 +149,7 @@ export const queryKeys = {
 	accountDetails: (id: string) => ["account", id, "details"] as const,
 	update: ["admin", "update"] as const,
 	notifications: ["notifications"] as const,
+	notificationPreferences: ["notifications", "preferences"] as const,
 }
 
 /** Notification severity shown in the bell and admin send form. */
@@ -160,6 +162,7 @@ export type NotificationItem = {
 	title: string
 	body: string
 	href: string | null
+	source: string | null
 	readAt: string | null
 	createdAt: string
 }
@@ -177,7 +180,11 @@ async function notificationsRequest<T>(
 	const response = await fetch(`/api/notifications${path}`, {
 		...init,
 		credentials: "include",
-		headers: { "Content-Type": "application/json", ...init?.headers },
+		headers: {
+			"Content-Type": "application/json",
+			...(demoMode ? { "X-Ledger-Demo": demoPersona.id } : {}),
+			...init?.headers,
+		},
 	})
 	if (!response.ok) {
 		const data = await response.json().catch(() => ({}))
@@ -193,6 +200,26 @@ function invalidateNotifications() {
 	return queryClient.invalidateQueries({
 		queryKey: queryKeys.notifications,
 	})
+}
+
+function notificationsNow() {
+	return new Date().toISOString()
+}
+
+function demoNotificationsOk() {
+	return Promise.resolve({ ok: true as const })
+}
+
+function patchNotifications(
+	patch: (data: NotificationsData) => NotificationsData
+) {
+	const previous = queryClient.getQueryData<NotificationsData>(
+		queryKeys.notifications
+	)
+	if (previous) {
+		queryClient.setQueryData(queryKeys.notifications, patch(previous))
+	}
+	return previous
 }
 
 /** The `{ data, error, loading, reload }` shape pages use; `loading` is true while any fetch runs. */
@@ -359,7 +386,7 @@ export const useNotifications = (enabled = true) =>
 			queryKey: queryKeys.notifications,
 			queryFn: () => notificationsRequest<NotificationsData>(""),
 			enabled,
-			refetchInterval: 30_000,
+			refetchInterval: demoMode ? false : 30_000,
 			refetchOnWindowFocus: true,
 		})
 	)
@@ -368,32 +395,266 @@ export const useNotifications = (enabled = true) =>
 export const useMarkNotificationRead = () =>
 	useMutation({
 		mutationFn: (id: string) =>
-			notificationsRequest<{ ok: true }>(`/${id}/read`, {
-				method: "POST",
-			}),
-		onSuccess: () => void invalidateNotifications(),
+			demoMode
+				? demoNotificationsOk()
+				: notificationsRequest<{ ok: true }>(`/${id}/read`, {
+						method: "POST",
+					}),
+		onMutate: async (id) => {
+			await queryClient.cancelQueries({ queryKey: queryKeys.notifications })
+			const previous = patchNotifications((data) => {
+				const readAt = notificationsNow()
+				let touchedUnread = false
+				const items = data.items.map((item) => {
+					if (item.id !== id || item.readAt) {
+						return item
+					}
+					touchedUnread = true
+					return { ...item, readAt }
+				})
+				return {
+					items,
+					unreadCount: Math.max(
+						0,
+						data.unreadCount - (touchedUnread ? 1 : 0)
+					),
+				}
+			})
+			return { previous }
+		},
+		onError: (_error, _id, context) => {
+			if (context?.previous) {
+				queryClient.setQueryData(
+					queryKeys.notifications,
+					context.previous
+				)
+			}
+		},
+		onSettled: () => {
+			if (!demoMode) {
+				void invalidateNotifications()
+			}
+		},
+	})
+
+/** Marks one notification as unread. */
+export const useMarkNotificationUnread = () =>
+	useMutation({
+		mutationFn: (id: string) =>
+			demoMode
+				? demoNotificationsOk()
+				: notificationsRequest<{ ok: true }>(`/${id}/unread`, {
+						method: "POST",
+					}),
+		onMutate: async (id) => {
+			await queryClient.cancelQueries({ queryKey: queryKeys.notifications })
+			const previous = patchNotifications((data) => {
+				let touchedRead = false
+				const items = data.items.map((item) => {
+					if (item.id !== id || !item.readAt) {
+						return item
+					}
+					touchedRead = true
+					return { ...item, readAt: null }
+				})
+				return {
+					items,
+					unreadCount: data.unreadCount + (touchedRead ? 1 : 0),
+				}
+			})
+			return { previous }
+		},
+		onError: (_error, _id, context) => {
+			if (context?.previous) {
+				queryClient.setQueryData(
+					queryKeys.notifications,
+					context.previous
+				)
+			}
+		},
+		onSettled: () => {
+			if (!demoMode) {
+				void invalidateNotifications()
+			}
+		},
 	})
 
 /** Marks every notification as read. */
 export const useMarkAllNotificationsRead = () =>
 	useMutation({
 		mutationFn: () =>
-			notificationsRequest<{ ok: true }>("/read-all", { method: "POST" }),
-		onSuccess: () => void invalidateNotifications(),
+			demoMode
+				? demoNotificationsOk()
+				: notificationsRequest<{ ok: true }>("/read-all", {
+						method: "POST",
+					}),
+		onMutate: async () => {
+			await queryClient.cancelQueries({ queryKey: queryKeys.notifications })
+			const previous = patchNotifications((data) => {
+				const readAt = notificationsNow()
+				return {
+					items: data.items.map((item) =>
+						item.readAt ? item : { ...item, readAt }
+					),
+					unreadCount: 0,
+				}
+			})
+			return { previous }
+		},
+		onError: (_error, _vars, context) => {
+			if (context?.previous) {
+				queryClient.setQueryData(
+					queryKeys.notifications,
+					context.previous
+				)
+			}
+		},
+		onSettled: () => {
+			if (!demoMode) {
+				void invalidateNotifications()
+			}
+		},
 	})
 
 /** Removes one notification. */
 export const useDeleteNotification = () =>
 	useMutation({
 		mutationFn: (id: string) =>
-			notificationsRequest<{ ok: true }>(`/${id}`, { method: "DELETE" }),
-		onSuccess: () => void invalidateNotifications(),
+			demoMode
+				? demoNotificationsOk()
+				: notificationsRequest<{ ok: true }>(`/${id}`, {
+						method: "DELETE",
+					}),
+		onMutate: async (id) => {
+			await queryClient.cancelQueries({ queryKey: queryKeys.notifications })
+			const previous = patchNotifications((data) => {
+				const removed = data.items.find((item) => item.id === id)
+				return {
+					items: data.items.filter((item) => item.id !== id),
+					unreadCount: Math.max(
+						0,
+						data.unreadCount - (removed && !removed.readAt ? 1 : 0)
+					),
+				}
+			})
+			return { previous }
+		},
+		onError: (_error, _id, context) => {
+			if (context?.previous) {
+				queryClient.setQueryData(
+					queryKeys.notifications,
+					context.previous
+				)
+			}
+		},
+		onSettled: () => {
+			if (!demoMode) {
+				void invalidateNotifications()
+			}
+		},
 	})
 
 /** Removes every notification. */
 export const useClearAllNotifications = () =>
 	useMutation({
 		mutationFn: () =>
-			notificationsRequest<{ ok: true }>("", { method: "DELETE" }),
-		onSuccess: () => void invalidateNotifications(),
+			demoMode
+				? demoNotificationsOk()
+				: notificationsRequest<{ ok: true }>("", { method: "DELETE" }),
+		onMutate: async () => {
+			await queryClient.cancelQueries({ queryKey: queryKeys.notifications })
+			const previous = queryClient.getQueryData<NotificationsData>(
+				queryKeys.notifications
+			)
+			queryClient.setQueryData<NotificationsData>(queryKeys.notifications, {
+				items: [],
+				unreadCount: 0,
+			})
+			return { previous }
+		},
+		onError: (_error, _vars, context) => {
+			if (context?.previous) {
+				queryClient.setQueryData(
+					queryKeys.notifications,
+					context.previous
+				)
+			}
+		},
+		onSettled: () => {
+			if (!demoMode) {
+				void invalidateNotifications()
+			}
+		},
+	})
+
+/** Sources a user can route independently. */
+export type NotificationSource = "security" | "digest"
+
+/** Independent email and in-app toggles for one notification source. */
+export type NotificationPreference = {
+	email: boolean
+	inApp: boolean
+}
+
+/** Delivery toggles per notification source. */
+export type NotificationPreferences = Record<
+	NotificationSource,
+	NotificationPreference
+>
+
+/** Delivery preferences for each notification source. */
+export const useNotificationPreferences = () =>
+	view(
+		useQuery({
+			queryKey: queryKeys.notificationPreferences,
+			queryFn: async () =>
+				(
+					await notificationsRequest<{
+						preferences: NotificationPreferences
+					}>("/preferences")
+				).preferences,
+		})
+	)
+
+/** Changes delivery toggles for one source, updating the cache optimistically. */
+export const useSetNotificationPreference = () =>
+	useMutation({
+		mutationFn: (variables: {
+			source: NotificationSource
+			email: boolean
+			inApp: boolean
+		}) =>
+			notificationsRequest<{ preferences: NotificationPreferences }>(
+				"/preferences",
+				{ method: "PUT", body: JSON.stringify(variables) }
+			),
+		onMutate: async ({ source, email, inApp }) => {
+			await queryClient.cancelQueries({
+				queryKey: queryKeys.notificationPreferences,
+			})
+			const previous = queryClient.getQueryData<NotificationPreferences>(
+				queryKeys.notificationPreferences
+			)
+			if (previous) {
+				queryClient.setQueryData<NotificationPreferences>(
+					queryKeys.notificationPreferences,
+					{ ...previous, [source]: { email, inApp } }
+				)
+			}
+			return { previous }
+		},
+		onError: (error, _variables, context) => {
+			if (context?.previous) {
+				queryClient.setQueryData(
+					queryKeys.notificationPreferences,
+					context.previous
+				)
+			}
+			toastError(error.message)
+		},
+		onSuccess: (data) =>
+			queryClient.setQueryData(
+				queryKeys.notificationPreferences,
+				data.preferences
+			),
 	})

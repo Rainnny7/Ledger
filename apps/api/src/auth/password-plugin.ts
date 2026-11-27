@@ -12,10 +12,10 @@ import * as z from "zod"
 import { db } from "../db/connection.ts"
 import { account, verification } from "../db/schema/index.ts"
 import { userHasCredentialPassword } from "./credentials.ts"
-import { deleteAccountMailContent } from "../mail/delete-account.ts"
+import { deleteAccountMailContent } from "../mail/delete-account.tsx"
 import { isSmtpConfigured, sendMail } from "../mail/smtp.ts"
 import { notifyUser } from "../notifications/service.ts"
-import { passwordAddedMailContent } from "../mail/password-added.ts"
+import { passwordAddedMailContent } from "../mail/password-added.tsx"
 
 /** Lets passwordless accounts check status and set a credential password later. */
 export function passwordPlugin(): BetterAuthPlugin {
@@ -136,7 +136,7 @@ export function passwordPlugin(): BetterAuthPlugin {
 						token = newSession.token
 					}
 					const subject = "A password was added to your Ledger account"
-					const { text, html } = passwordAddedMailContent()
+					const { text, html } = await passwordAddedMailContent()
 					try {
 						await notifyUser({
 							userId: session.user.id,
@@ -191,7 +191,7 @@ export function passwordPlugin(): BetterAuthPlugin {
 						context.body.callbackURL ?? "/login"
 					)
 					const url = `${context.context.baseURL}/delete-user/callback?token=${token}&callbackURL=${callbackURL}`
-					const { text, html } = deleteAccountMailContent(url)
+					const { text, html } = await deleteAccountMailContent(url)
 					await sendMail({
 						to: session.user.email,
 						subject: "Confirm deleting your Ledger account",

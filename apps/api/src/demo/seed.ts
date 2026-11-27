@@ -29,9 +29,10 @@ import {
 } from "./personas.ts"
 import { roundMoney, toCents } from "@ledger/shared/money"
 import { toIsoDate } from "./util.ts"
+import { seedDemoNotifications } from "./notifications.ts"
 import { seedUsdJob, seedWork, usdWallet } from "./work.ts"
 
-const SEED_VERSION = "7"
+const SEED_VERSION = "8"
 
 function ensureDemoUser(p: Persona) {
 	const now = new Date().toISOString()
@@ -365,6 +366,7 @@ function seed(today: Date, p: Persona) {
 		seedWork(today, userId)
 		seedUsdJob(today, userId)
 	}
+	seedDemoNotifications(today, p, userId)
 }
 
 /** Make sure today's data exists for a demo persona. Cheap after the first call of the day. */

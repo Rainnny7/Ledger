@@ -885,7 +885,8 @@ function AppShellFrame() {
 	useAccountTheme()
 	const user = demoMode ? DEMO_IDENTITY : data?.user
 	const signedIn = Boolean(data?.user) && !demoMode
-	useUnreadIndicator(signedIn)
+	const notificationsEnabled = signedIn || demoMode
+	useUnreadIndicator(notificationsEnabled)
 	const isAdmin = data?.user.role === "admin"
 	const { data: updateInfo } = useUpdate(isAdmin && !demoMode)
 	const [updateOpen, setUpdateOpen] = useState(false)
@@ -1013,7 +1014,7 @@ function AppShellFrame() {
 									{isApplePlatform ? "⌘ K" : "Ctrl + K"}
 								</Kbd>
 							</Button>
-							<NotificationBell enabled={signedIn} />
+							<NotificationBell enabled={notificationsEnabled} />
 							<DropdownMenu>
 								<DropdownMenuTrigger
 									render={

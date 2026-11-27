@@ -62,8 +62,8 @@ import {
 import { MAGIC_LINK_COOLDOWN_KIND, magicLinkGuard } from "./magic-link-guard.ts"
 import { passwordPlugin } from "./password-plugin.ts"
 import { turnstileSecretKey } from "./captcha.ts"
-import { magicLinkMailContent } from "../mail/magic-link.ts"
-import { verifyEmailMailContent } from "../mail/verify-email.ts"
+import { magicLinkMailContent } from "../mail/magic-link.tsx"
+import { verifyEmailMailContent } from "../mail/verify-email.tsx"
 import { isSmtpConfigured, sendMail } from "../mail/smtp.ts"
 
 /** Context passed to auth middleware hooks (before/after). */
@@ -553,7 +553,7 @@ export const auth = betterAuth({
 			const link = new URL(url)
 			link.searchParams.set("callbackURL", "/email-verified")
 			const verifyUrl = link.toString()
-			const { text, html } = verifyEmailMailContent(verifyUrl)
+			const { text, html } = await verifyEmailMailContent(verifyUrl)
 			await sendMail({
 				to: target.email,
 				subject: "Verify your Ledger email",
@@ -662,7 +662,7 @@ export const auth = betterAuth({
 			sendMagicLink: async ({ email, token }) => {
 				recordEmailResendSent(MAGIC_LINK_COOLDOWN_KIND, email)
 				const linkUrl = `${env.APP_URL}/login/link?token=${encodeURIComponent(token)}`
-				const { text, html } = magicLinkMailContent(linkUrl)
+				const { text, html } = await magicLinkMailContent(linkUrl)
 				void sendMail({
 					to: email,
 					subject: "Your Ledger login link",

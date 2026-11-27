@@ -9,7 +9,7 @@ import {
 	monthEnd,
 	shiftMonth,
 } from "../../src/finance/spending-digest.ts"
-import { spendingDigestMailContent } from "../../src/mail/spending-digest.ts"
+import { spendingDigestMailContent } from "../../src/mail/spending-digest.tsx"
 
 function tx(
 	date: string,
@@ -211,9 +211,9 @@ test("sanitizeProse drops ungrounded and empty lines", () => {
 	})
 })
 
-test("the email carries the computed figures, bars and unsubscribe link", () => {
+test("the email carries the computed figures, bars and unsubscribe link", async () => {
 	const digest = computeSpendingDigest(history(), "2026-10", "CAD")
-	const { subject, text, html } = spendingDigestMailContent({
+	const { subject, text, html } = await spendingDigestMailContent({
 		digest,
 		prose: { headline: "A big shopping month." },
 		unsubscribeUrl:
@@ -235,13 +235,13 @@ test("the email carries the computed figures, bars and unsubscribe link", () => 
 	assert.doesNotMatch(html, /<script|<img/)
 })
 
-test("the email escapes merchant names and omits missing prose", () => {
+test("the email escapes merchant names and omits missing prose", async () => {
 	const rows = [
 		tx("2026-09-01", -5, "Old Shop"),
 		tx("2026-10-05", -80, "<b>Evil & Co</b>"),
 	]
 	const digest = computeSpendingDigest(rows, "2026-10", "CAD")
-	const { html, text } = spendingDigestMailContent({
+	const { html, text } = await spendingDigestMailContent({
 		digest,
 		prose: {},
 		unsubscribeUrl: "https://x.example/u?token=a.b",
