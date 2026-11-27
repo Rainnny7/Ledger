@@ -14,7 +14,9 @@
   <a href="https://github.com/Rainnny7/Ledger/commits/master"><img src="https://img.shields.io/github/last-commit/Rainnny7/Ledger" alt="Last commit"></a>
 </p>
 
-![Ledger dashboard](assets/screenshots/dashboard.png)
+<p align="center">
+  <video src="assets/app-preview.mp4" controls muted loop playsinline width="100%"></video>
+</p>
 
 ## Table of contents
 
