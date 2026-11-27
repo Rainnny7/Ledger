@@ -1,7 +1,11 @@
 import type { Category } from "@ledger/shared/categories"
 import type { DigestProse } from "../digest/prose.ts"
 import type { SpendingDigest } from "../finance/spending-digest.ts"
-import { escapeHtml } from "./html.ts"
+import { Link } from "@react-email/components"
+import type { ReactElement, ReactNode } from "react"
+import { EmailLayout, EmailText } from "./email-layout.tsx"
+import { renderEmailHtml } from "./render.ts"
+import { EMAIL_COLORS } from "./theme.ts"
 
 /** Inputs for {@link spendingDigestMailContent}. */
 export interface SpendingDigestMailOptions {
@@ -12,16 +16,6 @@ export interface SpendingDigestMailOptions {
 	unsubscribeUrl: string
 	/** Where "Open Ledger" points. */
 	appUrl: string
-}
-
-const COLORS = {
-	text: "#111827",
-	muted: "#6b7280",
-	border: "#e5e7eb",
-	bar: "#4f46e5",
-	barTrack: "#eef0f6",
-	good: "#15803d",
-	bad: "#b91c1c",
 }
 
 function monthLabel(period: string): string {
@@ -59,28 +53,138 @@ export function spendingDigestSubject(period: string): string {
 	return `Your ${monthLabel(period)} spending digest`
 }
 
-function barRow(label: string, value: string, percent: number): string {
+function BarRow({
+	label,
+	value,
+	percent,
+}: {
+	label: string
+	value: string
+	percent: number
+}): ReactElement {
 	const width = Math.max(2, Math.min(100, Math.round(percent)))
-	return `<tr><td style="padding:6px 0 2px;font-size:14px;color:${COLORS.text}">${escapeHtml(label)}</td><td align="right" style="padding:6px 0 2px;font-size:14px;color:${COLORS.text}">${escapeHtml(value)}</td></tr>
-<tr><td colspan="2" style="padding:0 0 6px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.barTrack};border-radius:4px"><tr><td width="${width}%" style="background:${COLORS.bar};height:8px;line-height:8px;font-size:0;border-radius:4px">&nbsp;</td><td style="font-size:0;line-height:8px">&nbsp;</td></tr></table></td></tr>`
+	return (
+		<table
+			role="presentation"
+			width="100%"
+			cellPadding={0}
+			cellSpacing={0}
+			style={{ marginBottom: "10px" }}
+		>
+			<tbody>
+				<tr>
+					<td style={{ padding: "0 0 4px", fontSize: "14px", color: EMAIL_COLORS.text }}>
+						{label}
+					</td>
+					<td
+						align="right"
+						style={{ padding: "0 0 4px", fontSize: "14px", color: EMAIL_COLORS.text }}
+					>
+						{value}
+					</td>
+				</tr>
+				<tr>
+					<td colSpan={2}>
+						<table
+							role="presentation"
+							width="100%"
+							cellPadding={0}
+							cellSpacing={0}
+							style={{ backgroundColor: EMAIL_COLORS.track, borderRadius: "4px" }}
+						>
+							<tbody>
+								<tr>
+									<td
+										width={`${width}%`}
+										style={{
+											backgroundColor: EMAIL_COLORS.primary,
+											height: "8px",
+											lineHeight: "8px",
+											fontSize: 0,
+											borderRadius: "4px",
+										}}
+									>
+										&nbsp;
+									</td>
+									<td style={{ fontSize: 0, lineHeight: "8px" }}>&nbsp;</td>
+								</tr>
+							</tbody>
+						</table>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	)
 }
 
-function section(title: string, line: string | undefined, body: string) {
-	if (!body) {
-		return ""
-	}
-	return `<h2 style="margin:28px 0 8px;font-size:16px;color:${COLORS.text}">${escapeHtml(title)}</h2>
-${line ? `<p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:${COLORS.muted}">${escapeHtml(line)}</p>` : ""}
-${body}`
+function Section({
+	title,
+	line,
+	children,
+}: {
+	title: string
+	line?: string
+	children: ReactNode
+}): ReactElement {
+	return (
+		<>
+			<h2
+				style={{
+					margin: "28px 0 8px",
+					fontSize: "16px",
+					color: EMAIL_COLORS.text,
+				}}
+			>
+				{title}
+			</h2>
+			{line ? <EmailText muted>{line}</EmailText> : null}
+			{children}
+		</>
+	)
 }
 
-function listHtml(items: string[]): string {
-	if (items.length === 0) {
-		return ""
-	}
-	return `<ul style="margin:0;padding-left:20px;font-size:14px;line-height:1.6;color:${COLORS.text}">${items
-		.map((item) => `<li>${escapeHtml(item)}</li>`)
-		.join("")}</ul>`
+function BulletList({ items }: { items: string[] }): ReactElement {
+	return (
+		<ul
+			style={{
+				margin: "0",
+				paddingLeft: "20px",
+				fontSize: "14px",
+				lineHeight: "1.6",
+				color: EMAIL_COLORS.text,
+			}}
+		>
+			{items.map((item) => (
+				<li key={item}>{item}</li>
+			))}
+		</ul>
+	)
+}
+
+function Stat({
+	name,
+	value,
+	color = EMAIL_COLORS.text,
+}: {
+	name: string
+	value: string
+	color?: string
+}): ReactElement {
+	return (
+		<td style={{ padding: "0 20px 0 0", verticalAlign: "top" }}>
+			<div
+				style={{
+					fontSize: "12px",
+					color: EMAIL_COLORS.muted,
+					textTransform: "uppercase",
+					letterSpacing: ".04em",
+				}}
+			>
+				{name}
+			</div>
+			<div style={{ fontSize: "22px", fontWeight: 600, color }}>{value}</div>
+		</td>
+	)
 }
 
 /** The unusual-item bullets as plain sentences (shared by the HTML and text bodies). */
@@ -136,13 +240,13 @@ function changeText(digest: SpendingDigest): string {
  * `prose` only supplies the surrounding sentences. The HTML uses table-and-inline-CSS bars so it
  * renders in mail clients without images or scripts.
  */
-export function spendingDigestMailContent(options: SpendingDigestMailOptions) {
+export async function spendingDigestMailContent(options: SpendingDigestMailOptions) {
 	const { digest, prose, unsubscribeUrl, appUrl } = options
 	const money = moneyFormatter(digest.currency)
 	const label = monthLabel(digest.period)
 	const savings =
 		digest.savingsRate === null ? "n/a" : `${digest.savingsRate}%`
-	const netColor = digest.net >= 0 ? COLORS.good : COLORS.bad
+	const netColor = digest.net >= 0 ? EMAIL_COLORS.good : EMAIL_COLORS.bad
 	const unusual = unusualLines(digest, money)
 	const recurring = recurringLines(digest, money)
 	const shifts = shiftLines(digest, money)
@@ -202,52 +306,99 @@ export function spendingDigestMailContent(options: SpendingDigestMailOptions) {
 		`Unsubscribe: ${unsubscribeUrl}`,
 	].join("\n")
 
-	const stat = (name: string, value: string, color = COLORS.text) =>
-		`<td style="padding:0 16px 0 0;vertical-align:top"><div style="font-size:12px;color:${COLORS.muted};text-transform:uppercase;letter-spacing:.04em">${escapeHtml(name)}</div><div style="font-size:22px;font-weight:600;color:${color}">${escapeHtml(value)}</div></td>`
-
-	const categoriesBody = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${digest.topCategories
-		.map((row) =>
-			barRow(
-				categoryName(row.category),
-				`${money(row.spent)} · ${row.share}%`,
-				(row.spent / topSpent) * 100
-			)
-		)
-		.join(
-			""
-		)}</table>${shifts.length > 0 ? `<div style="margin-top:10px">${listHtml(shifts)}</div>` : ""}`
-
-	const trendBody = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${digest.trend
-		.map((month) =>
-			barRow(
-				`${shortMonth(month.month)} spent`,
-				money(month.spent),
-				(month.spent / trendPeak) * 100
-			)
-		)
-		.join("")}</table>`
-
-	const html = `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(spendingDigestSubject(digest.period))}</title></head>
-<body style="margin:0;padding:0;background:#f6f7fb">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7fb"><tr><td align="center" style="padding:24px 12px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid ${COLORS.border};border-radius:12px"><tr><td style="padding:28px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:${COLORS.text}">
-<p style="margin:0 0 4px;font-size:13px;color:${COLORS.muted}">Ledger · ${escapeHtml(label)}</p>
-<h1 style="margin:0 0 12px;font-size:22px;line-height:1.3">Your ${escapeHtml(label)} spending</h1>
-${prose.headline ? `<p style="margin:0 0 20px;font-size:15px;line-height:1.55">${escapeHtml(prose.headline)}</p>` : ""}
-<table role="presentation" cellpadding="0" cellspacing="0"><tr>${stat("Spent", money(digest.spent))}${stat("Income", money(digest.income))}${stat("Net", money(digest.net), netColor)}</tr></table>
-<p style="margin:12px 0 0;font-size:14px;color:${COLORS.muted}">Savings rate ${escapeHtml(savings)}. ${escapeHtml(changeText(digest))}</p>
-${section("Where it went", prose.spending, categoriesBody)}
-${section("Last three months", prose.trend, trendBody)}
-${section("Worth a look", prose.unusual, listHtml(unusual))}
-${section("Recurring charges", prose.recurring, listHtml(recurring))}
-${prose.suggestion ? `<div style="margin:28px 0 0;padding:14px 16px;background:${COLORS.barTrack};border-radius:8px;font-size:14px;line-height:1.55"><strong>An idea:</strong> ${escapeHtml(prose.suggestion)}</div>` : ""}
-<p style="margin:28px 0 0"><a href="${escapeHtml(appUrl)}" style="color:${COLORS.bar};font-size:14px">Open Ledger</a></p>
-</td></tr></table>
-<p style="max-width:560px;margin:16px 0 0;font-family:system-ui,sans-serif;font-size:12px;line-height:1.5;color:${COLORS.muted}">You're getting this because you turned on the monthly digest in Ledger. <a href="${escapeHtml(unsubscribeUrl)}" style="color:${COLORS.muted}">Unsubscribe</a></p>
-</td></tr></table>
-</body>
-</html>`
+	const html = await renderEmailHtml(
+		<EmailLayout
+			preview={prose.headline ?? `Your ${label} spending at a glance`}
+			title={`Your ${label} spending`}
+			footer={
+				<>
+					You're getting this because you turned on the monthly digest in
+					Ledger.{" "}
+					<Link
+						href={unsubscribeUrl}
+						style={{ color: EMAIL_COLORS.muted }}
+					>
+						Unsubscribe
+					</Link>
+				</>
+			}
+		>
+			{prose.headline ? <EmailText>{prose.headline}</EmailText> : null}
+			<table role="presentation" cellPadding={0} cellSpacing={0}>
+				<tbody>
+					<tr>
+						<Stat name="Spent" value={money(digest.spent)} />
+						<Stat name="Income" value={money(digest.income)} />
+						<Stat name="Net" value={money(digest.net)} color={netColor} />
+					</tr>
+				</tbody>
+			</table>
+			<EmailText muted>
+				Savings rate {savings}. {changeText(digest)}
+			</EmailText>
+			{digest.topCategories.length > 0 ? (
+				<Section title="Where it went" line={prose.spending}>
+					{digest.topCategories.map((row) => (
+						<BarRow
+							key={row.category}
+							label={categoryName(row.category)}
+							value={`${money(row.spent)} · ${row.share}%`}
+							percent={(row.spent / topSpent) * 100}
+						/>
+					))}
+					{shifts.length > 0 ? <BulletList items={shifts} /> : null}
+				</Section>
+			) : null}
+			{digest.trend.length > 0 ? (
+				<Section title="Last three months" line={prose.trend}>
+					{digest.trend.map((month) => (
+						<BarRow
+							key={month.month}
+							label={`${shortMonth(month.month)} spent`}
+							value={money(month.spent)}
+							percent={(month.spent / trendPeak) * 100}
+						/>
+					))}
+				</Section>
+			) : null}
+			{unusual.length > 0 ? (
+				<Section title="Worth a look" line={prose.unusual}>
+					<BulletList items={unusual} />
+				</Section>
+			) : null}
+			{recurring.length > 0 ? (
+				<Section title="Recurring charges" line={prose.recurring}>
+					<BulletList items={recurring} />
+				</Section>
+			) : null}
+			{prose.suggestion ? (
+				<div
+					style={{
+						margin: "28px 0 0",
+						padding: "14px 16px",
+						backgroundColor: EMAIL_COLORS.tint,
+						borderRadius: "10px",
+						fontSize: "14px",
+						lineHeight: "1.55",
+						color: EMAIL_COLORS.text,
+					}}
+				>
+					<strong>An idea:</strong> {prose.suggestion}
+				</div>
+			) : null}
+			<p style={{ margin: "28px 0 0" }}>
+				<Link
+					href={appUrl}
+					style={{
+						color: EMAIL_COLORS.primary,
+						fontSize: "14px",
+						fontWeight: 600,
+					}}
+				>
+					Open Ledger
+				</Link>
+			</p>
+		</EmailLayout>
+	)
 	return { subject: spendingDigestSubject(digest.period), text, html }
 }

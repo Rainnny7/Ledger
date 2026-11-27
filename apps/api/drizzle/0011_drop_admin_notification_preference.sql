@@ -1,0 +1,1 @@
+DELETE FROM `notification_preference` WHERE `source` = 'admin';

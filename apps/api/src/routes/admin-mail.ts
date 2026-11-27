@@ -155,6 +155,7 @@ adminMail.post(
 			kind: body.kind,
 			href: body.href,
 			email: body.email,
+			source: "admin" as const,
 		}
 		if (ids.length === 1) {
 			await notifyUser({ userId: ids[0]!, ...payload })

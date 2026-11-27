@@ -17,7 +17,11 @@ import {
 	type SpendingDigest,
 } from "../finance/spending-digest.ts"
 import { convert, getRates } from "../fx/rates.ts"
-import { getSmtpConfig, isSmtpConfigured, sendMail } from "../mail/smtp.ts"
+import { getSmtpConfig, isSmtpConfigured } from "../mail/smtp.ts"
+import {
+	getNotificationPreferences,
+	notifyUser,
+} from "../notifications/service.ts"
 import { spendingDigestMailContent } from "../mail/spending-digest.ts"
 import { todayIso } from "../time/today.ts"
 import { type DigestProse, generateDigestProse } from "./prose.ts"
@@ -94,6 +98,13 @@ export async function sendSpendingDigest(
 	) {
 		return { status: "skipped", period, reason: "not due" }
 	}
+	const digestPreference = getNotificationPreferences(userId).digest
+	if (!digestPreference.email && !digestPreference.inApp) {
+		if (!options.force) {
+			markSent(userId, period)
+		}
+		return { status: "skipped", period, reason: "digest notifications off" }
+	}
 	const currency =
 		row.currency ?? [...accountCurrencyById(userId).values()][0] ?? "CAD"
 	const digest = computeSpendingDigest(
@@ -118,11 +129,49 @@ export async function sendSpendingDigest(
 			error instanceof Error ? error.message : error
 		)
 	}
-	await sendDigestMail(row.email, userId, digest, prose)
+	await deliverDigest(userId, digest, prose)
 	if (!options.force) {
 		markSent(userId, period)
 	}
 	return { status: "sent", period, withProse: Object.keys(prose).length > 0 }
+}
+
+function digestMonthLabel(period: string): string {
+	const [year, month] = period.split("-").map(Number)
+	return new Date(year!, month! - 1, 1).toLocaleString("en-CA", {
+		month: "long",
+	})
+}
+
+function digestMoney(currency: string, amount: number): string {
+	return new Intl.NumberFormat("en-CA", {
+		style: "currency",
+		currency,
+		maximumFractionDigits: 0,
+	}).format(amount)
+}
+
+/** Short in-app copy for a digest; email uses the full `text` body. */
+function digestInAppBody(
+	digest: SpendingDigest,
+	prose: DigestProse
+): string {
+	const month = digestMonthLabel(digest.period)
+	const summary = `You spent ${digestMoney(digest.currency, digest.spent)} and earned ${digestMoney(digest.currency, digest.income)} in ${month}.`
+	for (const key of [
+		"headline",
+		"spending",
+		"trend",
+		"unusual",
+		"recurring",
+		"suggestion",
+	] as const) {
+		const line = prose[key]?.trim()
+		if (line) {
+			return `${summary} ${line}`
+		}
+	}
+	return summary
 }
 
 function markSent(userId: string, period: string) {
@@ -132,8 +181,8 @@ function markSent(userId: string, period: string) {
 		.run()
 }
 
-async function sendDigestMail(
-	to: string,
+/** Delivers the digest per the user's toggles; throws when email is on and the mail did not go out. */
+async function deliverDigest(
 	userId: string,
 	digest: SpendingDigest,
 	prose: DigestProse
@@ -151,16 +200,25 @@ async function sendDigestMail(
 		`<${unsubscribeUrl}>`,
 		...(fromAddress ? [`<mailto:${fromAddress}?subject=unsubscribe>`] : []),
 	]
-	await sendMail({
-		to,
-		subject,
-		text,
-		html,
-		headers: {
-			"List-Unsubscribe": unsubscribeTargets.join(", "),
-			"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+	const mailSent = await notifyUser({
+		userId,
+		source: "digest",
+		title: subject,
+		body: digestInAppBody(digest, prose),
+		href: "/insights",
+		mail: {
+			subject,
+			text,
+			html,
+			headers: {
+				"List-Unsubscribe": unsubscribeTargets.join(", "),
+				"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+			},
 		},
 	})
+	if (!mailSent && getNotificationPreferences(userId).digest.email) {
+		throw new Error("The digest email could not be sent.")
+	}
 }
 
 /** Scheduler task body: sends this month's digest to every opted-in user who hasn't had it yet. */
@@ -207,5 +265,5 @@ export async function runSpendingDigestTask(): Promise<string> {
 	if (failed) {
 		parts.push(`${failed} failed`)
 	}
-	return parts.join(" · ")
+	return parts.join(" Â· ")
 }

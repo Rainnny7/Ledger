@@ -28,6 +28,7 @@ import { env } from "../config/env.ts"
 import { syncInBackground } from "../banks/sessions.ts"
 import { refreshRates } from "../fx/rates.ts"
 import { runSpendingDigestTask } from "../digest/service.ts"
+import { purgeStaleReadNotifications } from "../notifications/service.ts"
 
 /** Shape of TaskRun as stored and returned by the API. */
 export interface TaskRun {
@@ -162,7 +163,16 @@ async function tidyUp(): Promise<string> {
 		.where(lt(verification.expiresAt, now))
 		.returning({ id: verification.id })
 		.all().length
-	return `Removed ${Number(sessions)} expired session${sessions === 1 ? "" : "s"} and ${Number(codes)} expired code${codes === 1 ? "" : "s"}`
+	const staleNotifications = purgeStaleReadNotifications()
+	const parts = [
+		`Removed ${Number(sessions)} expired session${sessions === 1 ? "" : "s"} and ${Number(codes)} expired code${codes === 1 ? "" : "s"}`,
+	]
+	if (staleNotifications) {
+		parts.push(
+			`${staleNotifications} read notification${staleNotifications === 1 ? "" : "s"} older than 90 days`
+		)
+	}
+	return parts.join(" · ")
 }
 
 /** Directory where scheduled backups are written. */

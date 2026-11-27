@@ -64,6 +64,34 @@
 			"when": 1795807687915,
 			"tag": "0008_spending_digest",
 			"breakpoints": true
+		},
+		{
+			"idx": 9,
+			"version": "6",
+			"when": 1795817980771,
+			"tag": "0009_aberrant_thanos",
+			"breakpoints": true
+		},
+		{
+			"idx": 10,
+			"version": "6",
+			"when": 1795820000000,
+			"tag": "0010_notification_preference_flags",
+			"breakpoints": true
+		},
+		{
+			"idx": 11,
+			"version": "6",
+			"when": 1795820100000,
+			"tag": "0011_drop_admin_notification_preference",
+			"breakpoints": true
+		},
+		{
+			"idx": 12,
+			"version": "6",
+			"when": 1795820200000,
+			"tag": "0012_notification_source",
+			"breakpoints": true
 		}
 	]
 }

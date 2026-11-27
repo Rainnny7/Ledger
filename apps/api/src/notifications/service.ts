@@ -1,20 +1,54 @@
 import { randomUUID } from "node:crypto"
-import { and, desc, eq, isNull, sql } from "drizzle-orm"
+import { and, desc, eq, isNotNull, isNull, lt, sql } from "drizzle-orm"
 import { db } from "../db/connection.ts"
-import { notification, user } from "../db/schema/index.ts"
+import {
+	notification,
+	notificationPreference,
+	user,
+} from "../db/schema/index.ts"
 import { isSmtpConfigured, sendMail } from "../mail/smtp.ts"
 
 /** Notification severity shown in the app. */
 export type NotificationKind = "info" | "success" | "warning" | "alert"
 
+/** Message sources a user can route independently. */
+export const NOTIFICATION_SOURCES = ["security", "digest"] as const
+
+/** One of {@link NOTIFICATION_SOURCES}. */
+export type NotificationSource = (typeof NOTIFICATION_SOURCES)[number]
+
+/** Independent email and in-app delivery toggles for one source. */
+export interface NotificationPreference {
+	email: boolean
+	inApp: boolean
+}
+
+const DEFAULT_PREFERENCE: NotificationPreference = { email: true, inApp: true }
+
+/** Email content that differs from the in-app title and body. */
+export interface NotificationMail {
+	subject: string
+	text: string
+	html?: string
+	headers?: Record<string, string>
+}
+
+/** Every origin stored on a notification: the user-routable sources plus always-delivered admin messages. */
+export type NotificationOrigin = NotificationSource | "admin"
+
 /** Options for {@link notifyUser}. */
 export interface NotifyUserOptions {
 	userId: string
+	/** Where the message comes from. `admin` messages skip user preferences; the rest follow them. */
+	source: NotificationOrigin
 	title: string
 	body: string
 	kind?: NotificationKind
 	href?: string | null
+	/** Caller-side gate: `false` suppresses email even when the user's email preference is on. */
 	email?: boolean
+	/** Email content override; defaults to the title and body. */
+	mail?: NotificationMail
 }
 
 /** One row returned from {@link listNotifications}. */
@@ -24,6 +58,7 @@ export interface NotificationItem {
 	title: string
 	body: string
 	href: string | null
+	source: string | null
 	readAt: string | null
 	createdAt: string
 }
@@ -38,13 +73,13 @@ export function setNotificationMailSender(sender: MailSender): void {
 	notificationMailSender = sender
 }
 
+/** Emails the user; returns whether the mail was handed to SMTP. Failures are logged, never thrown. */
 async function emailUserNotification(
 	userId: string,
-	title: string,
-	body: string
-): Promise<void> {
+	mail: NotificationMail
+): Promise<boolean> {
 	if (!isSmtpConfigured()) {
-		return
+		return false
 	}
 	const row = db
 		.select({ email: user.email })
@@ -52,42 +87,120 @@ async function emailUserNotification(
 		.where(eq(user.id, userId))
 		.get()
 	if (!row?.email) {
-		return
+		return false
 	}
 	try {
-		await notificationMailSender({
-			to: row.email,
-			subject: title,
-			text: body,
-		})
+		await notificationMailSender({ to: row.email, ...mail })
+		return true
 	} catch (error) {
 		console.warn(
 			`Notification email failed for ${userId}:`,
 			error instanceof Error ? error.message : error
 		)
+		return false
 	}
 }
 
-/**
- * Inserts an in-app notification for one user. When `email` is true and SMTP is configured, also
- * emails the user; mail failures are logged and never roll back the notification.
- */
-export async function notifyUser(options: NotifyUserOptions): Promise<void> {
-	const id = randomUUID()
-	const kind = options.kind ?? "info"
-	db.insert(notification)
+/** The user's delivery toggles for every source, with both on where they never chose. */
+export function getNotificationPreferences(
+	userId: string
+): Record<NotificationSource, NotificationPreference> {
+	const preferences = Object.fromEntries(
+		NOTIFICATION_SOURCES.map((source) => [
+			source,
+			{ ...DEFAULT_PREFERENCE },
+		])
+	) as Record<NotificationSource, NotificationPreference>
+	const rows = db
+		.select({
+			source: notificationPreference.source,
+			email: notificationPreference.email,
+			inApp: notificationPreference.inApp,
+		})
+		.from(notificationPreference)
+		.where(eq(notificationPreference.userId, userId))
+		.all()
+	for (const row of rows) {
+		if ((NOTIFICATION_SOURCES as readonly string[]).includes(row.source)) {
+			preferences[row.source as NotificationSource] = {
+				email: row.email,
+				inApp: row.inApp,
+			}
+		}
+	}
+	return preferences
+}
+
+/** Saves (upserts) the user's delivery toggles for one source. */
+export function setNotificationPreference(
+	userId: string,
+	source: NotificationSource,
+	preference: NotificationPreference
+): void {
+	db.insert(notificationPreference)
 		.values({
-			id,
-			userId: options.userId,
-			kind,
-			title: options.title,
-			body: options.body,
-			href: options.href?.trim() || null,
+			userId,
+			source,
+			email: preference.email,
+			inApp: preference.inApp,
+		})
+		.onConflictDoUpdate({
+			target: [
+				notificationPreference.userId,
+				notificationPreference.source,
+			],
+			set: { email: preference.email, inApp: preference.inApp },
 		})
 		.run()
-	if (options.email) {
-		await emailUserNotification(options.userId, options.title, options.body)
+}
+
+/**
+ * Delivers a notification. For `admin` messages, the in-app row is always stored and email is sent only
+ * when `options.email` is true (still gated by SMTP and the user's address); preferences are not
+ * consulted. For any other source, delivery follows the user's toggles for that source; when both are off,
+ * nothing happens. Mail failures are logged and never roll back the in-app row. Resolves to whether
+ * an email was actually sent.
+ */
+export async function notifyUser(options: NotifyUserOptions): Promise<boolean> {
+	const insertInApp = () => {
+		db.insert(notification)
+			.values({
+				id: randomUUID(),
+				userId: options.userId,
+				kind: options.kind ?? "info",
+				title: options.title,
+				body: options.body,
+				href: options.href?.trim() || null,
+				source: options.source,
+			})
+			.run()
 	}
+	if (options.source === "admin") {
+		insertInApp()
+		if (options.email !== true) {
+			return false
+		}
+		return emailUserNotification(
+			options.userId,
+			options.mail ?? { subject: options.title, text: options.body }
+		)
+	}
+	const preference = getNotificationPreferences(options.userId)[
+		options.source
+	]
+	if (!preference.email && !preference.inApp) {
+		return false
+	}
+	if (preference.inApp) {
+		insertInApp()
+	}
+	if (!preference.email || options.email === false) {
+		return false
+	}
+	return emailUserNotification(
+		options.userId,
+		options.mail ?? { subject: options.title, text: options.body }
+	)
 }
 
 /** Inserts the same notification for many users. */
@@ -112,6 +225,7 @@ export function listNotifications(
 			title: notification.title,
 			body: notification.body,
 			href: notification.href,
+			source: notification.source,
 			readAt: notification.readAt,
 			createdAt: notification.createdAt,
 		})
@@ -142,6 +256,14 @@ export function markRead(userId: string, id: string): void {
 		.run()
 }
 
+/** Clears read state on one notification when it belongs to the user. */
+export function markUnread(userId: string, id: string): void {
+	db.update(notification)
+		.set({ readAt: null })
+		.where(and(eq(notification.userId, userId), eq(notification.id, id)))
+		.run()
+}
+
 /** Marks every notification for the user read. */
 export function markAllRead(userId: string): void {
 	db.update(notification)
@@ -162,4 +284,18 @@ export function deleteNotification(userId: string, id: string): void {
 /** Deletes every notification for the user. */
 export function clearAll(userId: string): void {
 	db.delete(notification).where(eq(notification.userId, userId)).run()
+}
+
+/** Drops read notifications older than 90 days; returns how many rows were removed. */
+export function purgeStaleReadNotifications(): number {
+	return db
+		.delete(notification)
+		.where(
+			and(
+				isNotNull(notification.readAt),
+				lt(notification.readAt, sql`datetime('now', '-90 days')`)
+			)
+		)
+		.returning({ id: notification.id })
+		.all().length
 }

@@ -14,6 +14,7 @@ import { account, verification } from "../db/schema/index.ts"
 import { userHasCredentialPassword } from "./credentials.ts"
 import { deleteAccountMailContent } from "../mail/delete-account.ts"
 import { isSmtpConfigured, sendMail } from "../mail/smtp.ts"
+import { notifyUser } from "../notifications/service.ts"
 import { passwordAddedMailContent } from "../mail/password-added.ts"
 
 /** Lets passwordless accounts check status and set a credential password later. */
@@ -134,22 +135,22 @@ export function passwordPlugin(): BetterAuthPlugin {
 						})
 						token = newSession.token
 					}
-					if (isSmtpConfigured()) {
-						const { text, html } = passwordAddedMailContent()
-						try {
-							await sendMail({
-								to: session.user.email,
-								subject:
-									"A password was added to your Ledger account",
-								text,
-								html,
-							})
-						} catch (error) {
-							console.error(
-								"[mail] password-added notice failed",
-								error
-							)
-						}
+					const subject = "A password was added to your Ledger account"
+					const { text, html } = passwordAddedMailContent()
+					try {
+						await notifyUser({
+							userId: session.user.id,
+							source: "security",
+							kind: "warning",
+							title: subject,
+							body: text,
+							mail: { subject, text, html },
+						})
+					} catch (error) {
+						console.error(
+							"[notify] password-added notice failed",
+							error
+						)
 					}
 					return context.json({ status: true, token })
 				}
