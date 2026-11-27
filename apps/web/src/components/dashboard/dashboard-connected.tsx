@@ -113,7 +113,7 @@ export function DashboardConnected({
 			<AdvisorSpotlight />
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 				<DashboardStat
-					label="Total balance"
+					label="Total Balance"
 					value={<AnimatedMoney value={net} />}
 					negative={net < 0}
 					hint={
@@ -130,7 +130,7 @@ export function DashboardConnected({
 					}
 				/>
 				<DashboardStat
-					label="Available to spend"
+					label="Available to Spend"
 					value={<AnimatedMoney value={available} />}
 					negative={available < 0}
 					hint={
@@ -145,7 +145,7 @@ export function DashboardConnected({
 					hint="Credit, loans and overdraft in use"
 				/>
 				<DashboardStat
-					label="Spent this month"
+					label="Spent This Month"
 					value={txReady ? <AnimatedMoney value={spend.now} /> : "—"}
 					hint={[
 						spend.prev > 0
@@ -164,7 +164,7 @@ export function DashboardConnected({
 			<div className="grid gap-4 lg:grid-cols-5">
 				<Card className="lg:col-span-3">
 					<CardHeader>
-						<CardTitle>Total balance</CardTitle>
+						<CardTitle>Total Balance</CardTitle>
 						<CardDescription>
 							All accounts combined, end of day
 						</CardDescription>
@@ -189,7 +189,7 @@ export function DashboardConnected({
 				</Card>
 				<Card className="lg:col-span-2">
 					<CardHeader>
-						<CardTitle>Cash flow</CardTitle>
+						<CardTitle>Cash Flow</CardTitle>
 						<CardDescription>
 							Money in vs out, last 6 months
 						</CardDescription>
@@ -207,7 +207,7 @@ export function DashboardConnected({
 			<div className="grid gap-4 lg:grid-cols-2">
 				<Card>
 					<CardHeader>
-						<CardTitle>Upcoming payments</CardTitle>
+						<CardTitle>Upcoming Payments</CardTitle>
 						<CardDescription>
 							Subscriptions & bills due in the next 2 weeks
 						</CardDescription>
@@ -233,7 +233,7 @@ export function DashboardConnected({
 				</Card>
 				<Card>
 					<CardHeader>
-						<CardTitle>Recent activity</CardTitle>
+						<CardTitle>Recent Activity</CardTitle>
 						<CardDescription>
 							Latest across all accounts
 						</CardDescription>

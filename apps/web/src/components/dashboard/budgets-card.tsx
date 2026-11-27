@@ -286,8 +286,8 @@ function BudgetDialog({
 				<DialogHeader>
 					<DialogTitle>
 						{budget
-							? `${CATEGORY_META[budget.category].label} budget`
-							: "New budget"}
+							? `${CATEGORY_META[budget.category].label} Budget`
+							: "New Budget"}
 					</DialogTitle>
 					<DialogDescription>
 						A monthly limit. Refunds count against what you’ve

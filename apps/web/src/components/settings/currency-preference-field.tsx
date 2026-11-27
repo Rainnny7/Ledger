@@ -57,7 +57,7 @@ export function CurrencyPreferenceField({
 				htmlFor={currencyId}
 				className="grid flex-1 basis-64 gap-1 font-normal"
 			>
-				<span className="font-medium">Default currency</span>
+				<span className="font-medium">Default Currency</span>
 				<span className="text-sm text-muted-foreground">
 					Totals across accounts, goals, subscriptions and jobs are
 					shown in this currency, converting others at daily reference

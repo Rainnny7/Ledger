@@ -40,7 +40,7 @@ export function TaxCategoryCard({
 	return (
 		<Card className="gap-0 pb-0 lg:col-span-3">
 			<CardHeader className="pb-4">
-				<CardTitle>By category</CardTitle>
+				<CardTitle>By Category</CardTitle>
 				<CardDescription>
 					Transfers between your own accounts are left out. Click a
 					row to see its transactions.

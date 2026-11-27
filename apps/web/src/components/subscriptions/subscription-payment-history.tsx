@@ -17,7 +17,7 @@ export function SubscriptionPaymentHistory({
 		<>
 			<Separator />
 			<div className="grid min-w-0 gap-2">
-				<h3 className="text-sm font-medium">Payment history</h3>
+				<h3 className="text-sm font-medium">Payment History</h3>
 				<ul className="grid max-h-48 gap-0.5 overflow-y-auto text-sm">
 					{existing.payments.map((payment) => (
 						<li

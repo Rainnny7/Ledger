@@ -171,7 +171,7 @@ export function TaxesPage() {
 				: String(calendarYear),
 	}))
 	const accountItems = [
-		{ value: "all", label: "All accounts" },
+		{ value: "all", label: "All Accounts" },
 		...accounts.map((account) => ({
 			value: account.id,
 			label: account.name,
@@ -197,7 +197,7 @@ export function TaxesPage() {
 						value={yearParam}
 						onChange={setYear}
 						className="w-36"
-						label="Tax year"
+						label="Tax Year"
 					/>
 					{accounts.length > 1 && (
 						<PlainSelect
@@ -237,7 +237,7 @@ export function TaxesPage() {
 
 			<Card className="print:hidden">
 				<CardHeader>
-					<CardTitle>Before you send it</CardTitle>
+					<CardTitle>Before You Send It</CardTitle>
 					<CardDescription>
 						{loading
 							? " "

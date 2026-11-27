@@ -42,8 +42,8 @@ import { initials, KIND_LABEL, shortName } from "@/lib/sharing"
 import { cn } from "cn"
 
 const PERMISSION_ITEMS = [
-	{ value: "view", label: "Can view" },
-	{ value: "edit", label: "Can edit" },
+	{ value: "view", label: "Can View" },
+	{ value: "edit", label: "Can Edit" },
 ]
 
 async function updateSharePermission(id: string, permission: SharePermission) {

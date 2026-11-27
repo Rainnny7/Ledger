@@ -56,7 +56,7 @@ export function ConnectionSection({
 			<DropdownMenuItem onClick={() => onFullRefresh(connection)}>
 				<History />
 				<div className="grid">
-					<span>Force full refresh</span>
+					<span>Force Full Refresh</span>
 					<span className="text-xs text-muted-foreground">
 						Re-read{" "}
 						{isProviderId(connection.institution)
@@ -72,7 +72,7 @@ export function ConnectionSection({
 				>
 					<Upload />
 					<div className="grid">
-						<span>Upload statements</span>
+						<span>Upload Statements</span>
 						<span className="text-xs text-muted-foreground">
 							Older history from PDF statements or a .zip
 						</span>

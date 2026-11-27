@@ -164,7 +164,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 						className="w-44"
 					/>
 					<TransactionsFilterSelect
-						label="Tax tag"
+						label="Tax Tag"
 						items={transactionTagItems}
 						value={tag}
 						onChange={(next) => (

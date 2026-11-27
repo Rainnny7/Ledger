@@ -37,7 +37,7 @@ export function UpdateDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-h-[min(90vh,40rem)] overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Update available</DialogTitle>
+					<DialogTitle>Update Available</DialogTitle>
 					<DialogDescription>
 						{info.current} → {info.latest}
 						{info.publishedAt ? (

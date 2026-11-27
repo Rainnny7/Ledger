@@ -78,7 +78,7 @@ export function WorkEntryDialog({
 		<Dialog open={!!job} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent className="sm:max-w-sm">
 				<DialogHeader>
-					<DialogTitle>Log hours</DialogTitle>
+					<DialogTitle>Log Hours</DialogTitle>
 					<DialogDescription>
 						{job?.name} · they’ll go on your next bill.
 					</DialogDescription>

@@ -126,7 +126,7 @@ export function PublicInvoiceView({
 
 			{!paid && !isVoid && methods.length > 0 && (
 				<section className="grid gap-3">
-					<h2 className="text-sm font-semibold">How to pay</h2>
+					<h2 className="text-sm font-semibold">How to Pay</h2>
 					<div className="grid gap-3 sm:grid-cols-2">
 						{methods.map((method) => (
 							<PublicMethodCard
@@ -147,7 +147,7 @@ export function PublicInvoiceView({
 			<section className="grid gap-6 rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
 				<div className="grid gap-6 sm:grid-cols-3">
 					<Party label="From" party={invoice.from} />
-					<Party label="Bill to" party={invoice.client} />
+					<Party label="Bill To" party={invoice.client} />
 					<div className="grid content-start gap-1 text-sm">
 						<span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
 							Details
@@ -223,7 +223,7 @@ export function PublicInvoiceView({
 						<>
 							<Total label="Paid" value={money(-invoice.paid)} />
 							<Total
-								label="Balance due"
+								label="Balance Due"
 								value={money(invoice.balance)}
 								strong
 							/>

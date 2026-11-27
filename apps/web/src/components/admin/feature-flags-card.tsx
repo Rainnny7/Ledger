@@ -83,7 +83,7 @@ export function FeatureFlagsCard() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Feature flags</CardTitle>
+				<CardTitle>Feature Flags</CardTitle>
 				<CardDescription>
 					Turn optional features on or off for everyone on this
 					server.

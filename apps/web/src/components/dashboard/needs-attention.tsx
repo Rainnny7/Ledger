@@ -145,7 +145,7 @@ export function NeedsAttention({
 	return (
 		<Card size="sm" className="border-amber-500/30 bg-amber-500/5">
 			<CardHeader>
-				<CardTitle>Needs attention</CardTitle>
+				<CardTitle>Needs Attention</CardTitle>
 				<CardDescription>
 					{alerts.length} thing{alerts.length === 1 ? "" : "s"} to
 					look at

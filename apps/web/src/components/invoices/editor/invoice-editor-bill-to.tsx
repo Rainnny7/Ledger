@@ -18,7 +18,7 @@ export function InvoiceEditorBillTo({ model }: { model: InvoiceEditorModel }) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Bill to</CardTitle>
+				<CardTitle>Bill To</CardTitle>
 				{clients.length > 0 && (
 					<CardDescription>
 						Or pick someone you’ve billed before.

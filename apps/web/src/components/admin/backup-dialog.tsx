@@ -60,7 +60,7 @@ export function BackUpDialog({
 					}}
 				>
 					<DialogHeader>
-						<DialogTitle>Back up now</DialogTitle>
+						<DialogTitle>Back Up Now</DialogTitle>
 						<DialogDescription>
 							Saves a copy of the whole database alongside the
 							daily ones. It counts towards the copies kept, so

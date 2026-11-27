@@ -111,7 +111,7 @@ export function McpAccessCard() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>MCP access</CardTitle>
+				<CardTitle>MCP Access</CardTitle>
 				<CardDescription>
 					Connect Claude Desktop, Claude Code or another MCP client to
 					your finances with a personal token. Access is read-only and
@@ -125,7 +125,7 @@ export function McpAccessCard() {
 					className="flex items-end gap-2"
 				>
 					<div className="grid flex-1 gap-2">
-						<Label htmlFor="mcp-token-name">Token name</Label>
+						<Label htmlFor="mcp-token-name">Token Name</Label>
 						<Input
 							id="mcp-token-name"
 							value={name}
@@ -229,7 +229,7 @@ function NewTokenDialog({
 		>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Token created</DialogTitle>
+					<DialogTitle>Token Created</DialogTitle>
 					<DialogDescription>
 						Copy it now: for your security, "{token?.name}" can't be
 						shown again.

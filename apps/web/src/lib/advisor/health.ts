@@ -17,7 +17,7 @@ export function healthOf(
 	const rate = context.savingsRate
 	factors.push({
 		key: "saving",
-		label: "Saving rate",
+		label: "Savings Rate",
 		max: 30,
 		score: 30 * clampToUnit(rate / 0.2),
 		detail: `${formatPercent(rate)} of income kept (20%+ scores full marks)`,
@@ -34,7 +34,7 @@ export function healthOf(
 		const cushionMonths = cushion.months
 		factors.push({
 			key: "cushion",
-			label: "Cash cushion",
+			label: "Cash Cushion",
 			max: 25,
 			score:
 				20 * clampToUnit(cushionMonths / 3) +
@@ -44,7 +44,7 @@ export function healthOf(
 	}
 	factors.push({
 		key: "credit",
-		label: "Credit use",
+		label: "Credit Use",
 		max: 15,
 		score: !credit
 			? 15
@@ -63,7 +63,7 @@ export function healthOf(
 	})
 	factors.push({
 		key: "fees",
-		label: "Fees & interest",
+		label: "Fees & Interest",
 		max: 15,
 		score:
 			feesYearly < 1
@@ -93,7 +93,7 @@ export function healthOf(
 					? "Good"
 					: score >= 45
 						? "Fair"
-						: "Needs attention",
+						: "Needs Attention",
 		factors: factors.map((factor) => ({
 			...factor,
 			score: Math.round(factor.score * 10) / 10,

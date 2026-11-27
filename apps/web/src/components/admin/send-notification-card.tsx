@@ -117,7 +117,7 @@ export function SendNotificationCard() {
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
 					<BellRing className="size-4" />
-					Send notification
+					Send Notification
 				</CardTitle>
 				<CardDescription>
 					Deliver an in-app notification to everyone or specific people.

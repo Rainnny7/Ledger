@@ -36,7 +36,7 @@ export function ChangeTemporaryPasswordPage() {
 	const [confirm, setConfirm] = useState("")
 	const [error, setError] = useState<string | null>(null)
 	const [busy, setBusy] = useState(false)
-	usePageTitle("Choose a password")
+	usePageTitle("Choose a Password")
 
 	const mismatch = confirm.length > 0 && next !== confirm
 	const sameAsOld = next.length > 0 && next === current
@@ -90,7 +90,7 @@ export function ChangeTemporaryPasswordPage() {
 					<div className="mb-1 grid size-10 place-items-center rounded-xl bg-sunset text-primary-foreground">
 						<KeyRoundIcon size={20} className="flex" />
 					</div>
-					<CardTitle>Choose your own password</CardTitle>
+					<CardTitle>Choose Your Own Password</CardTitle>
 					<CardDescription>
 						{data?.user.email ? (
 							<span className="font-medium text-foreground">
@@ -130,7 +130,7 @@ export function ChangeTemporaryPasswordPage() {
 							/>
 						</div>
 						<div className="grid gap-2">
-							<Label htmlFor="new-password">New password</Label>
+							<Label htmlFor="new-password">New Password</Label>
 							<Input
 								id="new-password"
 								type="password"

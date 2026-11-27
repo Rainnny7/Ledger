@@ -48,7 +48,7 @@ export function HiddenTipsDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Hidden tips</DialogTitle>
+					<DialogTitle>Hidden Tips</DialogTitle>
 					<DialogDescription>
 						Snoozed tips come back on their own. Restore any of them
 						sooner here.

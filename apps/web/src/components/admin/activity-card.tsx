@@ -63,7 +63,7 @@ export function ActivityCard() {
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
 					<History className="size-4 text-muted-foreground" /> Audit
-					log
+					Log
 				</CardTitle>
 				<CardDescription>
 					Admin changes, logins and logouts (failed attempts too),

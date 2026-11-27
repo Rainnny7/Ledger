@@ -44,7 +44,7 @@ export interface HealthFactor {
 /** `Health` type used in this module. */
 export interface Health {
 	score: number
-	label: "Excellent" | "Good" | "Fair" | "Needs attention"
+	label: "Excellent" | "Good" | "Fair" | "Needs Attention"
 	factors: HealthFactor[]
 }
 

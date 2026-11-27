@@ -33,7 +33,7 @@ export function InvoiceEditorItems({ model }: { model: InvoiceEditorModel }) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>What it’s for</CardTitle>
+				<CardTitle>What It’s For</CardTitle>
 			</CardHeader>
 			<CardContent className="grid gap-3">
 				<div className="hidden grid-cols-[minmax(0,1fr)_4.5rem_6.5rem_6rem_2rem] gap-2 text-xs font-medium text-muted-foreground sm:grid">
@@ -214,7 +214,7 @@ export function InvoiceEditorItems({ model }: { model: InvoiceEditorModel }) {
 					/>
 					{paid > 0 && (
 						<TotalsRow
-							label="Already paid"
+							label="Already Paid"
 							value={<Shown model={model} amount={-paid} />}
 						/>
 					)}

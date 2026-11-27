@@ -34,7 +34,7 @@ export function PaymentMethodsSection({
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Payment methods</CardTitle>
+				<CardTitle>Payment Methods</CardTitle>
 				<CardDescription>
 					How people can pay you. Tick the ones you want on each
 					invoice.

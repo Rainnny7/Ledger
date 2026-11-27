@@ -48,24 +48,24 @@ type Step = "email" | "password" | "register" | "closed" | "code"
 /** What to say at the top of the card for each step. */
 const STEP_COPY: Record<Step, { title: string; description: string }> = {
 	email: {
-		title: "Log in or sign up",
+		title: "Log In or Sign Up",
 		description: "Enter your email to continue.",
 	},
 	password: {
-		title: "Welcome back",
+		title: "Welcome Back",
 		description:
 			"Enter your password to see your balances and transactions.",
 	},
 	register: {
-		title: "Create your account",
+		title: "Create Your Account",
 		description: "Choose a password to start tracking your bank accounts.",
 	},
 	closed: {
-		title: "Sign-ups are closed",
+		title: "Sign-Ups Are Closed",
 		description: "This server isn’t taking new accounts right now.",
 	},
 	code: {
-		title: "Two-factor authentication",
+		title: "Two-Factor Authentication",
 		description: "Enter the 6-digit code from your authenticator app.",
 	},
 }
@@ -73,7 +73,7 @@ const STEP_COPY: Record<Step, { title: string; description: string }> = {
 const SUBMIT_LABEL: Record<Step, string> = {
 	email: "Continue",
 	password: "Log in",
-	register: "Create account",
+	register: "Create Account",
 	closed: "Use a different email",
 	code: "Verify",
 }
@@ -85,7 +85,7 @@ type FormProblem = AuthProblem & { field?: "email" | "password" | "confirm" }
 function problemFromThrown(error: unknown): FormProblem {
 	if (error instanceof CaptchaUnavailableError) {
 		return {
-			title: "Security check unavailable",
+			title: "Security Check Unavailable",
 			message:
 				"We couldn’t run the security check. Check your connection or any content blockers, then try again.",
 		}
@@ -97,7 +97,7 @@ function problemFromThrown(error: unknown): FormProblem {
 		}
 	}
 	return {
-		title: "Can’t reach the server",
+		title: "Can’t Reach the Server",
 		message: "Check your connection and try again.",
 	}
 }

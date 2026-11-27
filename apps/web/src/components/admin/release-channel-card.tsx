@@ -70,7 +70,7 @@ export function ReleaseChannelCard() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Release channel</CardTitle>
+				<CardTitle>Release Channel</CardTitle>
 				<CardDescription>
 					Stable follows the latest release. Dev follows the newest
 					in-development version and may be unfinished.
@@ -85,7 +85,7 @@ export function ReleaseChannelCard() {
 					}
 				>
 					<SelectTrigger
-						aria-label="Release channel"
+						aria-label="Release Channel"
 						disabled={
 							busy || settings.isPending || info?.install !== "docker"
 						}

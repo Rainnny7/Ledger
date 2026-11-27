@@ -79,13 +79,13 @@ export function TaxSummaryCard({
 			<div className="grid gap-6 border-t px-5 py-4 md:grid-cols-2 md:gap-10">
 				<StatementColumn title="Everything">
 					<StatementRow
-						label="Money in"
+						label="Money In"
 						hint="Pay and other income"
 						value={report.income}
 						loading={loading}
 					/>
 					<StatementRow
-						label="Money out"
+						label="Money Out"
 						hint="After refunds, not counting transfers"
 						value={report.spending}
 						loading={loading}
@@ -121,7 +121,7 @@ export function TaxSummaryCard({
 								Transactions
 							</Link>{" "}
 							and choose{" "}
-							<span className="font-medium">Tag for taxes</span>{" "}
+							<span className="font-medium">Tag for Taxes</span>{" "}
 							to total them here.
 						</p>
 					)}

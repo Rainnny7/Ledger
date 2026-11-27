@@ -53,7 +53,7 @@ export function GoalPaymentDialog({
 			<DialogContent className="max-h-[90svh] overflow-x-hidden overflow-y-auto sm:max-w-sm">
 				<DialogHeader>
 					<DialogTitle>
-						{payoff ? "Log a payment" : "Add to goal"}
+						{payoff ? "Log a Payment" : "Add to Goal"}
 					</DialogTitle>
 					<DialogDescription>
 						{goal && (

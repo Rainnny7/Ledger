@@ -52,13 +52,13 @@ const TOUR_STEP_DEFINITIONS: {
 	},
 	{
 		element: '[data-tour="account-menu"]',
-		title: "Account menu",
+		title: "Account Menu",
 		description:
 			"Settings, appearance, and “Take the tour” to replay onboarding any time.",
 	},
 	{
 		element: '[data-tour="dashboard-connect"]',
-		title: "Connect an account",
+		title: "Connect an Account",
 		description:
 			"Link TD EasyWeb or PayPal to pull balances and transactions into Ledger.",
 	},

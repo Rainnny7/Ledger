@@ -144,7 +144,7 @@ function CustomRangeDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-xs">
 				<DialogHeader>
-					<DialogTitle>Custom range</DialogTitle>
+					<DialogTitle>Custom Range</DialogTitle>
 				</DialogHeader>
 				<form
 					className="space-y-4"

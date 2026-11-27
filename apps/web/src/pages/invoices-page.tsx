@@ -98,7 +98,7 @@ export function InvoicesPage() {
 						see when it’s paid.
 					</p>
 				</div>
-				<NewInvoiceLink>New invoice</NewInvoiceLink>
+				<NewInvoiceLink>New Invoice</NewInvoiceLink>
 			</div>
 
 			{error && !data && (
@@ -142,7 +142,7 @@ export function InvoicesPage() {
 								tone={overdue.length ? "bad" : undefined}
 							/>
 							<InvoiceStat
-								label="Paid this month"
+								label="Paid This Month"
 								value={sumByCurrency(paidThisMonth, (i) =>
 									i.payments
 										.filter((payment) =>
@@ -160,7 +160,7 @@ export function InvoicesPage() {
 
 						<Card>
 							<CardHeader>
-								<CardTitle>Your invoices</CardTitle>
+								<CardTitle>Your Invoices</CardTitle>
 								<CardAction>
 									<ToggleGroup
 										value={[filter]}

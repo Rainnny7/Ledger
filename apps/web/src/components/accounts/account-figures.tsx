@@ -32,7 +32,7 @@ export function useIncludeOverdraft() {
 
 /** React/UI entry: `BalanceLabel`. */
 export function BalanceLabel({ account }: { account: Account }) {
-	return <>{isDebtAccount(account) ? "Balance owing" : "Balance"}</>
+	return <>{isDebtAccount(account) ? "Balance Owing" : "Balance"}</>
 }
 
 /** React/UI entry: `BalanceValue`. */
@@ -115,7 +115,7 @@ export function OverdraftMeter({
 			</div>
 			{!compact || used > 0 ? (
 				<Progress
-					aria-label="Credit used"
+					aria-label="Credit Used"
 					value={pct}
 					className={cn(
 						"h-1.5",
@@ -145,14 +145,14 @@ export function CreditMeter({ account }: { account: Account }) {
 	return (
 		<div className="grid gap-1.5">
 			<div className="flex items-baseline justify-between text-xs">
-				<span className="text-muted-foreground">Credit used</span>
+				<span className="text-muted-foreground">Credit Used</span>
 				<span className="text-muted-foreground tabular-nums">
 					{Math.round((used / limit) * 100)}% of{" "}
 					<Money value={limit} currency={account.currency} />
 				</span>
 			</div>
 			<Progress
-				aria-label="Credit used"
+				aria-label="Credit Used"
 				value={Math.min(100, (used / limit) * 100)}
 				className="h-1.5"
 			/>

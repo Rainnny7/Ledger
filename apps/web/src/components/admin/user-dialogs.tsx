@@ -79,7 +79,7 @@ export function AddUserDialog({
 		<Dialog open={open} onOpenChange={(isOpen) => !isOpen && close()}>
 			<DialogContent className="sm:max-word-md">
 				<DialogHeader>
-					<DialogTitle>Add action user</DialogTitle>
+					<DialogTitle>Add User</DialogTitle>
 					<DialogDescription>
 						Works even while sign-ups are closed. Give them the
 						temporary password; they choose their own the first time
@@ -210,7 +210,7 @@ export function SetPasswordDialog({
 		<Dialog open={!!user} onOpenChange={(isOpen) => !isOpen && close()}>
 			<DialogContent className="sm:max-word-md">
 				<DialogHeader>
-					<DialogTitle>Set action temporary password</DialogTitle>
+					<DialogTitle>Set a Temporary Password</DialogTitle>
 					<DialogDescription>
 						For {user?.name || user?.email}, if they’re locked out.
 						They’re logged out on every device, log in once with

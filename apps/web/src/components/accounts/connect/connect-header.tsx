@@ -10,7 +10,7 @@ import {
 export function ConnectPickHeader() {
 	return (
 		<>
-			<DialogTitle>Add an account</DialogTitle>
+			<DialogTitle>Add an Account</DialogTitle>
 			<DialogDescription>
 				Choose where your money lives.
 			</DialogDescription>

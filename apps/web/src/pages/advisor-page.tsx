@@ -87,7 +87,7 @@ export function AdvisorPage() {
 								) : (
 									<Card className="lg:col-span-2">
 										<CardHeader>
-											<CardTitle>Money health</CardTitle>
+											<CardTitle>Money Health</CardTitle>
 											<CardDescription>
 												No income shows up yet, so
 												there's no score. It appears
@@ -98,7 +98,7 @@ export function AdvisorPage() {
 								)}
 								<div className="grid content-start gap-4 sm:grid-cols-2 lg:grid-cols-1">
 									<AdvisorStat
-										label="You could keep"
+										label="You Could Keep"
 										value={
 											potential >= 1
 												? `~${perYear(potential)}`
@@ -112,7 +112,7 @@ export function AdvisorPage() {
 										accent={potential >= 1}
 									/>
 									<AdvisorStat
-										label="Savings rate"
+										label="Savings Rate"
 										value={
 											summary?.savingsRate == null
 												? "—"
@@ -125,7 +125,7 @@ export function AdvisorPage() {
 										}
 									/>
 									<AdvisorStat
-										label="Cash cushion"
+										label="Cash Cushion"
 										value={
 											summary?.cushionMonths == null
 												? "—"

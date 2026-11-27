@@ -627,7 +627,7 @@ function useNavCounts() {
 
 /** Section names for the tab title, beyond the nav'subscription own labels. */
 const EXTRA_TITLES: Record<string, string> = {
-	"/invoices/new": "New invoice",
+	"/invoices/new": "New Invoice",
 	"/contacts": "Contacts",
 }
 
@@ -810,7 +810,7 @@ function AppShellFrame() {
 					<div className="relative z-40 flex animate-in items-center justify-center gap-3 bg-primary px-4 py-1.5 text-sm text-primary-foreground duration-300 slide-in-from-top print:hidden">
 						<MonitorPlay className="size-4 shrink-0" />
 						<span className="truncate">
-							<span className="font-medium">Demo mode</span>
+							<span className="font-medium">Demo Mode</span>
 							<span className="hidden sm:inline">
 								{" "}
 								· {demoPersona.name} ({demoPersona.label}) ·
@@ -944,7 +944,7 @@ function AppShellFrame() {
 													setDemoMode(false)
 												}
 											>
-												<X /> Exit demo mode
+												<X /> Exit Demo Mode
 											</DropdownMenuItem>
 										</>
 									) : (

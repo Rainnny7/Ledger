@@ -114,7 +114,7 @@ function RecordPaymentForm({
 		<Dialog open onOpenChange={(open) => !open && onClose()}>
 			<DialogContent className="sm:max-w-sm">
 				<DialogHeader>
-					<DialogTitle>Record a payment</DialogTitle>
+					<DialogTitle>Record a Payment</DialogTitle>
 					<DialogDescription>
 						{invoice.number} ·{" "}
 						{invoiceMoney(invoice.balance, invoice.currency)} owed

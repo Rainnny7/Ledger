@@ -172,7 +172,7 @@ export function DevicesCard() {
 /** "Chrome on Windows" from a user-agent string (good enough to recognise your own devices). */
 function describeAgent(ua: string | null | undefined) {
 	if (!ua) {
-		return { label: "Unknown device", mobile: false }
+		return { label: "Unknown Device", mobile: false }
 	}
 	const browser = /edg\//i.test(ua)
 		? "Edge"

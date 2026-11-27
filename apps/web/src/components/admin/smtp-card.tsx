@@ -131,7 +131,7 @@ export function SmtpCard() {
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
 					<MailIcon size={16} className="flex" />
-					Outbound email
+					Outbound Email
 				</CardTitle>
 				<CardDescription>
 					Optional SMTP for notification emails and password resets.
@@ -231,7 +231,7 @@ export function SmtpCard() {
 								/>
 							</div>
 							<div className="grid gap-1.5">
-								<Label htmlFor="smtp-from">From address</Label>
+								<Label htmlFor="smtp-from">From Address</Label>
 								<Input
 									id="smtp-from"
 									type="email"

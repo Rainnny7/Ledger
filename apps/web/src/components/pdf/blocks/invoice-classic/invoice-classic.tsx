@@ -59,7 +59,7 @@ const InvoiceClassicContent = ({ data }: { data: InvoicePdfData }) => {
 						<PartyBlock label="From" party={data.from} />
 					</View>
 					<View style={{ flex: 1, paddingRight: 15 }}>
-						<PartyBlock label="Bill to" party={data.client} />
+						<PartyBlock label="Bill To" party={data.client} />
 					</View>
 					<View style={{ flex: 1 }}>
 						<SectionLabel>Details</SectionLabel>

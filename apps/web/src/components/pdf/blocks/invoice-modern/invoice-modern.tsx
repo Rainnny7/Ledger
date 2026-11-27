@@ -86,7 +86,7 @@ const InvoiceModernContent = ({ data }: { data: InvoicePdfData }) => {
 					</View>
 					<View style={styles.dividerCol} />
 					<View style={{ flex: 2 }}>
-						<PartyBlock label="Billed to" party={data.client} />
+						<PartyBlock label="Billed To" party={data.client} />
 					</View>
 				</View>
 				<Table variant="primary-header">
@@ -94,7 +94,7 @@ const InvoiceModernContent = ({ data }: { data: InvoicePdfData }) => {
 						<TableRow header>
 							<TableCell>Description</TableCell>
 							<TableCell align="center">Qty</TableCell>
-							<TableCell align="right">Unit price</TableCell>
+							<TableCell align="right">Unit Price</TableCell>
 							<TableCell align="right">Amount</TableCell>
 						</TableRow>
 					</TableHeader>
@@ -121,7 +121,7 @@ const InvoiceModernContent = ({ data }: { data: InvoicePdfData }) => {
 					style={{ flexDirection: "row", marginTop: 12 }}
 				>
 					<View style={{ flex: 1, paddingRight: 20 }}>
-						<SectionLabel>Amount due</SectionLabel>
+						<SectionLabel>Amount Due</SectionLabel>
 						<Text
 							noMargin
 							style={{

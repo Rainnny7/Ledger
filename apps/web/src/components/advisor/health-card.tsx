@@ -12,7 +12,7 @@ const TONE: Record<Health["label"], string> = {
 	Excellent: "text-emerald-600 dark:text-emerald-400",
 	Good: "text-emerald-600 dark:text-emerald-400",
 	Fair: "text-amber-600 dark:text-amber-400",
-	"Needs attention": "text-rose-600 dark:text-rose-400",
+	"Needs Attention": "text-rose-600 dark:text-rose-400",
 }
 
 /** The 0–100 money health score as a ring. */
@@ -62,7 +62,7 @@ export function HealthCard({ health }: { health: Health }) {
 	return (
 		<Card className="lg:col-span-2">
 			<CardHeader>
-				<CardTitle>Money health</CardTitle>
+				<CardTitle>Money Health</CardTitle>
 				<CardDescription>
 					A score out of 100 from how you've done over the last few
 					months.

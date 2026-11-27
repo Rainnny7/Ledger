@@ -20,7 +20,7 @@ export function SubscriptionComingUp({
 	return (
 		<>
 			<CardHeader>
-				<CardTitle>Coming up</CardTitle>
+				<CardTitle>Coming Up</CardTitle>
 				<CardDescription>Next 30 days</CardDescription>
 			</CardHeader>
 			<CardContent>

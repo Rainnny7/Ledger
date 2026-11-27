@@ -20,7 +20,7 @@ export function InvoiceEditorMethods({ model }: { model: InvoiceEditorModel }) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>How they can pay</CardTitle>
+				<CardTitle>How They Can Pay</CardTitle>
 				<CardDescription>
 					Shown on the PDF and the invoice page with copy buttons and
 					QR codes.

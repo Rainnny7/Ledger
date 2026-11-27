@@ -79,7 +79,7 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 			})),
 			{
 				id: "c:mode-system",
-				label: "Match system mode",
+				label: "Match System Mode",
 				icon: Monitor,
 				run: () => void changeMode("system"),
 				keywords: "appearance theme auto",
@@ -95,7 +95,7 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 				? [
 						{
 							id: "c:demo",
-							label: "Exit demo mode",
+							label: "Exit Demo Mode",
 							icon: MonitorPlay,
 							run: () => setDemoMode(false),
 							keywords: "sample data example",

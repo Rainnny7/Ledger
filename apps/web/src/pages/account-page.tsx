@@ -244,7 +244,7 @@ function AccountView({
 				</Card>
 				<Card className="lg:col-span-2">
 					<CardHeader>
-						<CardTitle>Where it went</CardTitle>
+						<CardTitle>Where It Went</CardTitle>
 						<CardDescription>
 							{
 								accountPeriodItems.find(

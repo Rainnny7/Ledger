@@ -121,7 +121,7 @@ export function ConnectFlow({
 
 			{state.phase.type === "done" && (
 				<div className="flex animate-in flex-col items-center gap-3 py-8 text-center fade-in-0 zoom-in-95">
-					<p className="text-sm font-medium">Account connected</p>
+					<p className="text-sm font-medium">Account Connected</p>
 					<p className="max-w-xs text-xs text-muted-foreground">
 						Your bank is linked. Continue setup when you are ready.
 					</p>

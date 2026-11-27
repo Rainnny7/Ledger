@@ -69,7 +69,7 @@ export function SubscriptionDialog({
 			<DialogContent className="max-h-[90svh] overflow-x-hidden overflow-y-auto sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>
-						{editing ? "Edit subscription" : "Track a subscription"}
+						{editing ? "Edit Subscription" : "Track a Subscription"}
 					</DialogTitle>
 					<DialogDescription>
 						{draft?.merchantKey

@@ -42,7 +42,7 @@ export function WorkJobDialog({
 		<Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
 			<DialogContent className="max-h-[90svh] overflow-x-hidden overflow-y-auto sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>{job ? "Edit job" : "Add a job"}</DialogTitle>
+					<DialogTitle>{job ? "Edit Job" : "Add a Job"}</DialogTitle>
 					<DialogDescription>
 						An hourly gig you bill yourself. Set how you usually get
 						paid to see when it’ll be cleared.

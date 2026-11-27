@@ -34,9 +34,9 @@ export function InsightsMerchants({
 	return (
 		<Card className="lg:col-span-2">
 			<CardHeader>
-				<CardTitle>Top merchants</CardTitle>
+				<CardTitle>Top Merchants</CardTitle>
 				<CardDescription>
-					{category ? CATEGORY_META[category].label : "All spending"}
+					{category ? CATEGORY_META[category].label : "All Spending"}
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

@@ -109,7 +109,7 @@ export function ChangePasswordCard() {
 					</div>
 					<div className="grid gap-4 sm:grid-cols-2">
 						<div className="grid gap-2">
-							<Label htmlFor="new-password">New password</Label>
+							<Label htmlFor="new-password">New Password</Label>
 							<Input
 								id="new-password"
 								type="password"

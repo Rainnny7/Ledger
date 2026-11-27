@@ -103,14 +103,14 @@ export function SubscriptionsTable({
 				<TableRow>
 					<TableHead className="pl-4">Name</TableHead>
 					<TableHead className="hidden sm:table-cell">
-						Next payment
+						Next Payment
 					</TableHead>
 					<TableHead className="hidden md:table-cell">
-						Last charged
+						Last Charged
 					</TableHead>
 					<TableHead className="text-right">Amount</TableHead>
 					<TableHead className="hidden text-right lg:table-cell">
-						Per month
+						Per Month
 					</TableHead>
 					<TableHead className="w-12 pr-4">
 						<span className="sr-only">Actions</span>

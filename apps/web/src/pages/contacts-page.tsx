@@ -64,7 +64,7 @@ export function ContactsPage() {
 				<Card>
 					<CardHeader className="flex flex-wrap items-center justify-between gap-3">
 						<div>
-							<CardTitle>Your contacts</CardTitle>
+							<CardTitle>Your Contacts</CardTitle>
 							<CardDescription>
 								{contacts.length === 0
 									? "No one yet."
@@ -176,7 +176,7 @@ function AddContactCard() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Add a contact</CardTitle>
+				<CardTitle>Add a Contact</CardTitle>
 				<CardDescription>
 					They’ll need a Ledger account on this server to see what you
 					share.

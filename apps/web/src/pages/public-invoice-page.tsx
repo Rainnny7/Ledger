@@ -74,7 +74,7 @@ export function PublicInvoicePage() {
 		return (
 			<PublicInvoiceShell>
 				<div className="mx-auto max-w-md py-24 text-center">
-					<p className="text-lg font-semibold">Invoice not found</p>
+					<p className="text-lg font-semibold">Invoice Not Found</p>
 					<p className="mt-1 text-sm text-muted-foreground">
 						{error?.message ??
 							"This link is not valid any more. Ask the sender for a new one."}

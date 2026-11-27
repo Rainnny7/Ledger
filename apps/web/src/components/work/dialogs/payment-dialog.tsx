@@ -35,7 +35,7 @@ export function WorkPaymentDialog({
 		<Dialog open={!!draft} onOpenChange={(isOpen) => !isOpen && onClose()}>
 			<DialogContent className="max-h-[90svh] overflow-x-hidden overflow-y-auto sm:max-w-sm">
 				<DialogHeader>
-					<DialogTitle>Record a payment</DialogTitle>
+					<DialogTitle>Record a Payment</DialogTitle>
 					<DialogDescription>
 						{job && (
 							<>

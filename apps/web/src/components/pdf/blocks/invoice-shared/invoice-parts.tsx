@@ -230,7 +230,7 @@ export function PaymentDetails({ data }: { data: InvoicePdfData }) {
 	}
 	return (
 		<View style={{ marginTop: 16 }}>
-			<SectionLabel>How to pay</SectionLabel>
+			<SectionLabel>How to Pay</SectionLabel>
 			<View
 				style={{ columnGap: 6, flexDirection: "row", flexWrap: "wrap" }}
 			>

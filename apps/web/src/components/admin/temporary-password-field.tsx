@@ -19,7 +19,7 @@ export function TemporaryPasswordField({
 }) {
 	return (
 		<div className="grid gap-2">
-			<Label htmlFor={id}>Temporary password</Label>
+			<Label htmlFor={id}>Temporary Password</Label>
 			<div className="flex gap-2">
 				<Input
 					id={id}

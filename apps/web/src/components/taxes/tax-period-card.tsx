@@ -39,7 +39,7 @@ export function TaxPeriodCard({
 	return (
 		<Card className="gap-0 pb-0 lg:col-span-2">
 			<CardHeader className="pb-4">
-				<CardTitle>Over the year</CardTitle>
+				<CardTitle>Over the Year</CardTitle>
 				<CardDescription>
 					Quarters line up with estimated tax instalments
 				</CardDescription>

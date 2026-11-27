@@ -51,18 +51,18 @@ export function SubscriptionsPage() {
 
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 				<SubscriptionStatCard
-					label="Per month"
+					label="Per Month"
 					value={<AnimatedMoney value={page.monthly} />}
 					hint="Longer & shorter plans averaged"
 					loading={page.loading && !page.data}
 				/>
 				<SubscriptionStatCard
-					label="Per year"
+					label="Per Year"
 					value={<AnimatedMoney value={page.monthly * 12} />}
 					loading={page.loading && !page.data}
 				/>
 				<SubscriptionStatCard
-					label="Due in the next 30 days"
+					label="Due in the Next 30 Days"
 					value={
 						<AnimatedMoney
 							value={page.fx.sum(
@@ -77,7 +77,7 @@ export function SubscriptionsPage() {
 					loading={page.loading && !page.data}
 				/>
 				<SubscriptionStatCard
-					label="Next payment"
+					label="Next Payment"
 					value={
 						page.next ? (
 							<AnimatedMoney
@@ -123,7 +123,7 @@ export function SubscriptionsPage() {
 
 			<Card className="gap-0 pb-0">
 				<CardHeader className="pb-4">
-					<CardTitle>All subscriptions</CardTitle>
+					<CardTitle>All Subscriptions</CardTitle>
 					<CardDescription>
 						{page.active.length} active
 						{page.subs.length > page.active.length

@@ -54,7 +54,7 @@ export function TwoFactorCard() {
 		<Card>
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
-					Two-factor authentication
+					Two-Factor Authentication
 					{enabled ? (
 						<Badge>On</Badge>
 					) : (
@@ -197,7 +197,7 @@ function SetupDialog({
 		>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>Set up two-factor authentication</DialogTitle>
+					<DialogTitle>Set Up Two-Factor Authentication</DialogTitle>
 					<DialogDescription>
 						{step.type === "password" &&
 							"Confirm your password to continue."}
@@ -318,7 +318,7 @@ function RegenerateCodesDialog({
 			>
 				<DialogContent className="sm:max-w-md">
 					<DialogHeader>
-						<DialogTitle>New backup codes</DialogTitle>
+						<DialogTitle>New Backup Codes</DialogTitle>
 						<DialogDescription>
 							Your old codes no longer work. Save these somewhere
 							safe.

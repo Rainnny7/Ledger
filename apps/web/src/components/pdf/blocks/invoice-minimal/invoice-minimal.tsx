@@ -110,7 +110,7 @@ const InvoiceMinimalContent = ({ data }: { data: InvoicePdfData }) => {
 				<View style={styles.infoRow}>
 					<View style={{ paddingRight: 20, width: "50%" }}>
 						<PartyBlock
-							label="Bill to"
+							label="Bill To"
 							party={data.client}
 							labelColor={theme.colors.primary}
 						/>

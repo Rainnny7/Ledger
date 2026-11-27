@@ -160,7 +160,7 @@ export function ApiKeysCard() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>API keys</CardTitle>
+				<CardTitle>API Keys</CardTitle>
 				<CardDescription>
 					Read your accounts and transactions from scripts and other
 					tools over HTTP. Keys are read-only, limited to your own
@@ -176,7 +176,7 @@ export function ApiKeysCard() {
 					className="flex flex-wrap items-end gap-2"
 				>
 					<div className="grid min-w-48 flex-1 gap-2">
-						<Label htmlFor="api-key-name">Key name</Label>
+						<Label htmlFor="api-key-name">Key Name</Label>
 						<Input
 							id="api-key-name"
 							value={name}
@@ -298,7 +298,7 @@ function ApiUsageDialog() {
 			/>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Using an API key</DialogTitle>
+					<DialogTitle>Using an API Key</DialogTitle>
 					<DialogDescription>
 						Send the key in the Authorization header. Every endpoint
 						is read-only and returns JSON.
@@ -345,7 +345,7 @@ function NewKeyDialog({
 		>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>API key created</DialogTitle>
+					<DialogTitle>API Key Created</DialogTitle>
 					<DialogDescription>
 						Copy it now: for your security, "{created?.name}" can't
 						be shown again.

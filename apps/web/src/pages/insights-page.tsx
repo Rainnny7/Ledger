@@ -98,7 +98,7 @@ export function InsightsPage() {
 					loading={page.loading}
 				/>
 				<InsightsStat
-					label="Average spend / day"
+					label="Average Spend / Day"
 					value={<AnimatedMoney value={page.stats.perDay} />}
 					hint={`Over ${page.stats.days} days`}
 					loading={page.loading}
@@ -123,7 +123,7 @@ export function InsightsPage() {
 			<div className="grid gap-4 lg:grid-cols-5">
 				<Card className="lg:col-span-3">
 					<CardHeader>
-						<CardTitle>Spending by category</CardTitle>
+						<CardTitle>Spending by Category</CardTitle>
 						<CardDescription>
 							Click a category to filter merchants and
 							transactions
@@ -172,7 +172,7 @@ export function InsightsPage() {
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Cash flow</CardTitle>
+					<CardTitle>Cash Flow</CardTitle>
 					<CardDescription>
 						Money in vs out, last 12 months
 					</CardDescription>

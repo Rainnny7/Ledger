@@ -36,7 +36,7 @@ export function DemoCard() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Demo mode</CardTitle>
+				<CardTitle>Demo Mode</CardTitle>
 				<CardDescription>
 					Browse the whole app filled with made-up accounts and
 					transactions, handy for showing it off without your real

@@ -38,7 +38,7 @@ export function SubscriptionSuggestionsCard({
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
 					<SparklesIcon size={16} className="flex" /> Detected
-					recurring charges
+					Recurring Charges
 				</CardTitle>
 				<CardDescription>
 					These repeat on a schedule in your transactions. Track them

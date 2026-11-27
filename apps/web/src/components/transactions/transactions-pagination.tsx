@@ -213,7 +213,7 @@ export function TransactionsPagination({
 			) : null}
 
 			<div className="flex items-center gap-2 text-sm">
-				<span className="text-muted-foreground">Rows per page</span>
+				<span className="text-muted-foreground">Rows per Page</span>
 				<Select
 					value={String(perPage)}
 					onValueChange={(next) => {

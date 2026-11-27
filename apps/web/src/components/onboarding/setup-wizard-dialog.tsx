@@ -315,7 +315,7 @@ function ConnectStep({
 	return (
 		<>
 			<DialogHeader>
-				<DialogTitle>Connect your first bank account</DialogTitle>
+				<DialogTitle>Connect Your First Bank Account</DialogTitle>
 				<DialogDescription>
 					Link TD EasyWeb or PayPal to pull balances and transactions
 					into Ledger.
@@ -355,7 +355,7 @@ function ConnectStep({
 function DoneStep() {
 	return (
 		<DialogHeader>
-			<DialogTitle>You&apos;re set up</DialogTitle>
+			<DialogTitle>You&apos;re Set Up</DialogTitle>
 			<DialogDescription>
 				Explore the sidebar with a quick tour, or jump straight to your
 				dashboard.

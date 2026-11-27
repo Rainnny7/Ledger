@@ -49,7 +49,7 @@ export function GoalDialog({
 			<DialogContent className="max-h-[90svh] overflow-x-hidden overflow-y-auto sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>
-						{editing ? "Edit goal" : "New goal"}
+						{editing ? "Edit Goal" : "New Goal"}
 					</DialogTitle>
 					<DialogDescription>
 						Saving up for something, or paying something off? Set a

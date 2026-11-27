@@ -42,7 +42,7 @@ export function InvoiceEditorHeader({ model }: { model: InvoiceEditorModel }) {
 			</Button>
 			<div className="min-w-0 flex-1">
 				<h1 className="flex items-center gap-2 truncate text-2xl font-semibold tracking-tight">
-					{saved ? `Invoice ${saved.number}` : "New invoice"}
+					{saved ? `Invoice ${saved.number}` : "New Invoice"}
 					{state && <StateBadge state={state} />}
 				</h1>
 				{paidLine}

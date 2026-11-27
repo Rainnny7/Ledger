@@ -96,7 +96,7 @@ export function ConnectTdMethodScreen({
 						<FileText className="size-4" />
 					</ChoiceIcon>
 				}
-				title="Upload statements"
+				title="Upload Statements"
 				description="PDF statements or a .zip from EasyWeb, for history past 18 months. No login needed"
 				onClick={() => onUploadStatements?.()}
 			/>

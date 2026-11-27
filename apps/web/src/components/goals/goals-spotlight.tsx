@@ -59,7 +59,7 @@ export function GoalsSpotlight() {
 			>
 				<div className="mb-3 flex flex-wrap items-center justify-between gap-2">
 					<div className="flex items-baseline gap-2">
-						<h2 className="font-semibold">Your goals</h2>
+						<h2 className="font-semibold">Your Goals</h2>
 						<span className="text-sm text-muted-foreground tabular-nums">
 							{formatMoney(saved)} of {formatMoney(target)} ·{" "}
 							{formatMoney(left)} left

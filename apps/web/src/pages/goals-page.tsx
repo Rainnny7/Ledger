@@ -60,16 +60,16 @@ export function GoalsPage() {
 					<>
 						<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 							<GoalStatCard
-								label="Put toward goals"
+								label="Put Toward Goals"
 								value={<AnimatedMoney value={page.saved} />}
 								hint={`${page.open.length} goal${page.open.length === 1 ? "" : "s"} in progress`}
 							/>
 							<GoalStatCard
-								label="Still to go"
+								label="Still to Go"
 								value={<AnimatedMoney value={page.remaining} />}
 							/>
 							<GoalStatCard
-								label="Needed per month"
+								label="Needed per Month"
 								value={
 									page.perMonth > 0 ? (
 										<AnimatedMoney value={page.perMonth} />
@@ -80,7 +80,7 @@ export function GoalsPage() {
 								hint="To hit every deadline"
 							/>
 							<GoalStatCard
-								label="This month"
+								label="This Month"
 								value={
 									<AnimatedMoney
 										value={page.thisMonth}

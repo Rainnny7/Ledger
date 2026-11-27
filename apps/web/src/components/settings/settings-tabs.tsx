@@ -118,7 +118,7 @@ const ALL_TABS: SettingsTabDefinition[] = [
 			},
 			{
 				id: "two-factor",
-				title: "Two-factor authentication",
+				title: "Two-Factor Authentication",
 				keywords: "2fa totp backup codes",
 			},
 			{
@@ -138,12 +138,12 @@ const ALL_TABS: SettingsTabDefinition[] = [
 		sections: [
 			{
 				id: "api-keys",
-				title: "API keys",
+				title: "API Keys",
 				keywords: "token automation",
 			},
 			{
 				id: "mcp",
-				title: "MCP access",
+				title: "MCP Access",
 				keywords: "model context protocol",
 			},
 		],
@@ -159,7 +159,7 @@ const ALL_TABS: SettingsTabDefinition[] = [
 		sections: [
 			{
 				id: "delete-account",
-				title: "Delete account",
+				title: "Delete Account",
 				keywords: "remove close profile",
 			},
 		],
@@ -174,17 +174,17 @@ const ALL_TABS: SettingsTabDefinition[] = [
 		sections: [
 			{
 				id: "feature-flags",
-				title: "Feature flags",
+				title: "Feature Flags",
 				keywords: "experiments toggles",
 			},
 			{
 				id: "release-channel",
-				title: "Release channel",
+				title: "Release Channel",
 				keywords: "stable beta updates",
 			},
 			{
 				id: "demo-data",
-				title: "Demo data",
+				title: "Demo Data",
 				keywords: "sample seed",
 			},
 		],
@@ -221,7 +221,7 @@ const ALL_TABS: SettingsTabDefinition[] = [
 			},
 			{
 				id: "notifications",
-				title: "Send notification",
+				title: "Send Notification",
 				keywords: "broadcast announcement email",
 			},
 		],
@@ -230,7 +230,7 @@ const ALL_TABS: SettingsTabDefinition[] = [
 	},
 	{
 		id: "server-tasks",
-		label: "Tasks & backups",
+		label: "Tasks & Backups",
 		description: "Scheduled jobs and database backups.",
 		group: "Admin",
 		icon: ArchiveIcon,

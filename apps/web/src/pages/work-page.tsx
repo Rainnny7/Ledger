@@ -197,7 +197,7 @@ export function WorkPage() {
 						{active.length > 0 && (
 							<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 								<WorkStat
-									label="Owed to you"
+									label="Owed to You"
 									value={<AnimatedMoney value={owed} />}
 									hint={
 										payoff
@@ -208,7 +208,7 @@ export function WorkPage() {
 									}
 								/>
 								<WorkStat
-									label="Next payment"
+									label="Next Payment"
 									value={
 										next ? (
 											<AnimatedMoney
@@ -229,7 +229,7 @@ export function WorkPage() {
 									}
 								/>
 								<WorkStat
-									label="Not billed yet"
+									label="Not Billed Yet"
 									value={
 										<AnimatedMoney value={unbilledValue} />
 									}
@@ -240,7 +240,7 @@ export function WorkPage() {
 									}
 								/>
 								<WorkStat
-									label="Paid this month"
+									label="Paid This Month"
 									value={
 										<AnimatedMoney value={paidThisMonth} />
 									}

@@ -38,7 +38,7 @@ export function CommandPalette() {
 				showCloseButton={false}
 				className="top-[12%] translate-y-0 gap-0 overflow-hidden p-0 ring-primary/25 sm:max-w-xl"
 			>
-				<DialogTitle className="sr-only">Command menu</DialogTitle>
+				<DialogTitle className="sr-only">Command Menu</DialogTitle>
 				<DialogDescription className="sr-only">
 					Search pages, accounts, goals, bills, invoices and
 					transactions, or run an action

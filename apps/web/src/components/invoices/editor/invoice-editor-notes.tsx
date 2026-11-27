@@ -9,7 +9,7 @@ export function InvoiceEditorNotes({ model }: { model: InvoiceEditorModel }) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Notes & terms</CardTitle>
+				<CardTitle>Notes & Terms</CardTitle>
 			</CardHeader>
 			<CardContent className="grid gap-3 sm:grid-cols-2">
 				<Field id="inv-notes" label="Notes">

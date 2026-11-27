@@ -14,17 +14,17 @@ export function EmptyWork({ onAdd }: { onAdd: () => void }) {
 	const steps = [
 		{
 			icon: Clock,
-			title: "Log hours",
+			title: "Log Hours",
 			body: "Add shifts as you go, or just your tracker total.",
 		},
 		{
 			icon: ReceiptText,
-			title: "Bill them",
+			title: "Bill Them",
 			body: "“done 40 hours since last pay, total is $1,000.”",
 		},
 		{
 			icon: CalendarClockIcon,
-			title: "Get paid in instalments",
+			title: "Get Paid in Instalments",
 			body: "Record each payment and see when it’s cleared.",
 		},
 	]
@@ -38,7 +38,7 @@ export function EmptyWork({ onAdd }: { onAdd: () => void }) {
 					<Briefcase className="size-7" />
 				</span>
 				<div>
-					<h2 className="font-semibold">Track a side job</h2>
+					<h2 className="font-semibold">Track a Side Job</h2>
 					<p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
 						For hourly work you bill yourself. Keep the running
 						total of what you’re owed in one place instead of a chat

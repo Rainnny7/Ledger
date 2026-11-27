@@ -38,12 +38,12 @@ export function AccountDetailsButton({
 	const [open, setOpen] = useState(false)
 	return (
 		<>
-			<Hint label="Direct deposit & limits">
+			<Hint label="Direct Deposit & Limits">
 				<Button
 					variant={variant}
 					size={size}
 					className={className}
-					aria-label="Direct deposit & limits"
+					aria-label="Direct Deposit & Limits"
 					onClick={() => setOpen(true)}
 				>
 					<Landmark />{" "}
@@ -55,7 +55,7 @@ export function AccountDetailsButton({
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className="sm:max-w-md">
 					<DialogHeader>
-						<DialogTitle>Direct deposit & limits</DialogTitle>
+						<DialogTitle>Direct Deposit & Limits</DialogTitle>
 						<DialogDescription className="truncate">
 							{account.name}
 						</DialogDescription>
@@ -89,7 +89,7 @@ function DetailsBody({ account }: { account: Account }) {
 		...(account.overdraftLimit
 			? [
 					{
-						label: "Overdraft limit",
+						label: "Overdraft Limit",
 						value: (
 							<Money
 								value={account.overdraftLimit}
@@ -102,7 +102,7 @@ function DetailsBody({ account }: { account: Account }) {
 		...(account.creditLimit
 			? [
 					{
-						label: "Credit limit",
+						label: "Credit Limit",
 						value: (
 							<Money
 								value={account.creditLimit}
@@ -128,7 +128,7 @@ function DetailsBody({ account }: { account: Account }) {
 		<div className="grid min-w-0 gap-4">
 			<section className="grid gap-2">
 				<div className="flex items-center justify-between gap-2">
-					<h3 className="text-sm font-medium">Direct deposit</h3>
+					<h3 className="text-sm font-medium">Direct Deposit</h3>
 					{hasNumbers && (
 						<Button
 							variant="ghost"

@@ -20,7 +20,7 @@ export function InvoiceEditorFrom({ model }: { model: InvoiceEditorModel }) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Your details</CardTitle>
+				<CardTitle>Your Details</CardTitle>
 				<CardDescription>
 					{draft.from.name
 						? `${draft.from.name} · remembered for every invoice`
