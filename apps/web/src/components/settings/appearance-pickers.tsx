@@ -102,14 +102,13 @@ export function AppearanceModePicker() {
 							role="radio"
 							aria-checked={selected}
 							onClick={(event) => {
-								void changeMode(
-									option.id,
-									event.currentTarget
-								).then((ok) => {
-									if (ok) {
-										flash()
-									}
-								})
+								void changeMode(option.id, event.currentTarget)
+									.then((ok) => {
+										if (ok) {
+											flash()
+										}
+									})
+									.catch(() => {})
 							}}
 							className={cn(
 								"grid content-start gap-2.5 rounded-xl border p-2.5 text-left transition-colors outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50",
@@ -187,11 +186,13 @@ export function AppearanceAccentPicker() {
 								void changeAccent(
 									entry.id as AccentId,
 									event.currentTarget
-								).then((ok) => {
-									if (ok) {
-										flash()
-									}
-								})
+								)
+									.then((ok) => {
+										if (ok) {
+											flash()
+										}
+									})
+									.catch(() => {})
 							}}
 							className={cn(
 								"relative grid size-9 place-items-center rounded-full ring-1 ring-foreground/15 transition-shadow outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
