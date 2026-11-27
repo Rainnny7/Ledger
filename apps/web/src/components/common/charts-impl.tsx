@@ -494,7 +494,7 @@ export function CategoryBars({
 								</span>
 								<span className="h-2.5 overflow-hidden rounded-full bg-muted">
 									<span
-										className="block h-full rounded-full bg-chart-1 transition-[width] duration-300"
+										className="block h-full animate-[ledger-grow_800ms_cubic-bezier(0.33,1,0.68,1)_backwards] rounded-full bg-chart-1 transition-[width] duration-300 motion-reduce:animate-none"
 										style={{
 											width: `${Math.max(2, (entry.total / max) * 100)}%`,
 										}}

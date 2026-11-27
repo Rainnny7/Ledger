@@ -580,6 +580,13 @@
 	}
 }
 
+/* Bars grow from zero to their inline width; `backwards` fill so later width transitions still run. */
+@keyframes ledger-grow {
+	from {
+		width: 0;
+	}
+}
+
 /* Loading placeholders: a soft highlight sweeping across, matching the boneyard bones (main.tsx). */
 @utility skeleton-shimmer {
 	background-color: var(--muted);
