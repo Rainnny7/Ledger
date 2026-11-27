@@ -111,6 +111,7 @@ export function BackupsCard() {
 										<a
 											href={`/api/admin/backups/${encodeURIComponent(backup.name)}`}
 											download={backup.name}
+											aria-label={`Download backup ${backup.name}`}
 										/>
 									}
 								>

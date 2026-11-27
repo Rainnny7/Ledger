@@ -70,7 +70,7 @@ export function SendNotificationCard() {
 		queryFn: () => adminFetch<{ configured: boolean }>("smtp"),
 	})
 	const [audience, setAudience] = useState<"all" | "pick">("all")
-	const [picked, setPicked] = useState<string[]>([])
+	const [picked, setPicked] = useState<Set<string>>(() => new Set())
 	const [title, setTitle] = useState("")
 	const [body, setBody] = useState("")
 	const [kind, setKind] = useState<NotificationKind>("info")
@@ -82,16 +82,22 @@ export function SendNotificationCard() {
 	const smtpReady = smtp.data?.configured === true
 
 	function toggleUser(id: string, on: boolean) {
-		setPicked((prev) =>
-			on ? [...new Set([...prev, id])] : prev.filter((row) => row !== id)
-		)
+		setPicked((previous) => {
+			const next = new Set(previous)
+			if (on) {
+				next.add(id)
+			} else {
+				next.delete(id)
+			}
+			return next
+		})
 	}
 
 	async function send() {
 		if (!title.trim() || !body.trim()) {
 			return
 		}
-		if (audience === "pick" && picked.length === 0) {
+		if (audience === "pick" && picked.size === 0) {
 			toastError("Choose at least one user")
 			return
 		}
@@ -100,7 +106,7 @@ export function SendNotificationCard() {
 			const result = await adminFetch<{ sent: number }>("notifications", {
 				method: "POST",
 				body: JSON.stringify({
-					userIds: audience === "all" ? "all" : picked,
+					userIds: audience === "all" ? "all" : [...picked],
 					title: title.trim(),
 					body: body.trim(),
 					kind,
@@ -182,7 +188,7 @@ export function SendNotificationCard() {
 									className="flex items-center gap-2 py-1 font-normal"
 								>
 									<Checkbox
-										checked={picked.includes(user.id)}
+										checked={picked.has(user.id)}
 										onCheckedChange={(value) =>
 											toggleUser(user.id, value === true)
 										}
