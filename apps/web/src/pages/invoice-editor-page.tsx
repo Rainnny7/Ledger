@@ -1,43 +1,23 @@
-import { Link, useParams } from "@tanstack/react-router"
-import { useQueryState } from "nuqs"
+import { Link } from "@tanstack/react-router"
 import { EditorSkeleton } from "@/components/invoices/editor/editor-skeleton"
 import { InvoiceEditor } from "@/components/invoices/editor/invoice-editor"
-import {
-	newItem,
-	startDraft,
-	type Draft,
-} from "@/components/invoices/editor/draft"
 import { QueryError } from "@/components/ui/query-error"
-import { useInvoices, useWork } from "@/lib/queries"
+import { useInvoiceEditorPage } from "@/pages/use-invoice-editor-page"
 
 /** Create or edit an invoice: line items, theme, PDF preview, and payment methods. */
 export function InvoiceEditorPage() {
-	const { id } = useParams({ strict: false })
-	const [fromBill] = useQueryState("fromBill")
-	const [copy] = useQueryState("copy")
-	const { data, error, reload } = useInvoices()
-	const work = useWork()
-	const existing = id
-		? data?.invoices.find((invoice) => invoice.id === id)
-		: undefined
+	const state = useInvoiceEditorPage()
 
-	if (error && !data) {
-		return (
-			<QueryError message={error.message} onRetry={() => void reload()} />
-		)
+	if (state.kind === "query-error") {
+		return <QueryError message={state.message} onRetry={state.retry} />
 	}
-	if (work.error && !work.data && fromBill) {
-		return (
-			<QueryError
-				message={work.error.message}
-				onRetry={() => void work.reload()}
-			/>
-		)
+	if (state.kind === "work-error") {
+		return <QueryError message={state.message} onRetry={state.retry} />
 	}
-	if (!data || (fromBill && !work.data)) {
+	if (state.kind === "loading") {
 		return <EditorSkeleton />
 	}
-	if (id && !existing) {
+	if (state.kind === "missing") {
 		return (
 			<p className="text-sm text-muted-foreground">
 				That invoice doesn’t exist any more.{" "}
@@ -48,33 +28,12 @@ export function InvoiceEditorPage() {
 		)
 	}
 
-	const job = fromBill
-		? work.data?.jobs.find((entry) =>
-				entry.invoices.some((bill) => bill.id === fromBill)
-			)
-		: undefined
-	const initial: Draft = existing
-		? {
-				...existing,
-				items: existing.items.map((i) =>
-					newItem(
-						i.description,
-						String(i.quantity),
-						String(i.unitPrice)
-					)
-				),
-			}
-		: startDraft(data, {
-				source: data.invoices.find((i) => i.id === copy),
-				bill: job && fromBill ? { job, billId: fromBill } : undefined,
-			})
-
 	return (
 		<InvoiceEditor
-			key={id ?? `new-${copy ?? ""}-${fromBill ?? ""}`}
-			data={data}
-			saved={existing ?? null}
-			initial={initial}
+			key={state.editorKey}
+			data={state.data}
+			saved={state.existing}
+			initial={state.initial}
 		/>
 	)
 }
