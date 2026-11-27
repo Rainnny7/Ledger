@@ -1,5 +1,4 @@
 import { QueryError } from "@/components/ui/query-error"
-import { Trash2Icon } from "@/components/icons/trash-2"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,154 +9,16 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { formatRelative, formatTimestamp } from "@/lib/format"
-import {
-	type NotificationItem,
-	type NotificationKind,
-	useClearAllNotifications,
-	useDeleteNotification,
-	useMarkAllNotificationsRead,
-	useMarkNotificationRead,
-	useNotifications,
-} from "@/lib/queries"
-import { cn } from "cn"
-import {
-	Bell,
-	CheckCircle2,
-	CircleAlert,
-	Info,
-	Loader2,
-	TriangleAlert,
-} from "lucide-react"
-import { useState } from "react"
-import { useNavigate } from "@tanstack/react-router"
-
-const KIND_META: Record<
-	NotificationKind,
-	{ icon: typeof Info; className: string }
-> = {
-	info: { icon: Info, className: "text-blue-600" },
-	success: { icon: CheckCircle2, className: "text-green-600" },
-	warning: { icon: TriangleAlert, className: "text-amber-600" },
-	alert: { icon: CircleAlert, className: "text-destructive" },
-}
-
-function NotificationRow({
-	item,
-	busy,
-	onOpen,
-	onDelete,
-}: {
-	item: NotificationItem
-	busy: boolean
-	onOpen: (item: NotificationItem) => void
-	onDelete: (id: string) => void
-}) {
-	const unread = !item.readAt
-	const meta = KIND_META[item.kind]
-	const Icon = meta.icon
-	return (
-		<div
-			className={cn(
-				"group flex gap-2 rounded-md border border-transparent px-2 py-2 transition-colors",
-				unread
-					? "border-primary/25 bg-primary/10 hover:bg-primary/15"
-					: "hover:bg-muted/60"
-			)}
-		>
-			<button
-				type="button"
-				className="flex min-w-0 flex-1 gap-2 text-left"
-				onClick={() => onOpen(item)}
-			>
-				<Icon
-					className={cn("mt-0.5 size-4 shrink-0", meta.className)}
-					aria-hidden
-				/>
-				<span className="min-w-0 flex-1">
-					<span className="block truncate leading-snug font-medium">
-						{item.title}
-					</span>
-					<span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-						{item.body}
-					</span>
-					<Tooltip>
-						<TooltipTrigger
-							render={
-								<span className="mt-1 block text-[11px] text-muted-foreground underline decoration-muted-foreground/30 decoration-dotted underline-offset-2" />
-							}
-						>
-							{formatRelative(item.createdAt)}
-						</TooltipTrigger>
-						<TooltipContent>
-							{formatTimestamp(item.createdAt)}
-						</TooltipContent>
-					</Tooltip>
-				</span>
-			</button>
-			<Button
-				type="button"
-				variant="ghost"
-				size="icon"
-				className="size-7 shrink-0 opacity-70 group-hover:opacity-100"
-				aria-label={`Remove ${item.title}`}
-				disabled={busy}
-				onClick={() => onDelete(item.id)}
-			>
-				{busy ? (
-					<Loader2 className="size-3.5 animate-spin" />
-				) : (
-					<Trash2Icon size={14} className="flex" />
-				)}
-			</Button>
-		</div>
-	)
-}
+import { NotificationBellRow } from "@/components/notifications/notification-bell-row"
+import { useNotificationBell } from "@/components/notifications/use-notification-bell"
+import { Bell } from "lucide-react"
 
 /** Header bell that lists in-app notifications. */
 export function NotificationBell({ enabled }: { enabled: boolean }) {
-	const navigate = useNavigate()
-	const { data, loading, error, reload } = useNotifications(enabled)
-	const markRead = useMarkNotificationRead()
-	const markAll = useMarkAllNotificationsRead()
-	const remove = useDeleteNotification()
-	const clearAll = useClearAllNotifications()
-	const [open, setOpen] = useState(false)
-	const [deletingId, setDeletingId] = useState<string | null>(null)
-	const unread = data?.unreadCount ?? 0
-	const items = data?.items ?? []
-	const busy =
-		markRead.isPending ||
-		markAll.isPending ||
-		remove.isPending ||
-		clearAll.isPending
-
-	async function openItem(item: NotificationItem) {
-		if (!item.readAt) {
-			await markRead.mutateAsync(item.id)
-		}
-		if (item.href) {
-			setOpen(false)
-			void navigate({ href: item.href })
-		}
-	}
-
-	async function deleteOne(id: string) {
-		setDeletingId(id)
-		try {
-			await remove.mutateAsync(id)
-		} finally {
-			setDeletingId(null)
-		}
-	}
+	const bell = useNotificationBell(enabled)
 
 	return (
-		<Popover open={open} onOpenChange={setOpen}>
+		<Popover open={bell.open} onOpenChange={bell.setOpen}>
 			<PopoverTrigger
 				render={
 					<Button
@@ -169,9 +30,9 @@ export function NotificationBell({ enabled }: { enabled: boolean }) {
 				}
 			>
 				<Bell className="size-4" />
-				{unread > 0 && (
+				{bell.unread > 0 && (
 					<Badge className="absolute -top-1 -right-1 h-4 min-w-4 border-2 border-background bg-red-500 px-1 text-[10px] font-bold text-white tabular-nums hover:bg-red-500">
-						{unread > 99 ? "99+" : unread}
+						{bell.unread > 99 ? "99+" : bell.unread}
 					</Badge>
 				)}
 			</PopoverTrigger>
@@ -188,8 +49,8 @@ export function NotificationBell({ enabled }: { enabled: boolean }) {
 							variant="ghost"
 							size="sm"
 							className="h-7 px-2 text-xs"
-							disabled={busy || unread === 0}
-							onClick={() => void markAll.mutate()}
+							disabled={bell.busy || bell.unread === 0}
+							onClick={() => void bell.markAll.mutate()}
 						>
 							Mark all read
 						</Button>
@@ -198,41 +59,41 @@ export function NotificationBell({ enabled }: { enabled: boolean }) {
 							variant="ghost"
 							size="sm"
 							className="h-7 px-2 text-xs"
-							disabled={busy || items.length === 0}
-							onClick={() => void clearAll.mutate()}
+							disabled={bell.busy || bell.items.length === 0}
+							onClick={() => void bell.clearAll.mutate()}
 						>
 							Clear all
 						</Button>
 					</div>
 				</PopoverHeader>
 				<div className="max-h-[min(60vh,24rem)] overflow-y-auto px-1 py-1">
-					{loading && !data && (
+					{bell.loading && !bell.data && (
 						<div className="grid gap-2 p-2">
 							{[0, 1, 2].map((index) => (
 								<Skeleton key={index} className="h-14 w-full" />
 							))}
 						</div>
 					)}
-					{error && !data && (
+					{bell.error && !bell.data && (
 						<div className="p-3">
 							<QueryError
-								message={error.message}
-								onRetry={() => void reload()}
+								message={bell.error.message}
+								onRetry={() => void bell.reload()}
 							/>
 						</div>
 					)}
-					{data && items.length === 0 && (
+					{bell.data && bell.items.length === 0 && (
 						<p className="px-3 py-8 text-center text-sm text-muted-foreground">
 							You're all caught up.
 						</p>
 					)}
-					{items.map((item) => (
-						<NotificationRow
+					{bell.items.map((item) => (
+						<NotificationBellRow
 							key={item.id}
 							item={item}
-							busy={busy || deletingId === item.id}
-							onOpen={(row) => void openItem(row)}
-							onDelete={(id) => void deleteOne(id)}
+							busy={bell.busy || bell.deletingId === item.id}
+							onOpen={(row) => void bell.openItem(row)}
+							onDelete={(id) => void bell.deleteOne(id)}
 						/>
 					))}
 				</div>
