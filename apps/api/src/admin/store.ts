@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto"
 import { and, asc, count, desc, eq, notLike, sql, type SQL } from "drizzle-orm"
 import { db, getSetting, setSetting } from "../db/connection.ts"
 import { adminAudit, user } from "../db/schema/index.ts"
-import type { ReleaseChannel } from "./updates.ts"
+import { type ReleaseChannel, detectChannel } from "./updates.ts"
 import { isInstanceOwnerFor } from "./owner-gate.ts"
 
 export { isInstanceOwnerFor } from "./owner-gate.ts"
@@ -188,9 +188,10 @@ export function setMustChangePassword(userId: string, value: boolean) {
 		.run()
 }
 
-/** The saved release channel; `stable` until an admin picks another. */
+/** The channel an admin picked, else the one this copy is running from (see `detectChannel`). */
 export function getReleaseChannel(): ReleaseChannel {
-	return getSetting("release_channel") === "dev" ? "dev" : "stable"
+	const saved = getSetting("release_channel")
+	return saved === "dev" || saved === "stable" ? saved : detectChannel()
 }
 
 /** Persists the release channel the update check and container switch follow. */

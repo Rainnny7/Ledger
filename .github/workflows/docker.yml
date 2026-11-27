@@ -2,7 +2,7 @@ name: Docker
 
 on:
     push:
-        branches: [master, "ver/*"]
+        branches: [master, dev]
         tags: ["v*"]
     workflow_dispatch:
 
@@ -29,7 +29,7 @@ jobs:
               with:
                   images: ${{ env.IMAGE }}
                   tags: |
-                      type=raw,value=latest,enable=${{ !startsWith(github.ref, 'refs/heads/ver/') }}
+                      type=raw,value=latest,enable=${{ github.ref != 'refs/heads/dev' }}
                       type=ref,event=branch
                       type=semver,pattern={{version}}
                       type=semver,pattern={{major}}.{{minor}}
@@ -38,6 +38,7 @@ jobs:
               with:
                   context: .
                   push: true
+                  build-args: LEDGER_CHANNEL=${{ github.ref == 'refs/heads/dev' && 'dev' || 'stable' }}
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
                   cache-from: type=gha

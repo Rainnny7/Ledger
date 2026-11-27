@@ -37,7 +37,7 @@ export interface AdminAiChatSettings {
 	limits: AiChatLimits
 }
 
-/** Where updates come from: the latest release or the newest ver/* branch. */
+/** Where updates come from: the latest release or the dev branch. */
 export type ReleaseChannel = "stable" | "dev"
 
 /** Admin Settings. */

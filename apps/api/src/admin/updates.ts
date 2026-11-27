@@ -13,14 +13,14 @@ const FAILURE_TTL = 60 * 60_000
 /** UpdateInstall values accepted by validation and routes. */
 export type UpdateInstall = "docker" | "source"
 
-/** Where updates come from: `stable` follows master (`latest` image), `dev` the newest `ver/*` branch. */
+/** Where updates come from: `stable` follows the latest release (`latest` image), `dev` the `dev` branch (`dev` image). */
 export type ReleaseChannel = "stable" | "dev"
 
 /** Container image repository published by CI. */
 export const IMAGE_REPOSITORY = "ghcr.io/rainnny7/ledger"
 
 const GITHUB_API = "https://api.github.com/repos/rainnny7/ledger"
-const DEV_BRANCH_PATTERN = /^ver\/\d+(\.\d+)*(-[\w.]+)?$/
+const DEV_BRANCH = "dev"
 
 /** UpdateInfo values accepted by validation and routes. */
 export type UpdateInfo = {
@@ -85,27 +85,22 @@ export function semverNewer(latest: string, current: string): boolean {
 	return false
 }
 
-/** Image tag CI publishes for a branch: `/` becomes `-` (`ver/1.0.1-dev` -> `ver-1.0.1-dev`). */
-export function branchImageTag(branch: string): string {
-	return branch.replace(/\//g, "-")
-}
-
-/** Highest-version `ver/X.Y.Z...` branch name, or null when none match. */
-export function pickNewestDevBranch(branchNames: string[]): string | null {
-	let newest: string | null = null
-	for (const name of branchNames) {
-		if (
-			DEV_BRANCH_PATTERN.test(name) &&
-			(newest === null ||
-				semverNewer(
-					name.slice("ver/".length),
-					newest.slice("ver/".length)
-				))
-		) {
-			newest = name
-		}
+/**
+ * The channel this copy is running from: the Docker image's `LEDGER_CHANNEL`, else the checked-out
+ * git branch of a source install (`dev` is the dev channel, anything else is stable).
+ */
+export function detectChannel(): ReleaseChannel {
+	if (env.LEDGER_CHANNEL) {
+		return env.LEDGER_CHANNEL
 	}
-	return newest
+	try {
+		const head = readFileSync(path.join(ROOT, ".git", "HEAD"), "utf8")
+		return head.trim() === `ref: refs/heads/${DEV_BRANCH}`
+			? "dev"
+			: "stable"
+	} catch {
+		return "stable"
+	}
 }
 
 /** Copy-paste upgrade commands; docker commands name the channel's image tag. */
@@ -117,7 +112,7 @@ export function installCommands(
 		return [
 			imageTag
 				? `# in docker-compose.yml set: image: ${IMAGE_REPOSITORY}:${imageTag}`
-				: "# in docker-compose.yml set the image tag to the newest ver-* tag",
+				: "# in docker-compose.yml set the image tag to dev",
 			"docker compose pull",
 			"docker compose up -d",
 		]
@@ -205,22 +200,26 @@ async function fetchDev(): Promise<UpdateInfo> {
 		return { ...baseInfo("dev", null), ...EMPTY_CHECK }
 	}
 	try {
-		const branches = await githubJson<{ name?: string }[]>(
-			"branches?per_page=100"
+		const response = await fetch(
+			`https://raw.githubusercontent.com/rainnny7/ledger/${DEV_BRANCH}/package.json`,
+			{
+				headers: { "User-Agent": "ledger-update-check" },
+				signal: AbortSignal.timeout(15_000),
+			}
 		)
-		const branch = pickNewestDevBranch(
-			branches.flatMap((entry) => (entry.name ? [entry.name] : []))
-		)
-		if (!branch) {
-			throw new Error("no dev branch")
+		if (!response.ok) {
+			throw new Error(String(response.status))
 		}
-		const base = baseInfo("dev", branchImageTag(branch))
-		const latest = branch.slice("ver/".length)
+		const latest = ((await response.json()) as { version?: string }).version
+		if (!latest) {
+			throw new Error("no version")
+		}
+		const base = baseInfo("dev", DEV_BRANCH)
 		return {
 			...base,
 			latest,
 			available: semverNewer(latest, base.current),
-			url: `https://github.com/rainnny7/ledger/tree/${branch}`,
+			url: `https://github.com/rainnny7/ledger/tree/${DEV_BRANCH}`,
 			notes: null,
 			publishedAt: null,
 		}
@@ -229,7 +228,7 @@ async function fetchDev(): Promise<UpdateInfo> {
 	}
 }
 
-/** Cached GitHub check for the channel (release or newest ver/* branch); never throws. */
+/** Cached GitHub check for the channel (latest release or the dev branch); never throws. */
 export async function getUpdateInfo(
 	channel: ReleaseChannel
 ): Promise<UpdateInfo> {

@@ -98,8 +98,10 @@ export const env = createEnv({
 		PAYPAL_ENV: z.enum(["live", "sandbox"]).default("live"),
 		/** Set UPDATE_CHECK=false to skip polling GitHub. */
 		UPDATE_CHECK: stringBoolean(true),
-		/** How this copy was installed; the Docker image sets `docker`. */
-		LEDGER_INSTALL: z.enum(["docker", "source"]).default("source"),
+		/** How this copy was installed: `docker` (default) or `source`. */
+		LEDGER_INSTALL: z.enum(["docker", "source"]).default("docker"),
+		/** Release channel this build came from; the Docker image sets it. Source installs read their git branch instead. */
+		LEDGER_CHANNEL: z.enum(["stable", "dev"]).optional(),
 		/** Cloudflare Turnstile site key (public). Captcha on the login page is on only when this and the secret are both set. */
 		TURNSTILE_SITE_KEY: z.string().min(1).optional(),
 		/** Cloudflare Turnstile secret key, used to verify tokens server-side. */

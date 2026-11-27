@@ -29,7 +29,7 @@ import { toastError } from "@/lib/toast"
 
 const CHANNEL_OPTIONS: { value: ReleaseChannel; label: string }[] = [
 	{ value: "stable", label: "Stable (master, latest)" },
-	{ value: "dev", label: "Dev (newest ver/* branch)" },
+	{ value: "dev", label: "Dev (dev branch)" },
 ]
 
 /** Admin release channel selector with a one-click container switch or copy-paste commands. */
@@ -80,8 +80,8 @@ export function ReleaseChannelCard() {
 			<CardHeader>
 				<CardTitle>Release Channel</CardTitle>
 				<CardDescription>
-					Stable follows the latest release. Dev follows the newest
-					in-development version and may be unfinished.
+					Stable follows the latest release. Dev follows the
+					in-development branch and may be unfinished.
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="grid gap-4">

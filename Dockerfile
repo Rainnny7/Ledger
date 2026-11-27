@@ -23,7 +23,9 @@ RUN bun install --frozen-lockfile --production
 
 # ---- runtime ----
 FROM oven/bun:1.4.5@sha256:3aa040e5445efa09d75bb428a64ba50db13e2b3ac9b6b0c7f145615f62b2ee18
+ARG LEDGER_CHANNEL=stable
 ENV NODE_ENV=production \
+    LEDGER_CHANNEL=$LEDGER_CHANNEL \
     PORT=3001 \
     DATA_DIR=/data \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
