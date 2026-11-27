@@ -16,6 +16,7 @@ import {
 	SettingsAccountPanel,
 	SettingsAppearancePanel,
 	SettingsDeveloperPanel,
+	SettingsNotificationsPanel,
 	SettingsPreferencesPanel,
 	SettingsSecurityPanel,
 	SettingsServerActivityPanel,
@@ -29,6 +30,7 @@ import {
 export type SettingsTabId =
 	| "appearance"
 	| "preferences"
+	| "notifications"
 	| "security"
 	| "developer"
 	| "account"
@@ -103,6 +105,24 @@ const ALL_TABS: SettingsTabDefinition[] = [
 			},
 		],
 		Panel: SettingsPreferencesPanel,
+	},
+	{
+		id: "notifications",
+		label: "Notifications",
+		description:
+			"Choose how admin messages, security notices, and digests reach you.",
+		group: "Account",
+		icon: MailIcon,
+		sections: [
+			{
+				id: "notification-sources",
+				title: "Notification delivery",
+				keywords:
+					"email alerts bell admin security digest messages in-app",
+			},
+		],
+		Panel: SettingsNotificationsPanel,
+		visible: () => !demoMode,
 	},
 	{
 		id: "security",

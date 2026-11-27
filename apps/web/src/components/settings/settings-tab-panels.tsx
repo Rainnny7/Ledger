@@ -17,6 +17,7 @@ import { DeleteAccountCard } from "@/components/settings/delete-account-card"
 import { EmailVerificationCard } from "@/components/settings/email-verification-card"
 import { DevicesCard } from "@/components/settings/devices-card"
 import { McpAccessCard } from "@/components/settings/mcp-access-card"
+import { NotificationsCard } from "@/components/settings/notifications-card"
 import { PreferencesCard } from "@/components/settings/preferences-card"
 import { TwoFactorCard } from "@/components/settings/two-factor-card"
 import { demoMode } from "@/lib/demo"
@@ -59,6 +60,15 @@ export function SettingsPreferencesPanel() {
 				<PreferencesCard />
 			</SettingsSection>
 		</div>
+	)
+}
+
+/** Notifications tab panel. */
+export function SettingsNotificationsPanel() {
+	return (
+		<SettingsSection sectionId="notification-sources">
+			<NotificationsCard />
+		</SettingsSection>
 	)
 }
 
