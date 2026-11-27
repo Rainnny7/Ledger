@@ -5,6 +5,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { ChangePasswordChangeForm } from "@/components/settings/change-password-change-form"
 import { ChangePasswordSetForm } from "@/components/settings/change-password-set-form"
 import { useChangePasswordCard } from "@/components/settings/use-change-password-card"
@@ -14,7 +15,23 @@ export function ChangePasswordCard() {
 	const card = useChangePasswordCard()
 
 	if (card.hasPassword.isPending) {
-		return null
+		return (
+			<Card aria-busy="true">
+				<CardHeader>
+					<CardTitle>Password</CardTitle>
+					<CardDescription>
+						Change the password you log in to Ledger with.
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="grid gap-4">
+					<Skeleton className="h-9 sm:max-w-sm" />
+					<div className="grid gap-4 sm:grid-cols-2">
+						<Skeleton className="h-9" />
+						<Skeleton className="h-9" />
+					</div>
+				</CardContent>
+			</Card>
+		)
 	}
 	if (card.hasPassword.isError) {
 		return (
