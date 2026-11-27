@@ -1,5 +1,8 @@
 import { AnimatedMoney } from "@/components/common/count-up"
-import { DashboardStat } from "@/components/dashboard/dashboard-stat"
+import {
+	DashboardStat,
+	type DashboardStatDelta,
+} from "@/components/dashboard/dashboard-stat"
 import type { Account } from "@/lib/api"
 import type { Converter } from "@/lib/currency"
 import { inHomeCurrency } from "@/lib/currency"
@@ -24,6 +27,8 @@ export function DashboardStatsGrid({
 	owing,
 	spend,
 	txReady,
+	statSeries,
+	statDelta,
 }: {
 	cad: Account[]
 	home: ReturnType<typeof inHomeCurrency>
@@ -35,6 +40,18 @@ export function DashboardStatsGrid({
 	owing: number
 	spend: SpendFigures
 	txReady: boolean
+	statSeries: {
+		totalBalance: number[]
+		available: number[]
+		owing: number[]
+		spent: number[]
+	}
+	statDelta: {
+		totalBalance?: DashboardStatDelta
+		available?: DashboardStatDelta
+		owing?: DashboardStatDelta
+		spent?: DashboardStatDelta
+	}
 }) {
 	const accountCountLabel = `${cad.length} account${cad.length === 1 ? "" : "s"}`
 	let totalBalanceHint: string
@@ -59,12 +76,7 @@ export function DashboardStatsGrid({
 	}
 
 	const spentHintParts: string[] = []
-	if (spend.prev > 0) {
-		const direction = spend.now <= spend.prev ? "↓" : "↑"
-		spentHintParts.push(
-			`${direction} ${formatMoney(Math.abs(spend.now - spend.prev))} vs same point last month`
-		)
-	} else {
+	if (!statDelta.spent) {
 		spentHintParts.push("Excludes transfers & income")
 	}
 	if (spend.pending > 0) {
@@ -82,22 +94,34 @@ export function DashboardStatsGrid({
 				negative={net < 0}
 				hint={totalBalanceHint}
 				note={totalBalanceNote}
+				series={statSeries.totalBalance}
+				delta={statDelta.totalBalance}
+				showSparkline={txReady}
 			/>
 			<DashboardStat
 				label="Available to Spend"
 				value={<AnimatedMoney value={available} />}
 				negative={available < 0}
 				hint={availableHint}
+				series={statSeries.available}
+				delta={statDelta.available}
+				showSparkline={txReady}
 			/>
 			<DashboardStat
 				label="Owing"
 				value={<AnimatedMoney value={owing} />}
 				hint="Credit, loans and overdraft in use"
+				series={statSeries.owing}
+				delta={statDelta.owing}
+				showSparkline={txReady}
 			/>
 			<DashboardStat
 				label="Spent This Month"
 				value={txReady ? <AnimatedMoney value={spend.now} /> : "—"}
-				hint={spentHintParts.join(" · ")}
+				hint={spentHintParts.join(" · ") || undefined}
+				series={statSeries.spent}
+				delta={statDelta.spent}
+				showSparkline={txReady}
 			/>
 		</div>
 	)

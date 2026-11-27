@@ -4,6 +4,7 @@ import { RangePicker } from "@/components/common/range-picker"
 import { ConnectionSection } from "@/components/dashboard/connection-section"
 import { DashboardRecentActivity } from "@/components/dashboard/dashboard-recent-activity"
 import { DashboardStatsGrid } from "@/components/dashboard/dashboard-stats-grid"
+import type { DashboardStatDelta } from "@/components/dashboard/dashboard-stat"
 import { NeedsAttention } from "@/components/dashboard/needs-attention"
 import { UpcomingList } from "@/components/dashboard/upcoming-list"
 import { GoalsSpotlight } from "@/components/goals/goals-spotlight"
@@ -50,6 +51,8 @@ export function DashboardConnected({
 	owing,
 	spend,
 	txReady,
+	statSeries,
+	statDelta,
 	series,
 	flow,
 	range,
@@ -79,6 +82,18 @@ export function DashboardConnected({
 	owing: number
 	spend: SpendFigures
 	txReady: boolean
+	statSeries: {
+		totalBalance: number[]
+		available: number[]
+		owing: number[]
+		spent: number[]
+	}
+	statDelta: {
+		totalBalance?: DashboardStatDelta
+		available?: DashboardStatDelta
+		owing?: DashboardStatDelta
+		spent?: DashboardStatDelta
+	}
 	series: Parameters<typeof BalanceChart>[0]["data"]
 	flow: Parameters<typeof CashflowChart>[0]["data"]
 	range: RangeKey
@@ -114,6 +129,8 @@ export function DashboardConnected({
 				owing={owing}
 				spend={spend}
 				txReady={txReady}
+				statSeries={statSeries}
+				statDelta={statDelta}
 			/>
 
 			<div className="grid gap-4 lg:grid-cols-5">

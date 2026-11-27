@@ -587,6 +587,16 @@
 	}
 }
 
+/* Sparklines sweep in left to right by un-clipping their right edge. */
+@keyframes ledger-sweep {
+	from {
+		clip-path: inset(0 100% 0 0);
+	}
+	to {
+		clip-path: inset(0 0 0 0);
+	}
+}
+
 /* Loading placeholders: a soft highlight sweeping across, matching the boneyard bones (main.tsx). */
 @utility skeleton-shimmer {
 	background-color: var(--muted);

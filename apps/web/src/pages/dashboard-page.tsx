@@ -42,6 +42,7 @@ import { useIntent } from "@/lib/url-state"
 import { useNow } from "@/lib/use-now"
 import { AskLedgerButton } from "@/components/chat/ask-ledger-button"
 import { formatMoney } from "@/lib/format"
+import { dashboardStatTrends } from "@/lib/dashboard-stat-series"
 
 async function removeConnection(c: Connection) {
 	if (
@@ -123,11 +124,15 @@ export function DashboardPage() {
 		[accounts, transactions, converter]
 	)
 	const cad = home.accounts
-	const deposit = cad.filter(
-		(account) =>
-			account.type === "chequing" ||
-			account.type === "savings" ||
-			account.type === "wallet"
+	const deposit = useMemo(
+		() =>
+			cad.filter(
+				(account) =>
+					account.type === "chequing" ||
+					account.type === "savings" ||
+					account.type === "wallet"
+			),
+		[cad]
 	)
 
 	const includeOverdraft = useIncludeOverdraft()
@@ -207,6 +212,19 @@ export function DashboardPage() {
 	const series = useMemo(
 		() => balanceSeries(cad, cadTx, rangeStart(range), includeOverdraft),
 		[cad, cadTx, range, includeOverdraft]
+	)
+	const { series: statSeries, delta: statDelta } = useMemo(
+		() =>
+			dashboardStatTrends({
+				cad,
+				deposit,
+				transactions: cadTx,
+				includeOverdraft,
+				now,
+				spendNow: spend.now,
+				spendPrev: spend.prev,
+			}),
+		[cad, deposit, cadTx, includeOverdraft, now, spend.now, spend.prev]
 	)
 	const flow = useMemo(() => monthlyCashflow(cadTx, lastMonths(6)), [cadTx])
 	const upcoming = useMemo(
@@ -292,6 +310,8 @@ export function DashboardPage() {
 						owing={owing}
 						spend={spend}
 						txReady={Boolean(txq.data)}
+						statSeries={statSeries}
+						statDelta={statDelta}
 						series={series}
 						flow={flow}
 						range={range}
