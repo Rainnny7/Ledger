@@ -51,6 +51,24 @@ export function useConnectDialog({
 		onConnectedRef.current = onConnected
 	})
 
+	// A live bank session must not outlive the flow when the parent hides it without going through close().
+	const unfinishedSessionRef = useRef<string | null>(null)
+	useLayoutEffect(() => {
+		unfinishedSessionRef.current =
+			sessionId && phase.type !== "done" ? sessionId : null
+	})
+	useEffect(() => {
+		if (!open) {
+			return
+		}
+		return () => {
+			const unfinishedSession = unfinishedSessionRef.current
+			if (unfinishedSession) {
+				void api.cancelSession(unfinishedSession).catch(() => {})
+			}
+		}
+	}, [open])
+
 	const resetKey = open ? `${connection?.id ?? ""}:${full}` : null
 	const [lastResetKey, setLastResetKey] = useState<string | null>(null)
 	const autoStart = !!connection?.savedCredentials
@@ -191,15 +209,6 @@ export function useConnectDialog({
 		return call(() => api.connect(providerId, body))
 	}
 
-	useEffect(() => {
-		if (open || !sessionId || phase.type === "done") {
-			return
-		}
-		void api.cancelSession(sessionId).catch(() => {})
-		// oxlint-disable-next-line react/set-state-in-effect -- clear session when inline flow hides
-		setSessionId(null)
-	}, [open, sessionId, phase.type])
-
 	const polling =
 		phase.type === "syncing" ||
 		phase.type === "success" ||
@@ -225,8 +234,11 @@ export function useConnectDialog({
 		if (!next && locked) {
 			return
 		}
-		if (!next && sessionId && phase.type !== "done") {
-			void api.cancelSession(sessionId).catch(() => {})
+		if (!next) {
+			if (sessionId && phase.type !== "done") {
+				void api.cancelSession(sessionId).catch(() => {})
+			}
+			setSessionId(null)
 		}
 		onOpenChange(next)
 	}
