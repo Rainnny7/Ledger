@@ -41,8 +41,8 @@ COPY apps/api ./apps/api
 COPY packages/shared ./packages/shared
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 # Bun's isolated installs symlink each workspace's dependencies from its own node_modules into the root store.
+# packages/shared has only devDependencies, so it gets no node_modules in the production install.
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
 RUN mkdir -p /data && chown -R bun:bun /data /app
 USER bun
