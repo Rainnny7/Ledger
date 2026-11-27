@@ -102,7 +102,7 @@ export function GoalBar({
 	className?: string
 }) {
 	const reduceMotion = useReducedMotion()
-	const widthPercent = `${Math.max(goal.progress > 0 ? 2 : 0, goal.progress * 100)}%`
+	const fillRatio = Math.max(goal.progress > 0 ? 0.02 : 0, goal.progress)
 	return (
 		<div
 			className={cn(
@@ -111,10 +111,10 @@ export function GoalBar({
 			)}
 		>
 			<m.div
-				className="h-full rounded-full"
+				className="h-full w-full rounded-full"
 				style={{ backgroundColor: goalColor(goal.color) }}
-				initial={{ width: "0%" }}
-				animate={{ width: widthPercent }}
+				initial={{ x: "-100%" }}
+				animate={{ x: `${(fillRatio - 1) * 100}%` }}
 				transition={{
 					duration: reduceMotion ? 0 : 0.7,
 					ease: "easeOut",
