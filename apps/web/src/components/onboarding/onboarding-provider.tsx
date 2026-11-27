@@ -9,6 +9,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
 	type ReactNode,
@@ -121,8 +122,10 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
 		void completeOnboarding()
 	}
 
+	const contextValue = useMemo(() => ({ startOnboarding }), [startOnboarding])
+
 	return (
-		<OnboardingContext.Provider value={{ startOnboarding }}>
+		<OnboardingContext.Provider value={contextValue}>
 			{children}
 			<SetupWizardDialog
 				key={wizardRunId}
