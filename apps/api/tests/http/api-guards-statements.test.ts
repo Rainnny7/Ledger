@@ -25,9 +25,7 @@ mock.module("../../src/banks/statements.ts", () => ({
 const { apiGuards } = await import("../../src/http/api-guards.ts")
 const { banks } = await import("../../src/routes/banks.ts")
 
-const app = new Elysia({ prefix: "/api/banks" })
-	.use(apiGuards)
-	.use(banks)
+const app = new Elysia({ prefix: "/api/banks" }).use(apiGuards).use(banks)
 
 test("anonymous multipart statement upload is rejected before import", async () => {
 	importCalled = false

@@ -834,9 +834,7 @@ test("after verify-email, a pre-verification password is removed", async () => {
 		{ "x-ledger-client-ip": "10.0.0.41" }
 	)
 	assert.equal(signUp.status, 200)
-	const userId = (
-		(await signUp.json()) as { user: { id: string } }
-	).user.id
+	const userId = ((await signUp.json()) as { user: { id: string } }).user.id
 	enableTestSmtp()
 	const token = await createEmailVerificationToken(
 		env.APP_SECRET,

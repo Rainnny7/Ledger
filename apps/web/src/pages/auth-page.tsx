@@ -197,17 +197,17 @@ export function AuthPage() {
 						description:
 							"Enter your name and we’ll email you a sign-in link to create your account.",
 					}
-			: step === "verify"
-				? {
-						...STEP_COPY.verify,
-						description: `We sent a verification link to ${email.trim()}. Open it, then log in.`,
-					}
-				: step === "sent"
+				: step === "verify"
 					? {
-							...STEP_COPY.sent,
-							description: `We sent a login link to ${email.trim()}. It expires in 10 minutes.`,
+							...STEP_COPY.verify,
+							description: `We sent a verification link to ${email.trim()}. Open it, then log in.`,
 						}
-					: STEP_COPY[step]
+					: step === "sent"
+						? {
+								...STEP_COPY.sent,
+								description: `We sent a login link to ${email.trim()}. It expires in 10 minutes.`,
+							}
+						: STEP_COPY[step]
 	usePageTitle(copy.title)
 
 	useEffect(() => {
@@ -374,7 +374,11 @@ export function AuthPage() {
 							? "register"
 							: "closed"
 				)
-				if (!found.exists && found.registrationOpen && emailFirstSignUp) {
+				if (
+					!found.exists &&
+					found.registrationOpen &&
+					emailFirstSignUp
+				) {
 					setMagicLinkEnabled(true)
 				}
 				return
@@ -432,7 +436,9 @@ export function AuthPage() {
 	}
 
 	const registerSubmitLabel =
-		isRegister && emailFirstSignUp ? "Email sign-in link" : SUBMIT_LABEL.register
+		isRegister && emailFirstSignUp
+			? "Email sign-in link"
+			: SUBMIT_LABEL.register
 
 	const submitDisabled =
 		pending ||
@@ -525,7 +531,9 @@ export function AuthPage() {
 								</div>
 							</Reveal>
 
-							<Reveal open={step === "password" || passwordRegister}>
+							<Reveal
+								open={step === "password" || passwordRegister}
+							>
 								<div className="grid gap-2">
 									<Label htmlFor="password">Password</Label>
 									<PasswordInput

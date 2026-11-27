@@ -23,7 +23,6 @@ const CHAT_TOOL_PART_TYPES = new Set(
 	financeToolDefinitions.map((definition) => `tool-${definition.name}`)
 )
 
-
 const followUpLine = z.string().trim().min(1).max(60)
 
 /** Strip bullets, numbering, and wrapping quotes from one model output line. */
@@ -85,7 +84,8 @@ const uiMessagePart = z
 		}
 		if (
 			part.type === "dynamic-tool" ||
-			(part.type.startsWith("tool-") && CHAT_TOOL_PART_TYPES.has(part.type))
+			(part.type.startsWith("tool-") &&
+				CHAT_TOOL_PART_TYPES.has(part.type))
 		) {
 			const toolCallId = (part as { toolCallId?: unknown }).toolCallId
 			if (typeof toolCallId !== "string" || toolCallId.length === 0) {

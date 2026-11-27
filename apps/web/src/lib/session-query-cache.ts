@@ -35,7 +35,8 @@ function resetClientStateForNewIdentity(nextUserId: string | null) {
 }
 
 function applySessionAtomIdentity() {
-	const value = authClient.$store.atoms.session.get() as SessionStoreValue | null
+	const value =
+		authClient.$store.atoms.session.get() as SessionStoreValue | null
 	// A loading session says nothing about who is signed in yet.
 	if (value?.isPending) {
 		return

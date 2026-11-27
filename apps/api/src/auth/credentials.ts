@@ -30,7 +30,10 @@ export async function discardPasswordSetBeforeEmailProof(
 	}
 	db.delete(account)
 		.where(
-			and(eq(account.userId, userId), eq(account.providerId, "credential"))
+			and(
+				eq(account.userId, userId),
+				eq(account.providerId, "credential")
+			)
 		)
 		.run()
 	db.delete(session).where(eq(session.userId, userId)).run()
