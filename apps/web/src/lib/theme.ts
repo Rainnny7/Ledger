@@ -93,16 +93,35 @@ function subscribeToAccent(onChange: () => void) {
 let runningThemeTransitions = 0
 
 /**
- * Whether a theme change is animating. While it does, the browser's transition overlay covers the
- * page and swallows clicks, so overlays use this to ignore the "press outside" those clicks look like.
+ * Whether an overlay (dialog, menu) should stay open despite this close request. While a theme change
+ * animates, the browser's transition overlay covers the page and swallows clicks, so a click on the
+ * overlay itself (a double click on a theme option, say) reads as a press outside it. Those requests
+ * are cancelled here so changing the theme from inside an overlay can't close it.
+ *
+ * @param open - The open state the overlay is asked to move to.
+ * @param eventDetails - Base UI's change details: why it's closing, and a way to cancel it.
+ * @returns True when the request was cancelled and the caller should ignore it.
  */
-export function themeTransitionRunning() {
-	return runningThemeTransitions > 0
+export function keepOpenDuringThemeTransition(
+	open: boolean,
+	eventDetails: { reason: string; cancel: () => void }
+) {
+	if (
+		open ||
+		runningThemeTransitions === 0 ||
+		(eventDetails.reason !== "outside-press" &&
+			eventDetails.reason !== "focus-out")
+	) {
+		return false
+	}
+	eventDetails.cancel()
+	return true
 }
 
 /**
  * Runs `apply`. Where supported, the change spreads out in a circle from `from` instead of swapping
- * in at once.
+ * in at once. Reveal geometry and a `theme-transition` class on <html> drive the CSS animation on
+ * `::view-transition-new(root)` (see index.css).
  */
 async function applyWithTransition(apply: () => void, from?: Element | null) {
 	// Measured now: a menu item may be gone by the time the transition starts.
@@ -111,31 +130,30 @@ async function applyWithTransition(apply: () => void, from?: Element | null) {
 		apply()
 		return
 	}
-	const transition = document.startViewTransition(apply)
-	runningThemeTransitions++
-	void transition.finished.finally(() => {
-		runningThemeTransitions--
-	})
-	await transition.ready
 	const x = origin.left + origin.width / 2
 	const y = origin.top + origin.height / 2
 	const radius = Math.hypot(
 		Math.max(x, innerWidth - x),
 		Math.max(y, innerHeight - y)
 	)
-	document.documentElement.animate(
-		{
-			clipPath: [
-				`circle(0px at ${x}px ${y}px)`,
-				`circle(${radius}px at ${x}px ${y}px)`,
-			],
-		},
-		{
-			duration: 450,
-			easing: "ease-in-out",
-			pseudoElement: "::view-transition-new(root)",
+	const root = document.documentElement
+	root.style.setProperty("--theme-reveal-x", `${x}px`)
+	root.style.setProperty("--theme-reveal-y", `${y}px`)
+	root.style.setProperty("--theme-reveal-radius", `${radius}px`)
+	root.classList.add("theme-transition")
+	const transition = document.startViewTransition(apply)
+	runningThemeTransitions++
+	try {
+		await transition.finished
+	} finally {
+		runningThemeTransitions--
+		if (runningThemeTransitions === 0) {
+			root.classList.remove("theme-transition")
+			root.style.removeProperty("--theme-reveal-x")
+			root.style.removeProperty("--theme-reveal-y")
+			root.style.removeProperty("--theme-reveal-radius")
 		}
-	)
+	}
 }
 
 /**

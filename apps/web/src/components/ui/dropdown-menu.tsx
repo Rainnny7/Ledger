@@ -2,13 +2,25 @@ import * as React from "react"
 import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 import { cn } from "cn"
 import { ChevronRightIcon, CheckIcon } from "lucide-react"
+import { keepOpenDuringThemeTransition } from "@/lib/theme"
 
-// Non-modal so opening a menu doesn't lock scrolling and hide the page scrollbar.
-function DropdownMenu({ modal = false, ...props }: MenuPrimitive.Root.Props) {
+// Non-modal so opening a menu doesn't lock scrolling and hide the page scrollbar. Clicks during a
+// theme transition can't close it (see keepOpenDuringThemeTransition), e.g. double-clicking a theme.
+function DropdownMenu({
+	modal = false,
+	onOpenChange,
+	...props
+}: MenuPrimitive.Root.Props) {
 	return (
 		<MenuPrimitive.Root
 			data-slot="dropdown-menu"
 			modal={modal}
+			onOpenChange={(open, eventDetails) => {
+				if (keepOpenDuringThemeTransition(open, eventDetails)) {
+					return
+				}
+				onOpenChange?.(open, eventDetails)
+			}}
 			{...props}
 		/>
 	)
@@ -105,9 +117,21 @@ function DropdownMenuItem({
 	)
 }
 
-function DropdownMenuSub({ ...props }: MenuPrimitive.SubmenuRoot.Props) {
+function DropdownMenuSub({
+	onOpenChange,
+	...props
+}: MenuPrimitive.SubmenuRoot.Props) {
 	return (
-		<MenuPrimitive.SubmenuRoot data-slot="dropdown-menu-sub" {...props} />
+		<MenuPrimitive.SubmenuRoot
+			data-slot="dropdown-menu-sub"
+			onOpenChange={(open, eventDetails) => {
+				if (keepOpenDuringThemeTransition(open, eventDetails)) {
+					return
+				}
+				onOpenChange?.(open, eventDetails)
+			}}
+			{...props}
+		/>
 	)
 }
 
