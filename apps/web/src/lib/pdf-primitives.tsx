@@ -1,106 +1,5 @@
 import type { ReactNode, ImgHTMLAttributes, AnchorHTMLAttributes } from "react"
-
-/** `Style` type used in this module. */
-export type Style = Record<string, unknown>
-
-/** `StyleSheet` export. */
-export const StyleSheet = {
-	create<T extends Record<string, Style>>(styles: T): T {
-		return styles
-	},
-}
-
-type StyleInput = Style | Style[] | false | null | undefined
-
-/**
- * pdfcn's shared component tokens follow the PDF convention of using points.
- * Takumi follows browser CSS instead, where numeric lengths are pixels at
- * 96 DPI. Converting at the primitive boundary keeps the public component API
- * and the generated document's physical measurements aligned with Forme.
- */
-export const PDF_POINT_TO_CSS_PIXEL = 96 / 72
-
-/** `pointToCssPixel` export. */
-export const pointToCssPixel = (value: number): number =>
-	value * PDF_POINT_TO_CSS_PIXEL
-
-const POINT_LENGTH_PROPERTIES = new Set([
-	"blockSize",
-	"borderBlockEndWidth",
-	"borderBlockStartWidth",
-	"borderBlockWidth",
-	"borderBottomLeftRadius",
-	"borderBottomRightRadius",
-	"borderBottomWidth",
-	"borderEndEndRadius",
-	"borderEndStartRadius",
-	"borderInlineEndWidth",
-	"borderInlineStartWidth",
-	"borderInlineWidth",
-	"borderLeftWidth",
-	"borderRadius",
-	"borderRightWidth",
-	"borderStartEndRadius",
-	"borderStartStartRadius",
-	"borderTopLeftRadius",
-	"borderTopRightRadius",
-	"borderTopWidth",
-	"borderWidth",
-	"bottom",
-	"columnGap",
-	"flexBasis",
-	"fontSize",
-	"gap",
-	"height",
-	"inlineSize",
-	"inset",
-	"insetBlock",
-	"insetBlockEnd",
-	"insetBlockStart",
-	"insetInline",
-	"insetInlineEnd",
-	"insetInlineStart",
-	"left",
-	"letterSpacing",
-	"margin",
-	"marginBlock",
-	"marginBlockEnd",
-	"marginBlockStart",
-	"marginBottom",
-	"marginInline",
-	"marginInlineEnd",
-	"marginInlineStart",
-	"marginLeft",
-	"marginRight",
-	"marginTop",
-	"maxBlockSize",
-	"maxHeight",
-	"maxInlineSize",
-	"maxWidth",
-	"minBlockSize",
-	"minHeight",
-	"minInlineSize",
-	"minWidth",
-	"outlineOffset",
-	"outlineWidth",
-	"padding",
-	"paddingBlock",
-	"paddingBlockEnd",
-	"paddingBlockStart",
-	"paddingBottom",
-	"paddingInline",
-	"paddingInlineEnd",
-	"paddingInlineStart",
-	"paddingLeft",
-	"paddingRight",
-	"paddingTop",
-	"right",
-	"rowGap",
-	"textDecorationThickness",
-	"textIndent",
-	"top",
-	"width",
-])
+import { flatten, type StyleInput } from "@/lib/pdf-primitives-style"
 
 interface ViewProps {
 	children?: ReactNode
@@ -112,73 +11,13 @@ interface ViewProps {
 	minPresenceAhead?: number
 }
 
-/** `normalizeTakumiStyle` export. */
-export const normalizeTakumiStyle = (style: Style): Style => {
-	const {
-		marginHorizontal,
-		marginVertical,
-		paddingHorizontal,
-		paddingVertical,
-		...normalized
-	} = style
-
-	if (marginHorizontal !== undefined) {
-		normalized.marginLeft ??= marginHorizontal
-		normalized.marginRight ??= marginHorizontal
-	}
-	if (marginVertical !== undefined) {
-		normalized.marginBottom ??= marginVertical
-		normalized.marginTop ??= marginVertical
-	}
-	if (paddingHorizontal !== undefined) {
-		normalized.paddingLeft ??= paddingHorizontal
-		normalized.paddingRight ??= paddingHorizontal
-	}
-	if (paddingVertical !== undefined) {
-		normalized.paddingBottom ??= paddingVertical
-		normalized.paddingTop ??= paddingVertical
-	}
-
-	const borderSides = ["Top", "Right", "Bottom", "Left"] as const
-	if (normalized.borderWidth !== undefined) {
-		normalized.borderStyle ??= "solid"
-	}
-	for (const side of borderSides) {
-		if (normalized[`border${side}Width`] !== undefined) {
-			normalized[`border${side}Style`] ??= "solid"
-		}
-	}
-
-	return Object.fromEntries(
-		Object.entries(normalized).map(([property, value]) => [
-			property,
-			typeof value === "number" && POINT_LENGTH_PROPERTIES.has(property)
-				? pointToCssPixel(value)
-				: value,
-		])
-	)
-}
-
-/** `flatten` export. */
-export const flatten = (
-	style?: StyleInput
-): Record<string, unknown> | undefined => {
-	if (!style) {
-		return undefined
-	}
-	if (Array.isArray(style)) {
-		return normalizeTakumiStyle(Object.assign({}, ...style.filter(Boolean)))
-	}
-	return normalizeTakumiStyle(style)
-}
-
-/** `View` export. */
-export const View = ({ children, style, className, ...rest }: ViewProps) => {
+/** Flex column container for PDF layout trees. */
+export function View({ children, style, className, ...rest }: ViewProps) {
 	const {
 		wrap,
 		fixed,
-		break: br,
-		minPresenceAhead: _m,
+		break: pageBreak,
+		minPresenceAhead: _minPresenceAhead,
 		...dom
 	} = rest as ViewProps & Record<string, unknown>
 	const merged = {
@@ -186,7 +25,7 @@ export const View = ({ children, style, className, ...rest }: ViewProps) => {
 		flexDirection: "column",
 		...flatten(style),
 	}
-	if (br) {
+	if (pageBreak) {
 		Object.assign(merged, { breakBefore: "page" })
 	}
 	if (wrap === false) {
@@ -216,16 +55,16 @@ interface TextProps {
 	src?: string
 }
 
-/** `Text` export. */
-export const Text = ({
+/** Text or link node for PDF content. */
+export function Text({
 	children,
 	style,
 	className,
-	render: _render,
+	render: _pageRender,
 	href,
 	src,
 	...rest
-}: TextProps) => {
+}: TextProps) {
 	const merged = flatten(style) as React.CSSProperties | undefined
 	const link = href ?? src
 	if (link) {
@@ -247,15 +86,15 @@ export const Text = ({
 	)
 }
 
-/** `Image` export. */
-export const Image = ({
+/** Image node for PDF content. */
+export function Image({
 	src,
 	style,
 	...rest
 }: {
 	src: string | { uri: string }
 	style?: StyleInput
-} & Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "style">) => {
+} & Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "style">) {
 	const resolved = typeof src === "string" ? src : src.uri
 	return (
 		// eslint-disable-next-line eslint(nextjs/no-img-element) -- PDF primitive, not Next.js page
@@ -268,8 +107,8 @@ export const Image = ({
 	)
 }
 
-/** `Link` export. */
-export const Link = ({
+/** Hyperlink wrapper for PDF content. */
+export function Link({
 	src,
 	children,
 	style,
@@ -278,14 +117,16 @@ export const Link = ({
 	src: string
 	children?: ReactNode
 	style?: StyleInput
-} & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "style">) => (
-	<a href={src} style={flatten(style) as React.CSSProperties} {...rest}>
-		{children}
-	</a>
-)
+} & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "style">) {
+	return (
+		<a href={src} style={flatten(style) as React.CSSProperties} {...rest}>
+			{children}
+		</a>
+	)
+}
 
-/** `Document` export. */
-export const Document = ({
+/** Root container for a PDF document definition. */
+export function Document({
 	children,
 	title,
 	style,
@@ -293,41 +134,45 @@ export const Document = ({
 	children?: ReactNode
 	title?: string
 	style?: StyleInput
-}) => (
-	<div
-		data-pdf-document={title}
-		style={
-			{
-				display: "flex",
-				flexDirection: "column",
-				...flatten(style),
-			} as React.CSSProperties
-		}
-	>
-		{children}
-	</div>
-)
+}) {
+	return (
+		<div
+			data-pdf-document={title}
+			style={
+				{
+					display: "flex",
+					flexDirection: "column",
+					...flatten(style),
+				} as React.CSSProperties
+			}
+		>
+			{children}
+		</div>
+	)
+}
 
-/** `Page` export. */
-export const Page = ({
+/** Single page within a PDF document. */
+export function Page({
 	children,
-	size: _size,
+	size: _pageSize,
 	style,
 }: {
 	children?: ReactNode
 	size?: string | { width: number; height: number }
 	style?: StyleInput
-}) => (
-	<div
-		data-pdf-page
-		style={
-			{
-				display: "flex",
-				flexDirection: "column",
-				...flatten(style),
-			} as React.CSSProperties
-		}
-	>
-		{children}
-	</div>
-)
+}) {
+	return (
+		<div
+			data-pdf-page
+			style={
+				{
+					display: "flex",
+					flexDirection: "column",
+					...flatten(style),
+				} as React.CSSProperties
+			}
+		>
+			{children}
+		</div>
+	)
+}

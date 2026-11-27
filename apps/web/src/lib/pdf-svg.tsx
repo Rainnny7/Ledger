@@ -1,6 +1,9 @@
 import type { CSSProperties, ReactNode, SVGProps } from "react"
 
-import { normalizeTakumiStyle, pointToCssPixel } from "@/lib/pdf-primitives"
+import {
+	normalizeTakumiStyle,
+	pointToCssPixel,
+} from "@/lib/pdf-primitives-style"
 
 /** `Svg` export. */
 export const Svg = ({
