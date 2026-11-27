@@ -40,6 +40,9 @@ RUN bunx playwright install --with-deps chromium \
 COPY apps/api ./apps/api
 COPY packages/shared ./packages/shared
 COPY --from=build /app/apps/web/dist ./apps/web/dist
+# Bun's isolated installs symlink each workspace's dependencies from its own node_modules into the root store.
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
 RUN mkdir -p /data && chown -R bun:bun /data /app
 USER bun
