@@ -123,8 +123,9 @@ export function ConnectionSection({
 
 	return (
 		<section
+			id={`connection-${connection.id}`}
 			className={cn(
-				"grid gap-3",
+				"grid scroll-mt-4 gap-3",
 				attention &&
 					"-mx-3 rounded-xl border border-destructive/40 bg-destructive/[0.03] p-3 shadow-[0_0_0_4px] shadow-destructive/5"
 			)}

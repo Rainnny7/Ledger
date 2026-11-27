@@ -66,7 +66,7 @@ export function NeedsAttention({
 					tone: "danger",
 					title: `${connection.label} isn’t syncing`,
 					detail: connection.lastError,
-					to: "/",
+					to: `/#connection-${connection.id}`
 				})
 			} else if (connection.needsSignIn) {
 				out.push({
@@ -75,7 +75,7 @@ export function NeedsAttention({
 					tone: "danger",
 					title: `${connection.label} needs a two-factor login`,
 					detail: "Auto-refresh is paused until you log in once",
-					to: "/",
+					to: `/#connection-${connection.id}`
 				})
 			}
 		}
@@ -170,7 +170,8 @@ function AlertRow({ alert }: { alert: Alert }) {
 			<Link
 				{...hrefTarget(alert.to)}
 				{...iconHandlers}
-				className="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+				hashScrollIntoView={{ behavior: "smooth", block: "start" }}
+				className="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-amber-500/[0.06]"
 			>
 				<span
 					className={cn(
