@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <video src="assets/app-preview.mp4" controls muted loop playsinline width="100%"></video>
+  <video src="https://github.com/user-attachments/assets/fccc3fae-307a-41f6-8e79-35bcde0ae647" controls muted loop playsinline width="100%"></video>
 </p>
 
 ## Table of contents
