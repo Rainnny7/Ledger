@@ -79,10 +79,10 @@ export function AccountTransactionsCard({
 	const earliest = transactions.at(-1)?.date
 
 	return (
-		<Card>
-			<CardHeader className="gap-4">
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<div>
+		<Card className="min-w-0 overflow-hidden">
+			<CardHeader className="min-w-0 gap-4">
+				<div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+					<div className="min-w-0">
 						<CardTitle>Transactions</CardTitle>
 						<CardDescription className="flex flex-wrap items-center gap-x-2">
 							<span>
@@ -102,7 +102,7 @@ export function AccountTransactionsCard({
 							)}
 						</CardDescription>
 					</div>
-					<div className="flex items-center gap-4 text-sm">
+					<div className="flex w-full min-w-0 flex-wrap items-center gap-x-4 gap-y-2 text-sm sm:w-auto">
 						<span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
 							<ArrowDownLeft className="size-4" />
 							<span className="tabular-nums">
@@ -131,7 +131,7 @@ export function AccountTransactionsCard({
 						</Button>
 					</div>
 				</div>
-				<div className="flex flex-wrap items-center gap-2">
+				<div className="grid min-w-0 grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center">
 					<SearchInput
 						placeholder="Search merchant, description, note or amount"
 						value={query}
@@ -139,6 +139,7 @@ export function AccountTransactionsCard({
 							setQuery(next)
 							resetPage()
 						}}
+						className="col-span-2 min-w-0 w-full md:col-span-1 md:min-w-48 md:flex-1"
 					/>
 					<Select
 						items={accountPeriodItems}
@@ -150,7 +151,7 @@ export function AccountTransactionsCard({
 							resetPage()
 						}}
 					>
-						<SelectTrigger className="w-36">
+						<SelectTrigger className="min-w-0 w-full md:w-36">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -174,7 +175,7 @@ export function AccountTransactionsCard({
 							resetPage()
 						}}
 					>
-						<SelectTrigger className="w-44">
+						<SelectTrigger className="min-w-0 w-full md:w-44">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -194,6 +195,7 @@ export function AccountTransactionsCard({
 							setFlow(next as Flow)
 							resetPage()
 						}}
+						className="col-span-2 md:col-span-1"
 					>
 						<TabsList>
 							<TabsTrigger value="all">All</TabsTrigger>

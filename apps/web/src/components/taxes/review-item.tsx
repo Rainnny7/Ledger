@@ -60,7 +60,7 @@ export function ReviewItem({
 					</p>
 					<p className="text-xs text-muted-foreground">{body}</p>
 				</div>
-				<div className="flex gap-1">
+				<div className="flex shrink-0 flex-wrap gap-1">
 					<Button
 						variant="ghost"
 						size="sm"

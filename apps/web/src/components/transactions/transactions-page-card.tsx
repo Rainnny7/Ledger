@@ -71,10 +71,10 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 	} = model
 
 	return (
-		<Card className="gap-0 pb-0">
-			<CardHeader className="gap-4 pb-4">
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<div>
+		<Card className="min-w-0 gap-0 overflow-hidden pb-0">
+			<CardHeader className="min-w-0 gap-4 pb-4">
+				<div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+					<div className="min-w-0">
 						<CardTitle>
 							{loading
 								? "Loading…"
@@ -87,7 +87,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							{totals.mixed && ` · totals in ${converter.home}`}
 						</CardDescription>
 					</div>
-					<div className="flex items-center gap-4 text-sm">
+					<div className="flex w-full min-w-0 flex-wrap items-center gap-x-4 gap-y-2 text-sm sm:w-auto">
 						<span className="flex items-center gap-1 text-emerald-600 tabular-nums dark:text-emerald-400">
 							<ArrowDownLeft className="size-4" />{" "}
 							{formatMoney(totals.moneyIn)}
@@ -121,7 +121,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 						</Button>
 					</div>
 				</div>
-				<div className="flex flex-wrap items-center gap-2">
+				<div className="grid min-w-0 grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center">
 					<SearchInput
 						placeholder="Search merchant, description, note or amount"
 						value={query}
@@ -129,13 +129,14 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							setQuery(next)
 							changed()
 						}}
+						className="col-span-2 min-w-0 w-full md:col-span-1 md:min-w-48 md:flex-1"
 					/>
 					<TransactionsFilterSelect
 						label="Account"
 						items={accountItems}
 						value={accountId}
 						onChange={(next) => (setAccountId(next), changed())}
-						className="w-44"
+						className="min-w-0 w-full md:w-44"
 					/>
 					<TransactionsFilterSelect
 						label="Period"
@@ -151,7 +152,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							setPeriod(next as RangeKey)
 							changed()
 						}}
-						className="w-36"
+						className="min-w-0 w-full md:w-36"
 					/>
 					<TransactionsFilterSelect
 						label="Category"
@@ -161,7 +162,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							setCategory(next as Category | "all"),
 							changed()
 						)}
-						className="w-44"
+						className="min-w-0 w-full md:w-44"
 					/>
 					<TransactionsFilterSelect
 						label="Tax Tag"
@@ -171,7 +172,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							setTag(next as typeof tag),
 							changed()
 						)}
-						className="w-36"
+						className="min-w-0 w-full md:w-36"
 					/>
 					<Tabs
 						value={flow}
@@ -179,6 +180,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							setFlow(next as typeof flow),
 							changed()
 						)}
+						className="col-span-2 md:col-span-1"
 					>
 						<TabsList>
 							<TabsTrigger value="all">All</TabsTrigger>

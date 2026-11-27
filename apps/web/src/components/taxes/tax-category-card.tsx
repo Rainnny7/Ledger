@@ -54,6 +54,7 @@ export function TaxCategoryCard({
 						No transactions in {year}.
 					</p>
 				) : (
+					<div className="overflow-x-auto">
 					<Table>
 						<TableHeader>
 							<TableRow>
@@ -146,6 +147,7 @@ export function TaxCategoryCard({
 							})}
 						</TableBody>
 					</Table>
+					</div>
 				)}
 			</CardContent>
 		</Card>

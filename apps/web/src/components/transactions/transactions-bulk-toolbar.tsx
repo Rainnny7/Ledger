@@ -56,7 +56,7 @@ export function TransactionsBulkToolbar({
 					>
 						<SelectTrigger
 							size="sm"
-							className="w-48"
+							className="min-w-0 w-full max-w-48"
 							disabled={applying}
 						>
 							{applying ? (
@@ -86,7 +86,7 @@ export function TransactionsBulkToolbar({
 					>
 						<SelectTrigger
 							size="sm"
-							className="w-44"
+							className="min-w-0 w-full max-w-44"
 							disabled={applying}
 						>
 							<BriefcaseBusiness />

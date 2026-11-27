@@ -34,7 +34,7 @@ export function SubscriptionSuggestionsCard({
 	}
 
 	return (
-		<Card>
+		<Card className="min-w-0 overflow-hidden">
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
 					<SparklesIcon size={16} className="flex" /> Detected
@@ -45,13 +45,13 @@ export function SubscriptionSuggestionsCard({
 					to see when they’re next due.
 				</CardDescription>
 			</CardHeader>
-			<CardContent className="grid gap-2 sm:grid-cols-2">
+			<CardContent className="grid min-w-0 gap-2 sm:grid-cols-2">
 				{suggestions.map((suggestion) => (
 					<div
 						key={suggestion.id}
 						data-focused={focus.has(suggestion.id) || undefined}
 						className={cn(
-							"flex items-center gap-3 rounded-lg border p-3",
+							"flex min-w-0 items-center gap-3 rounded-lg border p-3",
 							focus.has(suggestion.id) &&
 								"border-primary/50 bg-primary/8 ring-1 ring-primary/30"
 						)}
@@ -71,17 +71,19 @@ export function SubscriptionSuggestionsCard({
 								{subscriptionDueLabel(suggestion.nextDue)}
 							</div>
 						</div>
-						<Button size="sm" onClick={() => onTrack(suggestion)}>
-							Track
-						</Button>
-						<Button
-							size="icon-sm"
-							variant="ghost"
-							aria-label={`Dismiss ${suggestion.name}`}
-							onClick={() => onDismiss(suggestion)}
-						>
-							<X />
-						</Button>
+						<div className="flex shrink-0 items-center gap-0.5">
+							<Button size="sm" onClick={() => onTrack(suggestion)}>
+								Track
+							</Button>
+							<Button
+								size="icon-sm"
+								variant="ghost"
+								aria-label={`Dismiss ${suggestion.name}`}
+								onClick={() => onDismiss(suggestion)}
+							>
+								<X />
+							</Button>
+						</div>
 					</div>
 				))}
 			</CardContent>

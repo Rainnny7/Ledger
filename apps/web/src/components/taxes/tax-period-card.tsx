@@ -65,6 +65,7 @@ export function TaxPeriodCard({
 						Nothing yet.
 					</p>
 				) : (
+					<div className="overflow-x-auto">
 					<Table>
 						<TableHeader>
 							<TableRow>
@@ -160,6 +161,7 @@ export function TaxPeriodCard({
 							</TableRow>
 						</TableFooter>
 					</Table>
+					</div>
 				)}
 			</CardContent>
 		</Card>

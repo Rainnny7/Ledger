@@ -61,6 +61,12 @@ import {
 	NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu"
 import {
+	Sheet,
+	SheetContent,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet"
+import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
@@ -98,7 +104,7 @@ import {
 	useNavigate,
 } from "@tanstack/react-router"
 import { cn } from "cn"
-import { Map, Monitor, MonitorPlay, Palette, X } from "lucide-react"
+import { Map, Menu, Monitor, MonitorPlay, Palette, X } from "lucide-react"
 import { domMax, LazyMotion, m } from "motion/react"
 import {
 	type ForwardRefExoticComponent,
@@ -560,6 +566,97 @@ function ScrollNav({
 	)
 }
 
+function navItemActive(to: string, pathname: string) {
+	if (to === "/") {
+		return pathname === "/" || pathname.startsWith("/accounts")
+	}
+	return pathname.startsWith(to)
+}
+
+/** Full nav in a sheet for viewports below `md`. */
+function MobileNavSheet({
+	open,
+	onOpenChange,
+	pathname,
+	counts,
+}: {
+	open: boolean
+	onOpenChange: (open: boolean) => void
+	pathname: string
+	counts: ReturnType<typeof useNavCounts>
+}) {
+	// The sheet only exists below `md`; once the window widens past it the inline nav is back, so close it.
+	useEffect(() => {
+		if (!open) {
+			return
+		}
+		const desktopQuery = window.matchMedia("(min-width: 48rem)")
+		function closeOnDesktop(event: MediaQueryListEvent) {
+			if (event.matches) {
+				onOpenChange(false)
+			}
+		}
+		desktopQuery.addEventListener("change", closeOnDesktop)
+		return () => desktopQuery.removeEventListener("change", closeOnDesktop)
+	}, [open, onOpenChange])
+
+	function closeAndGo(to: string) {
+		scrollUpIfHere(to, pathname)
+		onOpenChange(false)
+	}
+
+	function sheetLink(item: NavEntry) {
+		const active = navItemActive(item.to, pathname)
+		const { icon: Icon } = item
+		const count = item.count ? (counts[item.count] ?? 0) : null
+		const alert = item.count === "accounts" ? counts.accountsAlert : null
+		return (
+			<Link
+				key={item.to}
+				to={item.to}
+				onClick={() => closeAndGo(item.to)}
+				aria-current={active ? "page" : undefined}
+				data-tour={NAV_TOUR_ID[item.to]}
+				className={cn(
+					"flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+					active && "bg-primary/10 text-primary"
+				)}
+			>
+				<Icon size={18} className="flex shrink-0" />
+				<span className="min-w-0 flex-1">{item.label}</span>
+				{count !== null && (
+					<NavCount
+						count={count}
+						active={active}
+						alert={Boolean(alert)}
+					/>
+				)}
+				{alert ? <span className="sr-only">: {alert}</span> : null}
+			</Link>
+		)
+	}
+
+	return (
+		<Sheet open={open} onOpenChange={onOpenChange}>
+			<SheetContent side="left" className="w-full gap-0 p-0 sm:max-w-sm">
+				<SheetHeader className="border-b px-4 py-3">
+					<SheetTitle>Menu</SheetTitle>
+				</SheetHeader>
+				<nav
+					aria-label="Main"
+					className="flex flex-col gap-0.5 overflow-y-auto p-2"
+				>
+					{NAV.map(sheetLink)}
+					<p className="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
+						Business
+					</p>
+					{BUSINESS_NAV.map(sheetLink)}
+				</nav>
+			</SheetContent>
+		</Sheet>
+	)
+}
+
 /** A menu item with an animated icon that plays while the item is highlighted. */
 function MenuItem({
 	icon: Icon,
@@ -689,7 +786,7 @@ function ThemeMenu() {
 		<DropdownMenuSub>
 			<DropdownMenuSubTrigger>
 				<Palette /> Appearance
-				<span className="ml-auto pl-3 text-xs text-muted-foreground">
+				<span className="ml-auto pl-3 text-xs text-muted-foreground!">
 					{mode === "system" ? "System" : resolved.label}
 				</span>
 			</DropdownMenuSubTrigger>
@@ -785,6 +882,7 @@ function AppShellFrame() {
 	const isAdmin = data?.user.role === "admin"
 	const { data: updateInfo } = useUpdate(isAdmin && !demoMode)
 	const [updateOpen, setUpdateOpen] = useState(false)
+	const [mobileNavOpen, setMobileNavOpen] = useState(false)
 	const initials = (user?.name || user?.email || "?")
 		.split(/\s+/)
 		.map((part) => part[0])
@@ -837,41 +935,60 @@ function AppShellFrame() {
 						>
 							<Brand hideNameOnMobile />
 						</Link>
-						<ScrollNav pathname={pathname}>
-							{NAV.map((item) => (
-								<NavItem
-									key={item.to}
-									{...item}
-									dataTour={NAV_TOUR_ID[item.to]}
-									// Counted links always show their badge (0 while loading) so the nav doesn'theme shift.
-									count={
-										item.count
-											? (counts[item.count] ?? 0)
-											: null
-									}
-									alert={
-										item.count === "accounts"
-											? counts.accountsAlert
-											: null
-									}
-									// Account detail pages live under Bank Accounts.
-									active={
-										item.to === "/"
-											? pathname === "/" ||
-												pathname.startsWith("/accounts")
-											: pathname.startsWith(item.to)
-									}
+						<Button
+							variant="ghost"
+							size="icon"
+							className="shrink-0 md:hidden"
+							aria-label="Open menu"
+							onClick={() => setMobileNavOpen(true)}
+						>
+							<Menu className="size-5" />
+						</Button>
+						<div className="hidden min-w-0 flex-1 md:flex">
+							<ScrollNav pathname={pathname}>
+								{NAV.map((item) => (
+									<NavItem
+										key={item.to}
+										{...item}
+										dataTour={NAV_TOUR_ID[item.to]}
+										// Counted links always show their badge (0 while loading) so the nav doesn'theme shift.
+										count={
+											item.count
+												? (counts[item.count] ?? 0)
+												: null
+										}
+										alert={
+											item.count === "accounts"
+												? counts.accountsAlert
+												: null
+										}
+										// Account detail pages live under Bank Accounts.
+										active={
+											item.to === "/"
+												? pathname === "/" ||
+													pathname.startsWith(
+														"/accounts"
+													)
+												: pathname.startsWith(item.to)
+										}
+									/>
+								))}
+								<NavGroup
+									label="Business"
+									icon={BriefcaseBusinessIcon}
+									items={BUSINESS_NAV}
+									counts={counts}
+									pathname={pathname}
 								/>
-							))}
-							<NavGroup
-								label="Business"
-								icon={BriefcaseBusinessIcon}
-								items={BUSINESS_NAV}
-								counts={counts}
-								pathname={pathname}
-							/>
-						</ScrollNav>
-						<div className="flex shrink-0 items-center gap-1">
+							</ScrollNav>
+						</div>
+						<MobileNavSheet
+							open={mobileNavOpen}
+							onOpenChange={setMobileNavOpen}
+							pathname={pathname}
+							counts={counts}
+						/>
+						<div className="ml-auto flex shrink-0 items-center gap-1">
 							<Button
 								variant="ghost"
 								size="icon"
