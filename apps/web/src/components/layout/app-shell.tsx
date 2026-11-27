@@ -26,7 +26,8 @@ import {
 } from "@/components/onboarding/onboarding-provider"
 import { LinkMenuItems } from "@/components/layout/app-context-menu"
 import { Brand } from "@/components/layout/brand"
-import { Kbd, isApplePlatform } from "@/components/ui/kbd"
+import { Kbd } from "@/components/ui/kbd"
+import { isApplePlatform } from "@/components/ui/kbd-platform"
 import { openCommandPalette } from "@/components/layout/command-palette-open"
 import { NotificationBell } from "@/components/notifications/notification-bell"
 import { InvitesBanner } from "@/components/sharing/invites-banner"
@@ -111,6 +112,7 @@ import {
 	type RefAttributes,
 	Suspense,
 	useEffect,
+	useEffectEvent,
 	useLayoutEffect,
 	useRef,
 	useState,
@@ -584,6 +586,10 @@ function MobileNavSheet({
 	pathname: string
 	counts: ReturnType<typeof useNavCounts>
 }) {
+	const closeMobileNav = useEffectEvent(() => {
+		onOpenChange(false)
+	})
+
 	// The sheet only exists below `md`; once the window widens past it the inline nav is back, so close it.
 	useEffect(() => {
 		if (!open) {
@@ -592,12 +598,12 @@ function MobileNavSheet({
 		const desktopQuery = window.matchMedia("(min-width: 48rem)")
 		function closeOnDesktop(event: MediaQueryListEvent) {
 			if (event.matches) {
-				onOpenChange(false)
+				closeMobileNav()
 			}
 		}
 		desktopQuery.addEventListener("change", closeOnDesktop)
 		return () => desktopQuery.removeEventListener("change", closeOnDesktop)
-	}, [open, onOpenChange])
+	}, [open])
 
 	function closeAndGo(to: string) {
 		scrollUpIfHere(to, pathname)
@@ -840,7 +846,9 @@ function ThemeMenu() {
 
 /** A small round preview of a mode: its page background split with its card surface. */
 function ModeSwatch({ id }: { id: (typeof MODES)[number]["id"] }) {
-	const [page, card] = MODES.find((entry) => entry.id === id)!.swatch
+	const modeEntry = MODES.find((entry) => entry.id === id)
+	const swatch = modeEntry?.swatch ?? MODES[0].swatch
+	const [page, card] = swatch
 	return (
 		<span
 			aria-hidden

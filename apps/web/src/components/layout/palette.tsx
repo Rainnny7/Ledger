@@ -1,4 +1,5 @@
 ﻿import { Clock, CornerDownLeft } from "lucide-react"
+import { useLayoutEffect, useRef } from "react"
 import type { PaletteItem } from "@/components/layout/command-palette-data"
 import { PlusIcon } from "@/components/icons/plus"
 import { SearchIcon } from "@/components/icons/search"
@@ -15,6 +16,11 @@ export function Palette({ onDone }: { onDone: () => void }) {
 		usePalette({ onDone })
 	const { ref: searchIconRef, handlers: searchIconHandlers } =
 		useAnimatedIcon<HTMLDivElement>()
+	const searchInputRef = useRef<HTMLInputElement>(null)
+
+	useLayoutEffect(() => {
+		searchInputRef.current?.focus()
+	}, [])
 
 	return (
 		<div className="flex max-h-[min(34rem,70svh)] flex-col">
@@ -30,7 +36,7 @@ export function Palette({ onDone }: { onDone: () => void }) {
 					/>
 				</span>
 				<input
-					autoFocus
+					ref={searchInputRef}
 					value={query}
 					onChange={(event) => {
 						setQuery(event.target.value)
