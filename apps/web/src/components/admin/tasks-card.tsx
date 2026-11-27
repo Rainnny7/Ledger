@@ -6,6 +6,7 @@ import { toastError } from "@/lib/toast"
 import { Hint } from "@/components/common/hint"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
 	Card,
 	CardContent,
@@ -15,7 +16,12 @@ import {
 } from "@/components/ui/card"
 import { QueryError } from "@/components/ui/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
-import { type TaskInfo, every, took } from "@/components/admin/task-types"
+import {
+	type TaskInfo,
+	every,
+	took,
+	tookPrecisely,
+} from "@/components/admin/task-types"
 import { adminFetch, auditKey, backupsKey, tasksKey } from "@/lib/admin"
 import { formatRelative, formatTimestamp } from "@/lib/format"
 import { queryClient } from "@/lib/queries"
@@ -23,6 +29,95 @@ import {
 	SavedIndicator,
 	useSavedFlash,
 } from "@/components/common/saved-indicator"
+
+/** Inline editor for how many hours pass between runs of a task. */
+function IntervalEditor({
+	task,
+	onSaved,
+}: {
+	task: TaskInfo
+	onSaved: () => void
+}) {
+	const currentHours = task.intervalMs / 3_600_000
+	const [draft, setDraft] = useState(String(currentHours))
+	const [saving, setSaving] = useState(false)
+	const hours = Number(draft)
+	const valid = Number.isFinite(hours) && hours >= 0.25 && hours <= 168
+
+	useEffect(() => {
+		setDraft(String(currentHours))
+	}, [currentHours])
+
+	async function save() {
+		setSaving(true)
+		try {
+			const data = await adminFetch<{ tasks: TaskInfo[] }>(
+				`tasks/${task.id}/interval`,
+				{ method: "PUT", body: JSON.stringify({ hours }) }
+			)
+			queryClient.setQueryData(tasksKey, data)
+			void queryClient.invalidateQueries({ queryKey: auditKey })
+			onSaved()
+		} catch (error) {
+			toastError((error as Error).message)
+		} finally {
+			setSaving(false)
+		}
+	}
+
+	return (
+		<div className="mt-2 flex items-center gap-2 text-sm">
+			<label htmlFor={`interval-${task.id}`}>Run every</label>
+			<Input
+				id={`interval-${task.id}`}
+				type="number"
+				inputMode="decimal"
+				min={0.25}
+				max={168}
+				step={0.25}
+				className="h-8 w-20"
+				value={draft}
+				onChange={(event) => setDraft(event.target.value)}
+			/>
+			<span>hours</span>
+			<Button
+				variant="outline"
+				size="sm"
+				disabled={!valid || saving || hours === currentHours}
+				onClick={() => void save()}
+			>
+				{saving && <Loader2 className="animate-spin" />} Save
+			</Button>
+		</div>
+	)
+}
+
+/** Tooltip body: when a run started, how long it took, and how long each step took. */
+function RunBreakdown({ run }: { run: NonNullable<TaskInfo["lastRun"]> }) {
+	return (
+		<div className="grid gap-1 text-left">
+			<div>
+				Started {formatTimestamp(run.startedAt)}
+				{run.durationMs !== null &&
+					` · took ${tookPrecisely(run.durationMs)}`}
+			</div>
+			{run.steps.length > 0 ? (
+				<ul className="grid gap-0.5">
+					{run.steps.map((step, index) => (
+						<li key={index} className="flex justify-between gap-4">
+							<span>{step.label}</span>
+							<span className="tabular-nums">
+								{tookPrecisely(step.durationMs)}
+							</span>
+						</li>
+					))}
+				</ul>
+			) : (
+				<div>No step breakdown for this task.</div>
+			)}
+		</div>
+	)
+}
 
 /** Tasks UI card. */
 export function TasksCard({
@@ -150,39 +245,56 @@ export function TasksCard({
 									<p className="mt-0.5 text-sm text-muted-foreground">
 										{task.description}
 									</p>
-									<p className="mt-1.5 text-xs text-muted-foreground">
-										{last ? (
-											<>
-												Last run{" "}
-												<Hint
-													label={formatTimestamp(
-														last.startedAt
-													)}
-												>
-													<span className="cursor-default text-foreground">
-														{formatRelative(
+									<IntervalEditor
+										task={task}
+										onSaved={flash}
+									/>
+									<Hint
+										side="bottom"
+										label={
+											last ? (
+												<RunBreakdown run={last} />
+											) : null
+										}
+									>
+										<p className="mt-1.5 w-fit cursor-default text-xs text-muted-foreground">
+											{last ? (
+												<>
+													Last run{" "}
+													<Hint
+														label={formatTimestamp(
 															last.startedAt
 														)}
-													</span>
-												</Hint>
-												{last.trigger === "manual" &&
-													" (run by hand)"}
-												{last.durationMs !== null &&
-													` · took ${took(last.durationMs)}`}
-												{last.summary &&
-													` · ${last.summary}`}
-											</>
-										) : (
-											"Hasn’task run yet"
-										)}
-										{!task.running && task.nextRunAt && (
-											<>
-												{" "}
-												· next{" "}
-												{formatRelative(task.nextRunAt)}
-											</>
-										)}
-									</p>
+													>
+														<span className="cursor-default text-foreground">
+															{formatRelative(
+																last.startedAt
+															)}
+														</span>
+													</Hint>
+													{last.trigger ===
+														"manual" &&
+														" (run by hand)"}
+													{last.durationMs !== null &&
+														` · took ${took(last.durationMs)}`}
+													{last.summary &&
+														` · ${last.summary}`}
+												</>
+											) : (
+												"Hasn’task run yet"
+											)}
+											{!task.running &&
+												task.nextRunAt && (
+													<>
+														{" "}
+														· next{" "}
+														{formatRelative(
+															task.nextRunAt
+														)}
+													</>
+												)}
+										</p>
+									</Hint>
 								</div>
 								<Button
 									variant="outline"

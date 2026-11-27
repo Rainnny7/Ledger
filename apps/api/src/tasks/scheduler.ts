@@ -30,6 +30,12 @@ import { refreshRates } from "../fx/rates.ts"
 import { runSpendingDigestTask } from "../digest/service.ts"
 import { purgeStaleReadNotifications } from "../notifications/service.ts"
 
+/** One timed part of a run, shown in the breakdown when hovering a task in Admin → Tasks. */
+export interface TaskStep {
+	label: string
+	durationMs: number
+}
+
 /** Shape of TaskRun as stored and returned by the API. */
 export interface TaskRun {
 	startedAt: string
@@ -38,35 +44,69 @@ export interface TaskRun {
 	status: "running" | "ok" | "error"
 	/** One line on what it did: "Refreshed 2 of 3 connections". */
 	summary: string | null
+	/** Timed parts of the run, in the order they finished. Empty for tasks that report none. */
+	steps: TaskStep[]
 	trigger: "schedule" | "manual"
 }
 
-/** Who started a run by hand, and why (both optional). */
+/** Who started a run by hand, and why (both optional), plus the helper that times its steps. */
 export interface RunContext {
 	trigger: TaskRun["trigger"]
 	by?: string
 	note?: string
+	/** Runs `work` and records how long it took under `label` in the run's breakdown. */
+	step: <T>(label: string, work: () => T | Promise<T>) => Promise<T>
 }
 
 interface Task {
 	id: string
 	label: string
 	description: string
+	/** Default gap between runs; an admin can override it. */
 	intervalMs: number
 	run: (context: RunContext) => Promise<string>
 }
 
 const HOUR = 60 * 60 * 1000
 
-/** A connection someone synced (or the task refreshed) more recently than this is left alone. */
-const FRESH_FOR_MS = 4 * HOUR
+/** Admin-set limits for a task's interval, in hours. */
+export const MIN_INTERVAL_HOURS = 0.25
+export const MAX_INTERVAL_HOURS = 168
+
+const intervalKey = (id: string) => `task_interval_hours:${id}`
+
+/** How long a task waits between runs: the admin's override when set, else its default. */
+function intervalOf(task: Task): number {
+	const hours = Number(getSetting(intervalKey(task.id)))
+	return hours >= MIN_INTERVAL_HOURS && hours <= MAX_INTERVAL_HOURS
+		? hours * HOUR
+		: task.intervalMs
+}
+
+/**
+ * Sets how often a task runs, in hours. Returns false for an unknown task.
+ * The new gap counts from the task's last run, so it takes effect on the next scheduler tick.
+ */
+export function setTaskIntervalHours(id: string, hours: number): boolean {
+	const task = TASKS.find((candidate) => candidate.id === id)
+	if (!task) {
+		return false
+	}
+	setSetting(intervalKey(id), String(hours))
+	return true
+}
+
+/** A connection someone synced (or the task refreshed) more recently than this is left alone: two thirds of the refresh interval. */
+const freshForMs = () => (intervalOf(bankRefreshTask) * 2) / 3
 
 const needsSignInKey = (id: string) => `bg_needs_sign_in:${id}`
 
-async function refreshBanks(): Promise<string> {
+async function refreshBanks(context: RunContext): Promise<string> {
 	const rows = db
 		.select({
 			id: bankConnection.id,
+			institution: bankConnection.institution,
+			label: bankConnection.label,
 			lastSyncedAt: bankConnection.lastSyncedAt,
 		})
 		.from(bankConnection)
@@ -92,7 +132,7 @@ async function refreshBanks(): Promise<string> {
 		const synced = row.lastSyncedAt
 			? Date.parse(`${row.lastSyncedAt.replace(" ", "T")}Z`)
 			: 0
-		if (Date.now() - synced < FRESH_FOR_MS) {
+		if (Date.now() - synced < freshForMs()) {
 			counts.fresh++
 			continue
 		}
@@ -103,7 +143,10 @@ async function refreshBanks(): Promise<string> {
 			continue
 		}
 		// One at a time: each holds a whole browser open.
-		const { result, message } = await syncInBackground(row.id)
+		const { result, message } = await context.step(
+			`${row.institution} · ${row.label}`,
+			() => syncInBackground(row.id)
+		)
 		if (result === "needs-sign-in") {
 			setSetting(needsSignInKey(row.id), row.lastSyncedAt ?? "")
 			counts.needsSignIn++
@@ -150,20 +193,31 @@ async function refreshBanks(): Promise<string> {
 	return parts.join(" · ")
 }
 
-async function tidyUp(): Promise<string> {
+async function tidyUp(context: RunContext): Promise<string> {
 	const now = new Date().toISOString()
 	// Better Auth stores dates as ISO strings; expired sessions and codes are never used again.
-	const sessions = db
-		.delete(session)
-		.where(lt(session.expiresAt, now))
-		.returning({ id: session.id })
-		.all().length
-	const codes = db
-		.delete(verification)
-		.where(lt(verification.expiresAt, now))
-		.returning({ id: verification.id })
-		.all().length
-	const staleNotifications = purgeStaleReadNotifications()
+	const sessions = await context.step(
+		"Expired sessions",
+		() =>
+			db
+				.delete(session)
+				.where(lt(session.expiresAt, now))
+				.returning({ id: session.id })
+				.all().length
+	)
+	const codes = await context.step(
+		"Expired codes",
+		() =>
+			db
+				.delete(verification)
+				.where(lt(verification.expiresAt, now))
+				.returning({ id: verification.id })
+				.all().length
+	)
+	const staleNotifications = await context.step(
+		"Old read notifications",
+		purgeStaleReadNotifications
+	)
 	const parts = [
 		`Removed ${Number(sessions)} expired session${sessions === 1 ? "" : "s"} and ${Number(codes)} expired code${codes === 1 ? "" : "s"}`,
 	]
@@ -244,14 +298,16 @@ async function backUp(context: RunContext): Promise<string> {
 				}
 	setSetting(reasonKey(name), JSON.stringify(reason))
 	// Drizzle has no builder for VACUUM INTO; a bound raw statement is the supported way.
-	db.run(sql`VACUUM INTO ${file}`)
+	await context.step("Copy database", () => db.run(sql`VACUUM INTO ${file}`))
 	const old = listBackups().slice(Math.max(1, env.BACKUPS_KEPT))
-	for (const backup of old) {
-		rmSync(path.join(BACKUP_DIR, backup.name), { force: true })
-		db.delete(appSetting)
-			.where(eq(appSetting.key, reasonKey(backup.name)))
-			.run()
-	}
+	await context.step("Remove older copies", () => {
+		for (const backup of old) {
+			rmSync(path.join(BACKUP_DIR, backup.name), { force: true })
+			db.delete(appSetting)
+				.where(eq(appSetting.key, reasonKey(backup.name)))
+				.run()
+		}
+	})
 	const mb = (statSync(file).size / 1024 / 1024).toFixed(1)
 	return `Saved ${name} (${mb} MB)${old.length ? ` · removed ${old.length} older` : ""}`
 }
@@ -261,8 +317,8 @@ const TASKS: Task[] = [
 		id: "bank-refresh",
 		label: "Refresh bank accounts",
 		description:
-			"Signs in with saved details and reads what’s new, one connection at a time. Skips anything synced in the last 4 hours, connections showing an error, and banks waiting on a two-factor code.",
-		intervalMs: 6 * HOUR,
+			"Signs in with saved details and reads what’s new, one connection at a time. Skips anything synced within the last two thirds of the interval, connections showing an error, and banks waiting on a two-factor code.",
+		intervalMs: 1.5 * HOUR,
 		run: refreshBanks,
 	},
 	{
@@ -298,6 +354,10 @@ const TASKS: Task[] = [
 	},
 ]
 
+const bankRefreshTask = TASKS.find(
+	(candidate) => candidate.id === "bank-refresh"
+)!
+
 const running = new Set<string>()
 const stateKey = (id: string) => `task:${id}`
 
@@ -307,7 +367,9 @@ function lastRun(id: string): TaskRun | null {
 		return null
 	}
 	try {
-		return JSON.parse(raw) as TaskRun
+		const run = JSON.parse(raw) as TaskRun
+		// Runs saved before steps were recorded have none.
+		return { ...run, steps: run.steps ?? [] }
 	} catch {
 		return null
 	}
@@ -322,11 +384,11 @@ export function listTasks() {
 			id: task.id,
 			label: task.label,
 			description: task.description,
-			intervalMs: task.intervalMs,
+			intervalMs: intervalOf(task),
 			running: running.has(task.id),
 			lastRun: last,
 			nextRunAt: base
-				? new Date(Date.parse(base) + task.intervalMs).toISOString()
+				? new Date(Date.parse(base) + intervalOf(task)).toISOString()
 				: null,
 		}
 	})
@@ -345,18 +407,18 @@ export function nextAutoSyncAt(c: {
 	if (!c.savedCredentials || c.lastError || waitingOnSignIn(c)) {
 		return null
 	}
-	const task = TASKS.find((candidate) => candidate.id === "bank-refresh")!
+	const task = bankRefreshTask
 	const last = lastRun(task.id)
 	const base = last
 		? Date.parse(last.finishedAt ?? last.startedAt)
 		: Date.now()
-	let next = Math.max(Date.now(), base + task.intervalMs)
-	// A run skips anything synced in the last few hours, so it's the first run after that window.
+	let next = Math.max(Date.now(), base + intervalOf(task))
+	// A run skips anything synced recently (see freshForMs), so it's the first run after that window.
 	const synced = c.lastSyncedAt
 		? Date.parse(`${c.lastSyncedAt.replace(" ", "T")}Z`)
 		: 0
-	while (next - synced < FRESH_FOR_MS) {
-		next += task.intervalMs
+	while (next - synced < freshForMs()) {
+		next += intervalOf(task)
 	}
 	return new Date(next).toISOString()
 }
@@ -386,7 +448,7 @@ export const hasTask = (id: string) =>
 export async function runTask(
 	id: string,
 	trigger: TaskRun["trigger"],
-	extra: Omit<RunContext, "trigger"> = {}
+	extra: Omit<RunContext, "trigger" | "step"> = {}
 ): Promise<TaskRun | null> {
 	const task = TASKS.find((candidate) => candidate.id === id)
 	if (!task || running.has(id)) {
@@ -395,6 +457,15 @@ export async function runTask(
 	running.add(id)
 	const started = Date.now()
 	const startedAt = new Date(started).toISOString()
+	const steps: TaskStep[] = []
+	const step: RunContext["step"] = async (label, work) => {
+		const stepStarted = Date.now()
+		try {
+			return await work()
+		} finally {
+			steps.push({ label, durationMs: Date.now() - stepStarted })
+		}
+	}
 	const save = (patch: Partial<TaskRun>) => {
 		const run: TaskRun = {
 			startedAt,
@@ -402,6 +473,7 @@ export async function runTask(
 			durationMs: null,
 			status: "running",
 			summary: null,
+			steps: [...steps],
 			trigger,
 			...patch,
 		}
@@ -411,7 +483,7 @@ export async function runTask(
 	let result = save({})
 	console.log(`[tasks] ${task.label}: started (${trigger})`)
 	try {
-		const summary = await task.run({ trigger, ...extra })
+		const summary = await task.run({ trigger, step, ...extra })
 		result = save({
 			status: "ok",
 			summary,
@@ -440,7 +512,7 @@ function scheduleTick() {
 	for (const task of TASKS) {
 		const last = lastRun(task.id)
 		const base = last ? Date.parse(last.finishedAt ?? last.startedAt) : 0
-		if (Date.now() - base >= task.intervalMs) {
+		if (Date.now() - base >= intervalOf(task)) {
 			void runTask(task.id, "schedule")
 		}
 	}

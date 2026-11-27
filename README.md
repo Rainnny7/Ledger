@@ -53,7 +53,7 @@ I wanted one place to see my transactions, how much I'm earning, what subscripti
 - **MCP server**: plug your finances into Claude, Cursor or any MCP client. An admin turns it on, each person makes their own access token in Settings, and the client gets the same read-only tools the AI chat uses. See [MCP server](#mcp-server).
 - **Demo mode**: fills every page with made-up data, handy for showing it off (the screenshots here use it).
 - **Any currency**: accounts, goals, subscriptions and bills can each have their own currency. Totals are converted into your default currency (picked in Settings, or guessed from your time zone) using live mid-market rates (refreshed hourly, falling back to the ECB's daily reference rates).
-- **Automatic refresh**: saved connections are refreshed every 6 hours in the background.
+- **Automatic refresh**: saved connections are refreshed every 1.5 hours in the background (adjustable in Admin → Tasks).
 
 Ledger currently connects to **TD EasyWeb** and **PayPal**.
 

@@ -50,7 +50,10 @@ import {
 	hasTask,
 	listBackups,
 	listTasks,
+	MAX_INTERVAL_HOURS,
+	MIN_INTERVAL_HOURS,
 	runTask,
+	setTaskIntervalHours,
 	startScheduler,
 } from "./tasks/scheduler.ts"
 import {
@@ -95,9 +98,7 @@ const adminSettingsBody = z
 		{ message: "At least one setting is required" }
 	)
 const backupNoteBody = z.object({ note: boundedString(200).optional() })
-const taskParam = z.object({
-	id: z.enum(["bank-refresh", "fx-rates", "backup", "tidy-up"]),
-})
+const taskParam = z.object({ id: boundedString(40) })
 const backupNameParam = z.object({ name: boundedString(120) })
 const AUDIT_PAGE_SIZE = 25
 const auditQuery = z.object({
@@ -249,6 +250,34 @@ admin.post(
 		return status(202, { tasks: listTasks() })
 	},
 	{ params: taskParam }
+)
+admin.put(
+	"/tasks/:id/interval",
+	({ user, params, body, request, status }) => {
+		if (params.id === "backup" && !isInstanceOwner(user.id)) {
+			return status(403, {
+				error: "Only the instance owner can change the backup schedule.",
+			})
+		}
+		if (!setTaskIntervalHours(params.id, body.hours)) {
+			return status(404, { error: "Not found" })
+		}
+		audit({
+			kind: "admin",
+			ip: request.headers.get(CLIENT_IP_HEADER) ?? undefined,
+			actorId: user.id,
+			actorEmail: user.email,
+			action: "Changed task schedule",
+			detail: `${params.id}: every ${body.hours} hours`,
+		})
+		return { tasks: listTasks() }
+	},
+	{
+		params: taskParam,
+		body: z.object({
+			hours: z.number().min(MIN_INTERVAL_HOURS).max(MAX_INTERVAL_HOURS),
+		}),
+	}
 )
 admin.get("/backups", ({ user, status }) => {
 	if (!isInstanceOwner(user.id)) {
