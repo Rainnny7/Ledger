@@ -72,7 +72,7 @@ export function RangePicker({
 					<ToggleGroupItem
 						key={rangeKey}
 						value={rangeKey}
-						className="px-2.5 tabular-nums"
+						className="px-2.5 tabular-nums aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/90 aria-pressed:hover:text-primary-foreground"
 					>
 						{rangeLabel(rangeKey)}
 					</ToggleGroupItem>
@@ -83,7 +83,7 @@ export function RangePicker({
 							<ToggleGroupItem
 								value={inMore ? value : MORE_VALUE}
 								aria-label="More time ranges"
-								className="gap-1 rounded-r-lg! px-2.5 tabular-nums"
+								className="gap-1 rounded-r-lg! px-2.5 tabular-nums aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/90 aria-pressed:hover:text-primary-foreground"
 							/>
 						}
 					>

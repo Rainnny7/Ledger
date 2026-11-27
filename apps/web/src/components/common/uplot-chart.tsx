@@ -88,15 +88,23 @@ export type LegendItem = { color: string; label: string }
 /** Reads the chart palette from the CSS variables in effect on `element`. */
 function readChartTheme(element: HTMLElement): ChartTheme {
 	const styles = getComputedStyle(element)
-	const read = (name: string) => styles.getPropertyValue(name).trim()
-	return {
-		primary: read("--chart-1"),
-		secondary: read("--chart-2"),
-		grid: read("--border"),
-		label: read("--muted-foreground"),
-		surface: read("--card"),
+	const probe = document.createElement("span")
+	probe.style.display = "none"
+	element.appendChild(probe)
+	const readColor = (name: string) => {
+		probe.style.color = `var(${name})`
+		return getComputedStyle(probe).color
+	}
+	const theme = {
+		primary: readColor("--chart-1"),
+		secondary: readColor("--chart-2"),
+		grid: readColor("--border"),
+		label: readColor("--muted-foreground"),
+		surface: readColor("--card"),
 		fontFamily: styles.fontFamily,
 	}
+	probe.remove()
+	return theme
 }
 
 /** Subscribes to theme switches, which next-themes performs by changing the class list on <html>. */

@@ -54,9 +54,7 @@
  * Default look: mostly neutral surfaces with a slight warm tint, a dusty-rose primary,
  * and a logo gradient derived from the active accent colour.
  *
- * Chart colours were checked with the dataviz palette validator (lightness band,
- * colour-blind separation, contrast) against each mode's card surface:
- * chart-1 = money in / balance (teal), chart-2 = money out (pink).
+ * Money-in / money-out plot colours follow the active accent on <html>; chart-3..5 stay fixed for toasts.
  */
 :root {
 	--background: oklch(0.985 0.002 60);
@@ -77,8 +75,8 @@
 	--border: oklch(0.915 0.005 320);
 	--input: oklch(0.9 0.006 320);
 	--ring: #a8680a;
-	--chart-1: #0b93b8; /* money in / balance */
-	--chart-2: #e23a7f; /* money out */
+	--chart-1: var(--primary); /* money in / balance: the accent */
+	--chart-2: oklch(from var(--primary) l c calc(h + 180)); /* money out: the accent's complement, same lightness and chroma */
 	--chart-3: #7c4dcc;
 	--chart-4: #f08a24;
 	--chart-5: #f2c230;
@@ -113,8 +111,6 @@
 	--border: oklch(1 0 0 / 10%);
 	--input: oklch(1 0 0 / 15%);
 	--ring: #f0b35f;
-	--chart-1: #1aa3c8; /* money in / balance */
-	--chart-2: #e04a8f; /* money out */
 	--chart-3: #9a6bf0;
 	--chart-4: #f08a24;
 	--chart-5: #f2c230;
@@ -149,8 +145,6 @@
 	--border: oklch(1 0 0 / 11%);
 	--input: oklch(1 0 0 / 16%);
 	--ring: #f0b35f;
-	--chart-1: #1aa3c8;
-	--chart-2: #e04a8f;
 	--chart-3: #9a6bf0;
 	--chart-4: #f08a24;
 	--chart-5: #f2c230;
@@ -856,6 +850,27 @@
 }
 ::view-transition-new(root) {
 	z-index: 2;
+}
+/* Colour transitions on the live tree would run inside the new snapshot, so accent changes faded
+   instead of revealing and every frame repainted. */
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+	transition: none !important;
+}
+.theme-transition::view-transition-new(root) {
+	animation: theme-reveal 450ms ease-in-out;
+}
+@keyframes theme-reveal {
+	from {
+		clip-path: circle(0px at var(--theme-reveal-x) var(--theme-reveal-y));
+	}
+	to {
+		clip-path: circle(
+			var(--theme-reveal-radius) at var(--theme-reveal-x)
+				var(--theme-reveal-y)
+		);
+	}
 }
 
 /* Vertical scroll fade: edges dissolve while more content lies beyond them (see use-scroll-fade.ts). */
