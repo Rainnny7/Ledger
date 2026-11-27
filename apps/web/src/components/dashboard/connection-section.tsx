@@ -216,7 +216,6 @@ export function ConnectionSection({
 			{attention && (
 				<div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm">
 					<span className="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-destructive/15 text-destructive">
-						<span className="absolute inset-0 animate-ping rounded-full bg-destructive/20 [animation-duration:2s]" />
 						{connection.lastError ? (
 							<AlertTriangle className="size-4" />
 						) : (
