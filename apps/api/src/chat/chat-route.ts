@@ -23,12 +23,6 @@ const CHAT_TOOL_PART_TYPES = new Set(
 	financeToolDefinitions.map((definition) => `tool-${definition.name}`)
 )
 
-const URL_FETCHING_PART_TYPES = new Set([
-	"file",
-	"reasoning-file",
-	"source-url",
-	"source-document",
-])
 
 const followUpLine = z.string().trim().min(1).max(60)
 
@@ -65,19 +59,17 @@ export function parseFollowUpSuggestions(raw: string): string[] {
 	return suggestions
 }
 
+/**
+ * One UI message part, checked against an allow-list: text, reasoning, step markers and this app's own
+ * tool calls. Anything else (notably `file` and `source-url` parts, whose URLs the model provider
+ * would fetch) is refused so a client cannot make the server fetch arbitrary URLs.
+ */
 const uiMessagePart = z
 	.looseObject({
 		type: z.string(),
 		text: z.string().optional(),
 	})
 	.superRefine((part, context) => {
-		if (URL_FETCHING_PART_TYPES.has(part.type)) {
-			context.addIssue({
-				code: "custom",
-				message: `Message part type "${part.type}" is not supported.`,
-			})
-			return
-		}
 		if (part.type === "text") {
 			if (typeof part.text !== "string") {
 				context.addIssue({
@@ -109,13 +101,6 @@ const uiMessagePart = z
 			context.addIssue({
 				code: "custom",
 				message: `Unknown tool part "${part.type}".`,
-			})
-			return
-		}
-		if (part.type.startsWith("data-") || part.type === "custom") {
-			context.addIssue({
-				code: "custom",
-				message: `Message part type "${part.type}" is not supported.`,
 			})
 			return
 		}
