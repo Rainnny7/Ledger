@@ -20,16 +20,19 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { useRetainedValue } from "@/components/common/use-retained-value"
 import { isoDate } from "@/lib/format"
 
 /** GoalPayment dialog. */
 export function GoalPaymentDialog({
-	draft,
+	draft: liveDraft,
 	onClose,
 }: {
 	draft: PaymentDraft | null
 	onClose: () => void
 }) {
+	// Keep the last draft rendered while the dialog animates closed.
+	const draft = useRetainedValue(liveDraft) ?? null
 	const {
 		goal,
 		direction,
@@ -49,7 +52,7 @@ export function GoalPaymentDialog({
 	} = usePaymentForm(draft, onClose)
 
 	return (
-		<Dialog open={!!draft} onOpenChange={(open) => !open && onClose()}>
+		<Dialog open={!!liveDraft} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent className="max-h-[90svh] overflow-x-hidden overflow-y-auto sm:max-w-sm">
 				<DialogHeader>
 					<DialogTitle>

@@ -3,6 +3,7 @@ import type { Variants } from "motion/react"
 import { m, useReducedMotion } from "motion/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { getRouteApi } from "@tanstack/react-router"
+import { useRetainedValue } from "@/components/common/use-retained-value"
 import { useScrollFade } from "@/components/common/use-scroll-fade"
 import {
 	DEFAULT_SETTINGS_TAB,
@@ -68,10 +69,15 @@ const tabPanelFadeVariants: Variants = {
  */
 export function SettingsDialog() {
 	const navigate = appRoute.useNavigate()
-	const requestedTabId = appRoute.useSearch({
+	const liveTabId = appRoute.useSearch({
 		select: (search) => search.settings,
 	})
-	const open = requestedTabId !== undefined
+	// Closing animates first and only then removes the search param, so the route update
+	// (and anything it suspends or re-renders) can't cut the close animation short.
+	const [dismissed, setDismissed] = useState(false)
+	const open = liveTabId !== undefined && !dismissed
+	// Keep the last tab rendered while the dialog animates closed.
+	const requestedTabId = useRetainedValue(liveTabId)
 	const isAdmin = useSession().data?.user.role === "admin"
 	const showMcp = Boolean(useAppConfig()?.mcp)
 	const visibility = useMemo(() => ({ isAdmin, showMcp }), [isAdmin, showMcp])
@@ -126,7 +132,19 @@ export function SettingsDialog() {
 		contentRef.current?.scrollTo({ top: 0 })
 	}, [activeTab, open])
 
+	// Only re-arm once the param is really gone; resetting earlier reopens the dialog for a frame.
+	useEffect(() => {
+		if (liveTabId === undefined) {
+			setDismissed(false)
+		}
+	}, [liveTabId])
+
 	function closeDialog() {
+		setDismissed(true)
+	}
+
+	/** Runs once the close animation has finished: reset local state and drop the search param. */
+	function finishClosing() {
 		setQuery("")
 		setMobilePanelChoice(undefined)
 		void navigate({
@@ -181,6 +199,11 @@ export function SettingsDialog() {
 	return (
 		<Dialog
 			open={open}
+			onOpenChangeComplete={(nextOpen) => {
+				if (!nextOpen && dismissed) {
+					finishClosing()
+				}
+			}}
 			onOpenChange={(nextOpen, eventDetails) => {
 				if (nextOpen) {
 					return
