@@ -40,6 +40,7 @@ import { chatRoutes } from "./chat/chat-route.ts"
 import { aiChatLimits } from "./chat/limits.ts"
 import { mcpTokens } from "./routes/mcp-tokens.ts"
 import { mcpRoutes } from "./mcp/mcp-route.ts"
+import { apiV1 } from "./routes/api-v1.ts"
 import { sharing } from "./routes/sharing.ts"
 import { work } from "./routes/work.ts"
 import { notifications } from "./routes/notifications.ts"
@@ -398,6 +399,7 @@ app.use(apiErrors)
 	)
 	.use(signedIn)
 	.use(mcpRoutes)
+	.use(apiV1)
 	.use(notifications)
 	// Share links: anyone with the link can see that one invoice (and pay it), no login.
 	.group("/api/public", (group) => group.use(publicInvoices))

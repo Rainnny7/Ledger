@@ -1,3 +1,4 @@
+import { apiKeyClient } from "@better-auth/api-key/client"
 import { createAuthClient } from "better-auth/react"
 import {
 	adminClient,
@@ -5,13 +6,15 @@ import {
 	twoFactorClient,
 } from "better-auth/client/plugins"
 
-/** Better Auth client with 2FA, admin, and Ledger user preference fields. */
+/** Better Auth client with 2FA, admin, API keys, and Ledger user preference fields. */
 export const authClient = createAuthClient({
 	baseURL: window.location.origin,
 	// Login answers `{ twoFactorRedirect: true }` when a code is still needed; the login form handles it.
 	plugins: [
 		twoFactorClient(),
 		adminClient(),
+		// Settings → API keys.
+		apiKeyClient(),
 		// Set while the account is on a temporary password an admin gave out.
 		inferAdditionalFields({
 			user: {

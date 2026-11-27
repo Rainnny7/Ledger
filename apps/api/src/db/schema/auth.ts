@@ -109,3 +109,44 @@ export const twoFactor = sqliteTable(
 		index("twoFactor_userId_idx").on(table.userId),
 	]
 )
+
+/**
+ * Personal API keys (Better Auth's API key plugin). Only a SHA-256 hash of each key is stored in
+ * `key`; the plaintext is shown once at creation. `referenceId` is the owning user.
+ */
+export const apikey = sqliteTable(
+	"apikey",
+	{
+		id: text("id").primaryKey(),
+		configId: text("configId").notNull().default("default"),
+		name: text("name"),
+		start: text("start"),
+		referenceId: text("referenceId")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		prefix: text("prefix"),
+		key: text("key").notNull(),
+		refillInterval: integer("refillInterval"),
+		refillAmount: integer("refillAmount"),
+		lastRefillAt: text("lastRefillAt"),
+		enabled: integer("enabled", { mode: "boolean" }).default(true),
+		rateLimitEnabled: integer("rateLimitEnabled", {
+			mode: "boolean",
+		}).default(true),
+		rateLimitTimeWindow: integer("rateLimitTimeWindow"),
+		rateLimitMax: integer("rateLimitMax"),
+		requestCount: integer("requestCount").default(0),
+		remaining: integer("remaining"),
+		lastRequest: text("lastRequest"),
+		expiresAt: text("expiresAt"),
+		createdAt: text("createdAt").notNull(),
+		updatedAt: text("updatedAt").notNull(),
+		permissions: text("permissions"),
+		metadata: text("metadata"),
+	},
+	(table) => [
+		index("apikey_configId_idx").on(table.configId),
+		index("apikey_referenceId_idx").on(table.referenceId),
+		index("apikey_key_idx").on(table.key),
+	]
+)

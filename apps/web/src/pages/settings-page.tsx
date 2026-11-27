@@ -1,3 +1,4 @@
+import { ApiKeysCard } from "@/components/settings/api-keys-card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AppearanceCard } from "@/components/settings/appearance-card"
 import { ChangePasswordCard } from "@/components/settings/change-password-card"
@@ -49,6 +50,7 @@ export function SettingsPage() {
 					<ChangePasswordCard />
 					<TwoFactorCard />
 					<DevicesCard />
+					<ApiKeysCard />
 					{config?.mcp && <McpAccessCard />}
 					<DeleteAccountCard />
 				</>

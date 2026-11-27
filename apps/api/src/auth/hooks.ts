@@ -75,6 +75,9 @@ export const DISABLED_PATHS = new Set([
 	"/admin/impersonate-user",
 	"/admin/stop-impersonating",
 	"/admin/update-user",
+	// Keys are only listed, created and deleted. Editing one (rate limits are server-only) or fetching it adds nothing.
+	"/api-key/get",
+	"/api-key/update",
 	// Unused by the app. Revoking by session token names no user, so the owner guard below couldn't
 	// stop another admin from listing the owner's devices and signing them out one by one.
 	"/admin/list-user-sessions",
@@ -130,6 +133,8 @@ export const AUTH_EVENTS = new Map([
 	["/revoke-session", "Logged out a device"],
 	["/revoke-other-sessions", "Logged out other devices"],
 	["/revoke-sessions", "Logged out everywhere"],
+	["/api-key/create", "Created API key"],
+	["/api-key/delete", "Deleted API key"],
 ])
 /** Auth audit actions that represent failed login attempts. */
 export const AUDIT_FAILURES = new Set([
@@ -193,6 +198,7 @@ export function logAuthEvent(
 		const returnedResult = returned as {
 			user?: AuthUser
 			twoFactorRedirect?: boolean
+			name?: string | null
 		} | null
 		const user = returnedResult?.user ?? sessionUser
 		let action = label
@@ -214,6 +220,9 @@ export function logAuthEvent(
 						? "with an authenticator code"
 						: "with a backup code"
 			}
+		}
+		if (context.path === "/api-key/create") {
+			detail = returnedResult?.name ?? null
 		}
 		audit({
 			kind: "auth",

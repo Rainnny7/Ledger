@@ -6,7 +6,17 @@ import {
 	getSessionFromCtx,
 	isAPIError,
 } from "better-auth/api"
+import { apiKey } from "@better-auth/api-key"
 import { admin, captcha, twoFactor } from "better-auth/plugins"
+import {
+	API_KEY_MAX_EXPIRY_DAYS,
+	API_KEY_NAME_MAX,
+	API_KEY_PREFIX,
+	API_KEY_RATE_LIMIT_MAX,
+	API_KEY_RATE_LIMIT_WINDOW_MS,
+	MAX_API_KEYS_PER_USER,
+	countApiKeys,
+} from "../api-keys/config.ts"
 import { audit, emailOf, setMustChangePassword } from "../admin/store.ts"
 import { endUserSessions } from "../banks/sessions.ts"
 import { eq, notLike } from "drizzle-orm"
@@ -196,6 +206,18 @@ export const auth = betterAuth({
 					code: "PASSWORD_CHANGE_REQUIRED",
 				})
 			}
+			if (context.path === "/api-key/create") {
+				if (isDemoUserId(session.user.id)) {
+					throw new APIError("FORBIDDEN", {
+						message: "The demo account can’t create API keys.",
+					})
+				}
+				if (countApiKeys(session.user.id) >= MAX_API_KEYS_PER_USER) {
+					throw new APIError("BAD_REQUEST", {
+						message: `You can have up to ${MAX_API_KEYS_PER_USER} API keys. Delete one first.`,
+					})
+				}
+			}
 			if (
 				context.path.startsWith("/admin/") &&
 				session.user.role === "admin"
@@ -338,6 +360,21 @@ export const auth = betterAuth({
 			adminRoles: ["admin"],
 			bannedUserMessage:
 				"Your access to this Ledger has been turned off. Ask its admin to restore it.",
+		}),
+		// Settings → API keys: personal keys for the read-only REST API (/api/v1). Keys are stored hashed and
+		// never act as sessions (enableSessionForAPIKeys stays off), so a key cannot reach any Better Auth endpoint.
+		apiKey({
+			defaultPrefix: API_KEY_PREFIX,
+			requireName: true,
+			maximumNameLength: API_KEY_NAME_MAX,
+			enableMetadata: false,
+			enableSessionForAPIKeys: false,
+			keyExpiration: { maxExpiresIn: API_KEY_MAX_EXPIRY_DAYS },
+			rateLimit: {
+				enabled: true,
+				timeWindow: API_KEY_RATE_LIMIT_WINDOW_MS,
+				maxRequests: API_KEY_RATE_LIMIT_MAX,
+			},
 		}),
 		// Invisible Cloudflare Turnstile on sign-in and sign-up, when both keys are configured.
 		...(turnstileSecretKey
