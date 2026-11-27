@@ -79,9 +79,9 @@
 	--chart-2: oklch(
 		from var(--primary) l c calc(h + 180)
 	); /* money out: the accent's complement, same lightness and chroma */
-	--chart-3: #7c4dcc;
-	--chart-4: #f08a24;
-	--chart-5: #f2c230;
+	--chart-3: #d1495b;
+	--chart-4: #7c4dcc;
+	--chart-5: #2a9d8f;
 	--radius: 0.625rem;
 	--sidebar: oklch(0.985 0.002 60);
 	--sidebar-foreground: oklch(0.2 0.008 300);
@@ -113,9 +113,9 @@
 	--border: oklch(1 0 0 / 10%);
 	--input: oklch(1 0 0 / 15%);
 	--ring: #f0b35f;
-	--chart-3: #9a6bf0;
-	--chart-4: #f08a24;
-	--chart-5: #f2c230;
+	--chart-3: #e0566a;
+	--chart-4: #8a5be0;
+	--chart-5: #2fa896;
 	--sidebar: #1a181d;
 	--sidebar-foreground: oklch(0.95 0.005 320);
 	--sidebar-primary: #f0b35f;
@@ -147,9 +147,9 @@
 	--border: oklch(1 0 0 / 11%);
 	--input: oklch(1 0 0 / 16%);
 	--ring: #f0b35f;
-	--chart-3: #9a6bf0;
-	--chart-4: #f08a24;
-	--chart-5: #f2c230;
+	--chart-3: #e0566a;
+	--chart-4: #8a5be0;
+	--chart-5: #2fa896;
 	--sidebar: #0a0a0a;
 	--sidebar-foreground: oklch(0.96 0.004 320);
 	--sidebar-primary: #f0b35f;
