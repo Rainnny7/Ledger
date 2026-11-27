@@ -59,13 +59,15 @@ export function ForeignMoney({
 	}
 	const converted = converter.to(value, currency)
 	const rate = converter.to(1, currency)
+	// pointer-events-auto: click-through containers (e.g. AccountCard sets pointer-events-none so
+	// clicks reach its underlying link) would otherwise swallow the hover that opens the tooltip.
 	return (
 		<Tooltip>
 			<TooltipTrigger
 				render={
 					<span
 						className={cn(
-							"cursor-help underline decoration-muted-foreground/40 decoration-dotted underline-offset-4",
+							"pointer-events-auto cursor-help underline decoration-muted-foreground/40 decoration-dotted underline-offset-4",
 							className
 						)}
 					/>
