@@ -1,9 +1,10 @@
 import { InstitutionBadge } from "@/components/accounts/institution"
-import { Trash2Icon } from "@/components/icons/trash-2"
-import { KeyRoundIcon } from "@/components/icons/key-round"
-import { isProviderId, PROVIDERS } from "@/components/accounts/providers"
 import { AccountCard } from "@/components/dashboard/account-card"
-import { canForget } from "@/components/dashboard/connection-utils"
+import { ConnectionAttentionBanner } from "@/components/dashboard/connection-section-attention"
+import {
+	ConnectionOptionsMenuItems,
+	ConnectionRefreshMenuItems,
+} from "@/components/dashboard/connection-section-menus"
 import { RefreshButton } from "@/components/dashboard/refresh-button"
 import { Hint } from "@/components/common/hint"
 import { WithContextMenu } from "@/components/layout/app-context-menu"
@@ -19,17 +20,7 @@ import type { Account, Connection } from "@/lib/api"
 import { formatRelative } from "@/lib/format"
 import { cn } from "cn"
 import { SyncTime } from "@/components/transactions/tx-bits"
-import {
-	AlertTriangle,
-	ChevronDown,
-	History,
-	MoreHorizontal,
-	RefreshCw,
-	ShieldAlert,
-	Upload,
-	Zap,
-	ZapOff,
-} from "lucide-react"
+import { ChevronDown, MoreHorizontal, RefreshCw, Zap } from "lucide-react"
 
 /** One bank connection: its status, sync actions and the accounts it provides. */
 export function ConnectionSection({
@@ -51,74 +42,6 @@ export function ConnectionSection({
 	onForget: (connection: Connection) => void
 	onRemove: (connection: Connection) => void
 }) {
-	const refreshItems = (
-		<>
-			<DropdownMenuItem onClick={() => onFullRefresh(connection)}>
-				<History />
-				<div className="grid">
-					<span>Force Full Refresh</span>
-					<span className="text-xs text-muted-foreground">
-						Re-read{" "}
-						{isProviderId(connection.institution)
-							? PROVIDERS[connection.institution].history
-							: "all"}{" "}
-						of history
-					</span>
-				</div>
-			</DropdownMenuItem>
-			{connection.institution === "td" && (
-				<DropdownMenuItem
-					onClick={() => onUploadStatements(connection.id)}
-				>
-					<Upload />
-					<div className="grid">
-						<span>Upload Statements</span>
-						<span className="text-xs text-muted-foreground">
-							Older history from PDF statements or a .zip
-						</span>
-					</div>
-				</DropdownMenuItem>
-			)}
-		</>
-	)
-	const optionItems = (
-		<>
-			{connection.institution === "paypal" && (
-				<>
-					<DropdownMenuItem
-						onClick={() => void onToggleInstant(connection)}
-					>
-						{connection.instantUpdates ? <ZapOff /> : <Zap />}
-						<div className="grid">
-							<span>
-								{connection.instantUpdates
-									? "Turn off instant updates"
-									: "Turn on instant updates"}
-							</span>
-							<span className="text-xs text-muted-foreground">
-								Webhooks for payments made through your PayPal
-								app. Needs a public https PUBLIC_URL.
-							</span>
-						</div>
-					</DropdownMenuItem>
-					<DropdownMenuSeparator />
-				</>
-			)}
-			{canForget(connection) && (
-				<DropdownMenuItem onClick={() => void onForget(connection)}>
-					<KeyRoundIcon size={24} className="flex" /> Forget saved
-					password
-				</DropdownMenuItem>
-			)}
-			{canForget(connection) && <DropdownMenuSeparator />}
-			<DropdownMenuItem
-				variant="destructive"
-				onClick={() => void onRemove(connection)}
-			>
-				<Trash2Icon size={24} className="flex" /> Remove connection
-			</DropdownMenuItem>
-		</>
-	)
 	const attention = Boolean(connection.lastError || connection.needsSignIn)
 
 	return (
@@ -137,9 +60,18 @@ export function ConnectionSection({
 						<DropdownMenuItem onClick={() => onRefresh(connection)}>
 							<RefreshCw /> Refresh
 						</DropdownMenuItem>
-						{refreshItems}
+						<ConnectionRefreshMenuItems
+							connection={connection}
+							onFullRefresh={onFullRefresh}
+							onUploadStatements={onUploadStatements}
+						/>
 						<DropdownMenuSeparator />
-						{optionItems}
+						<ConnectionOptionsMenuItems
+							connection={connection}
+							onToggleInstant={onToggleInstant}
+							onForget={onForget}
+							onRemove={onRemove}
+						/>
 					</>
 				}
 			>
@@ -159,7 +91,7 @@ export function ConnectionSection({
 								error={connection.lastError}
 								needsSignIn={connection.needsSignIn}
 							/>
-							{connection.instantUpdates && (
+							{connection.instantUpdates ? (
 								<>
 									{" · "}
 									<Hint label="PayPal sends Ledger webhooks for app payments">
@@ -172,7 +104,7 @@ export function ConnectionSection({
 										</span>
 									</Hint>
 								</>
-							)}
+							) : null}
 						</div>
 					</div>
 					<div className="flex">
@@ -191,7 +123,11 @@ export function ConnectionSection({
 								<ChevronDown />
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="w-64">
-								{refreshItems}
+								<ConnectionRefreshMenuItems
+									connection={connection}
+									onFullRefresh={onFullRefresh}
+									onUploadStatements={onUploadStatements}
+								/>
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</div>
@@ -208,46 +144,23 @@ export function ConnectionSection({
 							<MoreHorizontal />
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end" className="w-64">
-							{optionItems}
+							<ConnectionOptionsMenuItems
+								connection={connection}
+								onToggleInstant={onToggleInstant}
+								onForget={onForget}
+								onRemove={onRemove}
+							/>
 						</DropdownMenuContent>
 					</DropdownMenu>
 				</div>
 			</WithContextMenu>
 
-			{attention && (
-				<div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm">
-					<span className="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-destructive/15 text-destructive">
-						{connection.lastError ? (
-							<AlertTriangle className="size-4" />
-						) : (
-							<ShieldAlert className="size-4" />
-						)}
-					</span>
-					<div className="min-w-0 flex-1">
-						<div className="font-medium text-destructive">
-							{connection.lastError
-								? "Last refresh failed"
-								: `${connection.label} wants a two-factor code`}
-						</div>
-						<div className="text-xs text-destructive/80">
-							{connection.lastError ??
-								"Auto-refresh is paused until you log in once. Your transactions won’t update on their own until then."}
-						</div>
-					</div>
-					<Button
-						variant="destructive"
-						size="sm"
-						onClick={() => onRefresh(connection)}
-					>
-						{connection.lastError ? (
-							<RefreshCw />
-						) : (
-							<KeyRoundIcon size={24} className="flex" />
-						)}{" "}
-						{connection.lastError ? "Try again" : "Log in"}
-					</Button>
-				</div>
-			)}
+			{attention ? (
+				<ConnectionAttentionBanner
+					connection={connection}
+					onRefresh={onRefresh}
+				/>
+			) : null}
 
 			<div className="grid gap-3 sm:grid-cols-2">
 				{accounts

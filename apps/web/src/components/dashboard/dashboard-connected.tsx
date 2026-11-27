@@ -1,19 +1,13 @@
 import { AdvisorSpotlight } from "@/components/advisor/advisor-spotlight"
-import { AnimatedMoney } from "@/components/common/count-up"
 import { BalanceChart, CashflowChart } from "@/components/common/charts"
-import { Money } from "@/components/common/money"
 import { RangePicker } from "@/components/common/range-picker"
 import { ConnectionSection } from "@/components/dashboard/connection-section"
-import { DashboardStat } from "@/components/dashboard/dashboard-stat"
+import { DashboardRecentActivity } from "@/components/dashboard/dashboard-recent-activity"
+import { DashboardStatsGrid } from "@/components/dashboard/dashboard-stats-grid"
 import { NeedsAttention } from "@/components/dashboard/needs-attention"
 import { UpcomingList } from "@/components/dashboard/upcoming-list"
 import { GoalsSpotlight } from "@/components/goals/goals-spotlight"
-import {
-	TransactionMenuItems,
-	WithContextMenu,
-} from "@/components/layout/app-context-menu"
-import { CategoryIcon, RelativeDate } from "@/components/transactions/tx-bits"
-import { buttonVariants } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button-variants"
 import {
 	Card,
 	CardAction,
@@ -26,9 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import type { Account, Connection, Subscription, Transaction } from "@/lib/api"
 import type { Converter } from "@/lib/currency"
 import { inHomeCurrency } from "@/lib/currency"
-import { formatMoney } from "@/lib/format"
 import { type RangeKey, rangeStart } from "@/lib/ranges"
-import { cn } from "cn"
 import { ChevronRight } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 
@@ -111,55 +103,18 @@ export function DashboardConnected({
 			/>
 			<GoalsSpotlight />
 			<AdvisorSpotlight />
-			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-				<DashboardStat
-					label="Total Balance"
-					value={<AnimatedMoney value={net} />}
-					negative={net < 0}
-					hint={
-						overdraftTotal > 0
-							? `Includes ${formatMoney(overdraftTotal)} of overdraft · ${cad.length} account${cad.length === 1 ? "" : "s"}`
-							: `What you have minus what you owe, ${cad.length} account${cad.length === 1 ? "" : "s"}`
-					}
-					note={
-						home.skipped.length > 0
-							? `Leaves out ${home.skipped.join(", ")} accounts (no exchange rate yet)`
-							: home.mixed
-								? `In ${converter.home}, other currencies at today’s rates`
-								: undefined
-					}
-				/>
-				<DashboardStat
-					label="Available to Spend"
-					value={<AnimatedMoney value={available} />}
-					negative={available < 0}
-					hint={
-						overdraftRoom > 0
-							? `Includes ${formatMoney(overdraftRoom)} of overdraft room`
-							: "Across chequing, savings & wallets"
-					}
-				/>
-				<DashboardStat
-					label="Owing"
-					value={<AnimatedMoney value={owing} />}
-					hint="Credit, loans and overdraft in use"
-				/>
-				<DashboardStat
-					label="Spent This Month"
-					value={txReady ? <AnimatedMoney value={spend.now} /> : "—"}
-					hint={[
-						spend.prev > 0
-							? `${spend.now <= spend.prev ? "↓" : "↑"} ${formatMoney(Math.abs(spend.now - spend.prev))} vs same point last month`
-							: "Excludes transfers & income",
-						spend.pending > 0 &&
-							`${formatMoney(spend.pending)} pending`,
-						spend.debt > 0 &&
-							`+ ${formatMoney(spend.debt)} loan payments`,
-					]
-						.filter(Boolean)
-						.join(" · ")}
-				/>
-			</div>
+			<DashboardStatsGrid
+				cad={cad}
+				home={home}
+				converter={converter}
+				net={net}
+				overdraftTotal={overdraftTotal}
+				available={available}
+				overdraftRoom={overdraftRoom}
+				owing={owing}
+				spend={spend}
+				txReady={txReady}
+			/>
 
 			<div className="grid gap-4 lg:grid-cols-5">
 				<Card className="lg:col-span-3">
@@ -250,70 +205,12 @@ export function DashboardConnected({
 						</CardAction>
 					</CardHeader>
 					<CardContent className="grid gap-0.5">
-						{txReady && transactions.length === 0 && (
-							<p className="py-6 text-center text-sm text-muted-foreground">
-								No transactions yet.
-							</p>
-						)}
-						{transactions.slice(0, 6).map((transaction) => {
-							const account = accounts.find(
-								(candidate) =>
-									candidate.id === transaction.accountId
-							)
-							return (
-								<WithContextMenu
-									key={transaction.id}
-									menu={
-										<TransactionMenuItems
-											transaction={transaction}
-											currency={account?.currency}
-											onOpen={() =>
-												onSelectTransaction(transaction)
-											}
-										/>
-									}
-								>
-									<button
-										type="button"
-										onClick={() =>
-											onSelectTransaction(transaction)
-										}
-										className="flex items-center gap-3 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
-									>
-										<CategoryIcon
-											category={transaction.category}
-										/>
-										<span className="min-w-0 flex-1">
-											<span className="block truncate font-medium">
-												{transaction.merchant}
-											</span>
-											<span className="block truncate text-xs text-muted-foreground">
-												<RelativeDate
-													date={transaction.date}
-													seenAt={
-														transaction.createdAt
-													}
-												/>{" "}
-												· {account?.name}
-											</span>
-										</span>
-										<span
-											className={cn(
-												"font-medium tabular-nums",
-												transaction.amount > 0 &&
-													"text-emerald-600 dark:text-emerald-400"
-											)}
-										>
-											<Money
-												value={transaction.amount}
-												currency={account?.currency}
-												sign
-											/>
-										</span>
-									</button>
-								</WithContextMenu>
-							)
-						})}
+						<DashboardRecentActivity
+							transactions={transactions}
+							accounts={accounts}
+							txReady={txReady}
+							onSelectTransaction={onSelectTransaction}
+						/>
 					</CardContent>
 				</Card>
 			</div>

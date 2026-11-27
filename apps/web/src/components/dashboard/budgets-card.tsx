@@ -162,14 +162,14 @@ export function BudgetsCard({
 												{formatMoney(limit)}
 											</span>
 										</div>
-										<div
-											className="relative mt-1.5 h-2 rounded-full bg-muted"
-											role="meter"
-											aria-valuemin={0}
-											aria-valuemax={limit}
-											aria-valuenow={used}
-											aria-label={`${CATEGORY_META[budget.category].label} budget`}
-										>
+										<div className="relative mt-1.5 h-2 rounded-full bg-muted">
+											<meter
+												className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+												min={0}
+												max={limit}
+												value={used}
+												aria-label={`${CATEGORY_META[budget.category].label} budget`}
+											/>
 											<div
 												className={cn(
 													"h-full rounded-full transition-[width] duration-500",
