@@ -150,6 +150,7 @@ export const queryKeys = {
 	update: ["admin", "update"] as const,
 	notifications: ["notifications"] as const,
 	notificationPreferences: ["notifications", "preferences"] as const,
+	discordWebhook: ["notifications", "discord"] as const,
 }
 
 /** Notification severity shown in the bell and admin send form. */
@@ -603,10 +604,11 @@ export const useClearAllNotifications = () =>
 /** Sources a user can route independently. */
 export type NotificationSource = "security" | "digest"
 
-/** Independent email and in-app toggles for one notification source. */
+/** Independent email, in-app, and Discord toggles for one notification source. */
 export type NotificationPreference = {
 	email: boolean
 	inApp: boolean
+	discord: boolean
 }
 
 /** Delivery toggles per notification source. */
@@ -636,12 +638,13 @@ export const useSetNotificationPreference = () =>
 			source: NotificationSource
 			email: boolean
 			inApp: boolean
+			discord: boolean
 		}) =>
 			notificationsRequest<{ preferences: NotificationPreferences }>(
 				"/preferences",
 				{ method: "PUT", body: JSON.stringify(variables) }
 			),
-		onMutate: async ({ source, email, inApp }) => {
+		onMutate: async ({ source, email, inApp, discord }) => {
 			await queryClient.cancelQueries({
 				queryKey: queryKeys.notificationPreferences,
 			})
@@ -651,7 +654,7 @@ export const useSetNotificationPreference = () =>
 			if (previous) {
 				queryClient.setQueryData<NotificationPreferences>(
 					queryKeys.notificationPreferences,
-					{ ...previous, [source]: { email, inApp } }
+					{ ...previous, [source]: { email, inApp, discord } }
 				)
 			}
 			return { previous }
@@ -670,4 +673,63 @@ export const useSetNotificationPreference = () =>
 				queryKeys.notificationPreferences,
 				data.preferences
 			),
+	})
+
+/** Whether the user has saved a Discord webhook (the URL is never returned). */
+export const useDiscordWebhookStatus = () =>
+	view(
+		useQuery({
+			queryKey: queryKeys.discordWebhook,
+			queryFn: async () =>
+				notificationsRequest<{ configured: boolean }>("/discord"),
+		})
+	)
+
+/** Saves a Discord incoming-webhook URL. */
+export const useSaveDiscordWebhook = () =>
+	useMutation({
+		mutationFn: (url: string) => {
+			if (demoMode) {
+				return Promise.resolve({ configured: true as const })
+			}
+			return notificationsRequest<{ configured: boolean }>("/discord", {
+				method: "PUT",
+				body: JSON.stringify({ url }),
+			})
+		},
+		onSuccess: (data) => {
+			queryClient.setQueryData(queryKeys.discordWebhook, data)
+		},
+		onError: (error) => toastError(error.message),
+	})
+
+/** Removes the saved Discord webhook URL. */
+export const useRemoveDiscordWebhook = () =>
+	useMutation({
+		mutationFn: () => {
+			if (demoMode) {
+				return Promise.resolve({ configured: false as const })
+			}
+			return notificationsRequest<{ configured: boolean }>("/discord", {
+				method: "DELETE",
+			})
+		},
+		onSuccess: (data) => {
+			queryClient.setQueryData(queryKeys.discordWebhook, data)
+		},
+		onError: (error) => toastError(error.message),
+	})
+
+/** Sends a test embed to the saved Discord webhook. */
+export const useTestDiscordWebhook = () =>
+	useMutation({
+		mutationFn: () => {
+			if (demoMode) {
+				return Promise.resolve({ ok: true as const })
+			}
+			return notificationsRequest<{ ok: boolean }>("/discord/test", {
+				method: "POST",
+			})
+		},
+		onError: (error) => toastError(error.message),
 	})

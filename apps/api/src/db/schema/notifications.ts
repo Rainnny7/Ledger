@@ -38,6 +38,9 @@ export const notificationPreference = sqliteTable(
 		source: text("source").notNull(),
 		email: integer("email", { mode: "boolean" }).notNull().default(true),
 		inApp: integer("in_app", { mode: "boolean" }).notNull().default(true),
+		discord: integer("discord", { mode: "boolean" })
+			.notNull()
+			.default(false),
 	},
 	(table) => [primaryKey({ columns: [table.userId, table.source] })]
 )

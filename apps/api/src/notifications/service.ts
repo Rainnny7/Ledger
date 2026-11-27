@@ -7,6 +7,7 @@ import {
 	user,
 } from "../db/schema/index.ts"
 import { isSmtpConfigured, sendMail } from "../mail/smtp.ts"
+import { getDiscordWebhook, sendDiscordNotification } from "./discord.ts"
 
 /** Notification severity shown in the app. */
 export type NotificationKind = "info" | "success" | "warning" | "alert"
@@ -17,13 +18,18 @@ export const NOTIFICATION_SOURCES = ["security", "digest"] as const
 /** One of {@link NOTIFICATION_SOURCES}. */
 export type NotificationSource = (typeof NOTIFICATION_SOURCES)[number]
 
-/** Independent email and in-app delivery toggles for one source. */
+/** Independent email, in-app, and Discord delivery toggles for one source. */
 export interface NotificationPreference {
 	email: boolean
 	inApp: boolean
+	discord: boolean
 }
 
-const DEFAULT_PREFERENCE: NotificationPreference = { email: true, inApp: true }
+const DEFAULT_PREFERENCE: NotificationPreference = {
+	email: true,
+	inApp: true,
+	discord: false,
+}
 
 /** Email content that differs from the in-app title and body. */
 export interface NotificationMail {
@@ -116,6 +122,7 @@ export function getNotificationPreferences(
 			source: notificationPreference.source,
 			email: notificationPreference.email,
 			inApp: notificationPreference.inApp,
+			discord: notificationPreference.discord,
 		})
 		.from(notificationPreference)
 		.where(eq(notificationPreference.userId, userId))
@@ -125,6 +132,7 @@ export function getNotificationPreferences(
 			preferences[row.source as NotificationSource] = {
 				email: row.email,
 				inApp: row.inApp,
+				discord: row.discord,
 			}
 		}
 	}
@@ -143,13 +151,18 @@ export function setNotificationPreference(
 			source,
 			email: preference.email,
 			inApp: preference.inApp,
+			discord: preference.discord,
 		})
 		.onConflictDoUpdate({
 			target: [
 				notificationPreference.userId,
 				notificationPreference.source,
 			],
-			set: { email: preference.email, inApp: preference.inApp },
+			set: {
+				email: preference.email,
+				inApp: preference.inApp,
+				discord: preference.discord,
+			},
 		})
 		.run()
 }
@@ -188,19 +201,31 @@ export async function notifyUser(options: NotifyUserOptions): Promise<boolean> {
 	const preference = getNotificationPreferences(options.userId)[
 		options.source
 	]
-	if (!preference.email && !preference.inApp) {
+	if (!preference.email && !preference.inApp && !preference.discord) {
 		return false
 	}
 	if (preference.inApp) {
 		insertInApp()
 	}
-	if (!preference.email || options.email === false) {
-		return false
+	let emailSent = false
+	if (preference.email && options.email !== false) {
+		emailSent = await emailUserNotification(
+			options.userId,
+			options.mail ?? { subject: options.title, text: options.body }
+		)
 	}
-	return emailUserNotification(
-		options.userId,
-		options.mail ?? { subject: options.title, text: options.body }
-	)
+	if (preference.discord) {
+		const webhookUrl = getDiscordWebhook(options.userId)
+		if (webhookUrl) {
+			await sendDiscordNotification(webhookUrl, {
+				title: options.title,
+				body: options.body,
+				kind: options.kind ?? "info",
+				href: options.href,
+			})
+		}
+	}
+	return emailSent
 }
 
 /** Inserts the same notification for many users. */

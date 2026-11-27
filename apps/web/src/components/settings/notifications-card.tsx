@@ -14,15 +14,18 @@ import { Switch } from "@/components/ui/switch"
 import { cn } from "cn"
 import {
 	type NotificationSource,
+	useDiscordWebhookStatus,
 	useNotificationPreferences,
 	useSetNotificationPreference,
 	type NotificationPreferences,
 } from "@/lib/queries"
+import { DiscordWebhookSection } from "./discord-webhook-section"
 
 type SetPreferenceVariables = {
 	source: NotificationSource
 	email: boolean
 	inApp: boolean
+	discord: boolean
 }
 
 const SOURCES: {
@@ -44,10 +47,15 @@ const SOURCES: {
 
 function channelSavedMessage(
 	label: string,
-	channel: "email" | "in-app",
+	channel: "email" | "in-app" | "discord",
 	on: boolean
 ) {
-	const name = channel === "email" ? "email" : "in-app"
+	const name =
+		channel === "email"
+			? "email"
+			: channel === "in-app"
+				? "in-app"
+				: "Discord"
 	return `${label}: ${name} ${on ? "on" : "off"}`
 }
 
@@ -56,22 +64,26 @@ function NotificationSourceRow({
 	label,
 	description,
 	preferences,
+	discordConfigured,
 	onSave,
 }: {
 	source: NotificationSource
 	label: string
 	description: string
 	preferences: NotificationPreferences | null | undefined
+	discordConfigured: boolean
 	onSave: ReturnType<typeof useSetNotificationPreference>["mutate"]
 }) {
 	const { saved, flash } = useSavedFlash()
 	const preference = preferences?.[source]
 	const emailOn = preference?.email ?? false
 	const inAppOn = preference?.inApp ?? false
-	const rowOff = preference !== undefined && !emailOn && !inAppOn
+	const discordOn = preference?.discord ?? false
+	const rowOff =
+		preference !== undefined && !emailOn && !inAppOn && !discordOn
 
 	function save(
-		channel: "email" | "in-app",
+		channel: "email" | "in-app" | "discord",
 		next: boolean,
 		payload: SetPreferenceVariables
 	) {
@@ -87,7 +99,7 @@ function NotificationSourceRow({
 	}
 
 	return (
-		<div className="grid grid-cols-[1fr_4rem_4rem] items-center gap-x-2 gap-y-1 py-4 first:pt-0 last:pb-0">
+		<div className="grid grid-cols-[1fr_4rem_4rem_4rem] items-center gap-x-2 gap-y-1 py-4 first:pt-0 last:pb-0">
 			<div className="min-w-0 pr-2">
 				<span
 					id={`notify-${source}-label`}
@@ -114,6 +126,7 @@ function NotificationSourceRow({
 							source,
 							email: nextEmail,
 							inApp: preferences![source].inApp,
+							discord: preferences![source].discord,
 						})
 					}}
 				/>
@@ -128,30 +141,58 @@ function NotificationSourceRow({
 							source,
 							email: preferences![source].email,
 							inApp: nextInApp,
+							discord: preferences![source].discord,
 						})
 					}}
 				/>
+			</div>
+			<div className="flex w-16 flex-col items-center gap-0.5 justify-self-center">
+				<Switch
+					checked={discordOn}
+					disabled={!preferences || !discordConfigured}
+					aria-label={`Discord for ${label}`}
+					title={
+						discordConfigured
+							? undefined
+							: "Save a Discord webhook below first"
+					}
+					onCheckedChange={(nextDiscord) => {
+						save("discord", nextDiscord, {
+							source,
+							email: preferences![source].email,
+							inApp: preferences![source].inApp,
+							discord: nextDiscord,
+						})
+					}}
+				/>
+				{!discordConfigured ? (
+					<span className="text-center text-[10px] leading-tight text-muted-foreground">
+						Needs webhook
+					</span>
+				) : null}
 			</div>
 		</div>
 	)
 }
 
-/** Lets the user choose email and/or in-app delivery for each notification source. */
+/** Lets the user choose email, in-app, and/or Discord delivery for each notification source. */
 export function NotificationsCard() {
 	const { data: preferences } = useNotificationPreferences()
+	const { data: discordStatus } = useDiscordWebhookStatus()
 	const setPreference = useSetNotificationPreference()
+	const discordConfigured = discordStatus?.configured ?? false
 
 	return (
 		<Card>
 			<CardHeader>
 				<CardTitle>Notifications</CardTitle>
 				<div
-					className="grid grid-cols-[1fr_4rem_4rem] items-end gap-x-2"
+					className="grid grid-cols-[1fr_4rem_4rem_4rem] items-end gap-x-2"
 					role="row"
 				>
 					<CardDescription className="pr-2">
-						Choose where each kind of message reaches you. Turn both
-						off to stop it.
+						Choose where each kind of message reaches you. Turn all
+						channels off to stop it.
 					</CardDescription>
 					<span
 						role="columnheader"
@@ -165,6 +206,12 @@ export function NotificationsCard() {
 					>
 						In-app
 					</span>
+					<span
+						role="columnheader"
+						className="text-center text-xs font-medium text-muted-foreground uppercase"
+					>
+						Discord
+					</span>
 				</div>
 			</CardHeader>
 			<CardContent>
@@ -176,10 +223,12 @@ export function NotificationsCard() {
 							label={label}
 							description={description}
 							preferences={preferences}
+							discordConfigured={discordConfigured}
 							onSave={setPreference.mutate}
 						/>
 					))}
 				</div>
+				<DiscordWebhookSection />
 			</CardContent>
 		</Card>
 	)

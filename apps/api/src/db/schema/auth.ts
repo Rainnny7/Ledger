@@ -39,6 +39,8 @@ export const user = sqliteTable("user", {
 	accent: text("accent"),
 	/** Set after the user finishes or skips first-login onboarding (ISO-8601). */
 	onboardingCompletedAt: text("onboardingCompletedAt"),
+	/** Encrypted Discord incoming-webhook URL for notification delivery. */
+	discordWebhook: text("discordWebhook"),
 })
 
 /** Logged-in devices. */

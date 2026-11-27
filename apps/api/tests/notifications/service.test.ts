@@ -143,8 +143,16 @@ test("purge removes only read notifications older than 90 days", async () => {
 })
 
 test("unrouted notify ignores preferences and is always in-app", async () => {
-	setNotificationPreference(U2, "security", { email: false, inApp: false })
-	setNotificationPreference(U2, "digest", { email: false, inApp: false })
+	setNotificationPreference(U2, "security", {
+		email: false,
+		inApp: false,
+		discord: false,
+	})
+	setNotificationPreference(U2, "digest", {
+		email: false,
+		inApp: false,
+		discord: false,
+	})
 	const priorCount = listNotifications(U2).length
 	await notifyUser({
 		userId: U2,
@@ -216,8 +224,8 @@ test("email and in-app routing matrix", async () => {
 		.where(eq(notificationPreference.userId, U2))
 		.run()
 	assert.deepEqual(getNotificationPreferences(U2), {
-		security: { email: true, inApp: true },
-		digest: { email: true, inApp: true },
+		security: { email: true, inApp: true, discord: false },
+		digest: { email: true, inApp: true, discord: false },
 	})
 
 	// Both on: mail and in-app, using the mail override.
@@ -247,7 +255,11 @@ test("email and in-app routing matrix", async () => {
 	assert.equal(listNotifications(U2).length, 2)
 
 	// In-app only.
-	setNotificationPreference(U2, "digest", { email: false, inApp: true })
+	setNotificationPreference(U2, "digest", {
+		email: false,
+		inApp: true,
+		discord: false,
+	})
 	assert.equal(
 		await notifyUser({
 			userId: U2,
@@ -261,7 +273,11 @@ test("email and in-app routing matrix", async () => {
 	assert.equal(listNotifications(U2).length, 3)
 
 	// Email only.
-	setNotificationPreference(U2, "digest", { email: true, inApp: false })
+	setNotificationPreference(U2, "digest", {
+		email: true,
+		inApp: false,
+		discord: false,
+	})
 	assert.equal(
 		await notifyUser({
 			userId: U2,
@@ -275,20 +291,30 @@ test("email and in-app routing matrix", async () => {
 	assert.equal(listNotifications(U2).length, 3)
 
 	// Neither: nothing at all, and other sources are unaffected.
-	setNotificationPreference(U2, "digest", { email: false, inApp: false })
+	setNotificationPreference(U2, "digest", {
+		email: false,
+		inApp: false,
+		discord: false,
+	})
 	await notifyUser({ userId: U2, source: "digest", title: "T", body: "b" })
 	assert.equal(sent.length, 2)
 	assert.equal(listNotifications(U2).length, 3)
 	assert.deepEqual(getNotificationPreferences(U2).security, {
 		email: true,
 		inApp: true,
+		discord: false,
 	})
 
 	// Upsert replaces toggles.
-	setNotificationPreference(U2, "digest", { email: true, inApp: true })
+	setNotificationPreference(U2, "digest", {
+		email: true,
+		inApp: true,
+		discord: false,
+	})
 	assert.deepEqual(getNotificationPreferences(U2).digest, {
 		email: true,
 		inApp: true,
+		discord: false,
 	})
 
 	// Without SMTP the in-app copy is still created when inApp is on.
