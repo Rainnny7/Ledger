@@ -87,7 +87,7 @@ const ALL_TABS: SettingsTabDefinition[] = [
 	{
 		id: "preferences",
 		label: "Preferences",
-		description: "Currency, locale, and onboarding.",
+		description: "Currency, locale, and AI suggestions.",
 		group: "Account",
 		icon: SlidersHorizontalIcon,
 		sections: [
@@ -100,11 +100,6 @@ const ALL_TABS: SettingsTabDefinition[] = [
 				id: "ai-suggestions",
 				title: "AI suggestions",
 				keywords: "ask ledger chat hide ai sparkle suggestions",
-			},
-			{
-				id: "onboarding",
-				title: "Onboarding",
-				keywords: "tour setup wizard",
 			},
 		],
 		Panel: SettingsPreferencesPanel,

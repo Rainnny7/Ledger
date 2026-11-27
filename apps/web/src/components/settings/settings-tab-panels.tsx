@@ -17,7 +17,6 @@ import { DeleteAccountCard } from "@/components/settings/delete-account-card"
 import { EmailVerificationCard } from "@/components/settings/email-verification-card"
 import { DevicesCard } from "@/components/settings/devices-card"
 import { McpAccessCard } from "@/components/settings/mcp-access-card"
-import { OnboardingCard } from "@/components/settings/onboarding-card"
 import { PreferencesCard } from "@/components/settings/preferences-card"
 import { TwoFactorCard } from "@/components/settings/two-factor-card"
 import { demoMode } from "@/lib/demo"
@@ -59,11 +58,6 @@ export function SettingsPreferencesPanel() {
 			<SettingsSection sectionId="preferences">
 				<PreferencesCard />
 			</SettingsSection>
-			{!demoMode ? (
-				<SettingsSection sectionId="onboarding">
-					<OnboardingCard />
-				</SettingsSection>
-			) : null}
 		</div>
 	)
 }
