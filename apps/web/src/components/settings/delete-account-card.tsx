@@ -2,6 +2,10 @@ import { useState } from "react"
 import { Trash2Icon } from "@/components/icons/trash-2"
 import { useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { Button } from "@/components/ui/button"
 import {
 	Card,
@@ -18,6 +22,7 @@ import { queryClient, useHasPassword } from "@/lib/queries"
 export function DeleteAccountCard() {
 	const navigate = useNavigate()
 	const [open, setOpen] = useState(false)
+	const { saved, flash } = useSavedFlash()
 	const hasPassword = useHasPassword()
 	if (hasPassword.isPending) {
 		return null
@@ -44,7 +49,8 @@ export function DeleteAccountCard() {
 					banks, saved bank logins, accounts, transactions, categories
 					and subscriptions. This can’t be undone.
 				</CardDescription>
-				<CardAction>
+				<CardAction className="flex items-center gap-2">
+					<SavedIndicator saved={saved} showLabel={false} />
 					<Button
 						variant="destructive"
 						size="sm"
@@ -130,12 +136,14 @@ export function DeleteAccountCard() {
 							toast.success(
 								"Check your email for a link to confirm deletion."
 							)
+							flash()
 							return null
 						}
 						return "Could not send the confirmation email"
 					}
 					queryClient.clear()
 					toast.success("Your account and data were deleted")
+					flash()
 					void navigate({ to: "/login", replace: true })
 					return null
 				}}

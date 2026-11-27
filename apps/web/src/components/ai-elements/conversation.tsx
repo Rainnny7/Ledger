@@ -103,16 +103,16 @@ export function ConversationScrollButton({
 	return (
 		<Button
 			className={cn(
-				"absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border bg-background shadow-md hover:bg-accent",
+				"absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-border bg-card text-foreground shadow-md hover:bg-muted dark:bg-card",
 				className
 			)}
 			onClick={handleScrollToBottom}
 			size="icon"
 			type="button"
-			variant="outline"
+			variant="secondary"
 			{...props}
 		>
-			<ArrowDownIcon className="size-4" />
+			<ArrowDownIcon className="size-4 text-foreground" />
 		</Button>
 	)
 }

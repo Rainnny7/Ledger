@@ -40,6 +40,8 @@ import {
 } from "@/lib/queries"
 import { useIntent } from "@/lib/url-state"
 import { useNow } from "@/lib/use-now"
+import { AskLedgerButton } from "@/components/chat/ask-ledger-button"
+import { formatMoney } from "@/lib/format"
 
 async function removeConnection(c: Connection) {
 	if (
@@ -233,11 +235,18 @@ export function DashboardPage() {
 						Balances, overdraft and activity from your linked banks.
 					</p>
 				</div>
-				<Button
-					onClick={() => setDialog({ open: true, connection: null })}
-				>
-					<PlusIcon size={24} className="flex" /> Add account
-				</Button>
+				<div className="flex flex-wrap items-center gap-2">
+					<AskLedgerButton
+						variant="tip"
+						label="Summarize My Month"
+						prompt={`Summarize my finances for this calendar month. Net worth about ${formatMoney(net, converter.home)}, spending ${formatMoney(spend.now, converter.home)} so far vs ${formatMoney(spend.prev, converter.home)} on the same days last month. Call out top categories, subscriptions due soon, and goals progress.`}
+					/>
+					<Button
+						onClick={() => setDialog({ open: true, connection: null })}
+					>
+						<PlusIcon size={24} className="flex" /> Add account
+					</Button>
+				</div>
 			</div>
 
 			{error && !data && (

@@ -19,6 +19,10 @@ import { type TaskInfo, every, took } from "@/components/admin/task-types"
 import { adminFetch, auditKey, backupsKey, tasksKey } from "@/lib/admin"
 import { formatRelative, formatTimestamp } from "@/lib/format"
 import { queryClient } from "@/lib/queries"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 
 /** Tasks UI card. */
 export function TasksCard({
@@ -36,6 +40,7 @@ export function TasksCard({
 				: 60_000,
 	})
 	const [starting, setStarting] = useState<string | null>(null)
+	const { saved, flash } = useSavedFlash()
 	// When the exchange-rate task finishes, pick up the new rates everywhere in the app.
 	const fxFinished = tasks.data?.tasks.find((task) => task.id === "fx-rates")
 		?.lastRun?.finishedAt
@@ -64,6 +69,7 @@ export function TasksCard({
 			queryClient.setQueryData(tasksKey, data)
 			void queryClient.invalidateQueries({ queryKey: auditKey })
 			toast.success(`${task.label} started`)
+			flash()
 		} catch (error) {
 			toastError((error as Error).message)
 		} finally {
@@ -77,6 +83,7 @@ export function TasksCard({
 				<CardTitle className="flex items-center gap-2">
 					<ListChecks className="size-4 text-muted-foreground" />{" "}
 					Tasks
+					<SavedIndicator saved={saved} showLabel={false} />
 				</CardTitle>
 				<CardDescription>
 					Jobs that run in the background on their own. Run one now if

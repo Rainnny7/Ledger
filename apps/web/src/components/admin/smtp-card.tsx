@@ -20,6 +20,10 @@ import { useQuery } from "@tanstack/react-query"
 import { Loader2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 
 /** Outbound SMTP settings stored on the server. */
 export type SmtpSettings = {
@@ -54,6 +58,8 @@ export function SmtpCard() {
 	const [saving, setSaving] = useState(false)
 	const [testTo, setTestTo] = useState("")
 	const [testing, setTesting] = useState(false)
+	const { saved: saveFlash, flash: flashSave } = useSavedFlash()
+	const { saved: testFlash, flash: flashTest } = useSavedFlash()
 
 	const form = useMemo((): SmtpForm | null => {
 		if (!smtp.data) {
@@ -100,6 +106,7 @@ export function SmtpCard() {
 			setEdits({})
 			void queryClient.invalidateQueries({ queryKey: smtpKey })
 			toast.success("SMTP settings saved")
+			flashSave()
 		} catch (error) {
 			toastError((error as Error).message)
 		} finally {
@@ -119,6 +126,7 @@ export function SmtpCard() {
 				body: JSON.stringify({ to }),
 			})
 			toast.success(`Test email sent to ${to}`)
+			flashTest()
 		} catch (error) {
 			toastError((error as Error).message)
 		} finally {
@@ -136,7 +144,8 @@ export function SmtpCard() {
 				<CardDescription>
 					Optional SMTP for notification emails and password resets.
 				</CardDescription>
-				<CardAction>
+				<CardAction className="flex items-center gap-2">
+					<SavedIndicator saved={saveFlash} />
 					<Button
 						size="sm"
 						disabled={saving || !form || !!smtp.error}
@@ -269,21 +278,27 @@ export function SmtpCard() {
 									}
 								/>
 							</div>
-							<Button
-								type="button"
-								variant="secondary"
-								disabled={
-									testing ||
-									!testTo.trim() ||
-									!smtp.data?.configured
-								}
-								onClick={() => void sendTest()}
-							>
-								{testing ? (
-									<Loader2 className="animate-spin" />
-								) : null}
-								Send test
-							</Button>
+							<div className="flex items-center gap-2">
+								<Button
+									type="button"
+									variant="secondary"
+									disabled={
+										testing ||
+										!testTo.trim() ||
+										!smtp.data?.configured
+									}
+									onClick={() => void sendTest()}
+								>
+									{testing ? (
+										<Loader2 className="animate-spin" />
+									) : null}
+									Send test
+								</Button>
+								<SavedIndicator
+									saved={testFlash}
+									showLabel={false}
+								/>
+							</div>
 						</div>
 					</>
 				)}

@@ -1,3 +1,4 @@
+import { AskLedgerButton } from "@/components/chat/ask-ledger-button"
 import { WithContextMenu } from "@/components/layout/app-context-menu"
 import { PlusIcon } from "@/components/icons/plus"
 import { AnimatedMoney } from "@/components/common/count-up"
@@ -34,7 +35,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { api, type Goal } from "@/lib/api"
-import { formatDate } from "@/lib/format"
+import { formatDate, formatMoney } from "@/lib/format"
 import { cn } from "cn"
 
 /** Public export. */
@@ -155,19 +156,28 @@ export function GoalCard({
 						</p>
 					)}
 
-					{!done && !goal.archived && canEdit && (
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => actions.onPay(goal)}
-							className="w-fit"
-						>
-							<PlusIcon size={24} className="flex" />{" "}
-							{goal.kind === "payoff"
-								? "Log a payment"
-								: "Add money"}
-						</Button>
-					)}
+					<div className="flex flex-wrap items-center gap-2">
+						{!done && !goal.archived && canEdit && (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => actions.onPay(goal)}
+								className="w-fit"
+							>
+								<PlusIcon size={24} className="flex" />{" "}
+								{goal.kind === "payoff"
+									? "Log a payment"
+									: "Add money"}
+							</Button>
+						)}
+						{!done && (
+							<AskLedgerButton
+								variant="tip"
+								label="How Can I Reach This Sooner?"
+								prompt={`How can I reach my goal “${goal.name}” sooner? Target ${formatMoney(goal.target, goal.currency)}, saved so far ${formatMoney(goal.saved, goal.currency)}, remaining ${formatMoney(goal.remaining, goal.currency)}${goal.targetDate ? `, deadline ${formatDate(goal.targetDate)}` : ""}. Suggest realistic steps using my spending and subscriptions.`}
+							/>
+						)}
+					</div>
 
 					<GoalCardPayments
 						goal={goal}

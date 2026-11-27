@@ -1,4 +1,6 @@
 import type { useTransactionsPage } from "@/components/transactions/use-transactions-page"
+import { AskLedgerButton } from "@/components/chat/ask-ledger-button"
+import { transactionsSpendingAskPrompt } from "@/components/transactions/transactions-ask-prompt"
 import { DownloadIcon } from "@/components/icons/download"
 import { TransactionsBulkToolbar } from "@/components/transactions/transactions-bulk-toolbar"
 import { TransactionsFilterSelect } from "@/components/transactions/transactions-filter-select"
@@ -19,6 +21,7 @@ import type { Category } from "@/lib/api"
 import type { RangeKey } from "@/lib/ranges"
 import { formatMoney } from "@/lib/format"
 import { ArrowDownLeft, ArrowUpRight, X } from "lucide-react"
+import { useMemo } from "react"
 
 type Model = ReturnType<typeof useTransactionsPage>
 
@@ -40,6 +43,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 		setTag,
 		setLinks,
 		since,
+		until,
 		page,
 		perPage,
 		totalPages,
@@ -69,6 +73,39 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 		transactionCategoryItems,
 		transactionTagItems,
 	} = model
+
+	const spendingAskPrompt = useMemo(
+		() =>
+			transactionsSpendingAskPrompt({
+				query,
+				accountName:
+					accountId === "all"
+						? null
+						: (accounts.find((account) => account.id === accountId)
+								?.name ?? null),
+				period,
+				category,
+				tag,
+				flow,
+				merchantNames,
+				since,
+				until,
+				filteredCount: filtered.length,
+			}),
+		[
+			query,
+			accountId,
+			accounts,
+			period,
+			category,
+			tag,
+			flow,
+			merchantNames,
+			since,
+			until,
+			filtered.length,
+		]
+	)
 
 	return (
 		<Card className="min-w-0 gap-0 overflow-hidden pb-0">
@@ -197,6 +234,12 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							<X /> Clear
 						</Button>
 					)}
+					<AskLedgerButton
+						variant="tip"
+						label="Explain This Spending"
+						prompt={spendingAskPrompt}
+						className="col-span-2 md:col-span-1"
+					/>
 				</div>
 				{merchantNames.length > 0 && (
 					<div className="flex flex-wrap items-center gap-2 text-sm">

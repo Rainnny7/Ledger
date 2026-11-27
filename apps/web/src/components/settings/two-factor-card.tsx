@@ -4,6 +4,10 @@ import { DownloadIcon } from "@/components/icons/download"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { toastError } from "@/lib/toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -53,12 +57,14 @@ export function TwoFactorCard() {
 	const hasPassword = useHasPassword()
 	// Accounts without a password (email-link logins) are vouched for by their recent login instead.
 	const requirePassword = hasPassword.data?.hasPassword !== false
+	const { saved, flash } = useSavedFlash()
 
 	return (
 		<Card>
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
 					Two-Factor Authentication
+					<SavedIndicator saved={saved} showLabel={false} />
 					{enabled ? (
 						<Badge>On</Badge>
 					) : (
@@ -99,6 +105,7 @@ export function TwoFactorCard() {
 				requirePassword={requirePassword}
 				open={dialog === "setup"}
 				onClose={() => setDialog(null)}
+				onSaved={flash}
 			/>
 			<PasswordDialog
 				open={dialog === "disable"}
@@ -118,6 +125,7 @@ export function TwoFactorCard() {
 						return error.message ?? "Could not turn off 2FA"
 					}
 					toast.success("Two-factor authentication turned off")
+					flash()
 					return null
 				}}
 			/>
@@ -125,6 +133,7 @@ export function TwoFactorCard() {
 				requirePassword={requirePassword}
 				open={dialog === "codes"}
 				onClose={() => setDialog(null)}
+				onSaved={flash}
 			/>
 		</Card>
 	)
@@ -134,10 +143,12 @@ function SetupDialog({
 	open,
 	onClose,
 	requirePassword,
+	onSaved,
 }: {
 	requirePassword: boolean
 	open: boolean
 	onClose: () => void
+	onSaved: () => void
 }) {
 	const [step, setStep] = useState<SetupStep>({ type: "password" })
 	const [password, setPassword] = useState("")
@@ -193,6 +204,7 @@ function SetupDialog({
 			}
 			setStep({ type: "codes", backupCodes: step.backupCodes })
 			toast.success("Two-factor authentication is on")
+			onSaved()
 		} finally {
 			setBusy(false)
 		}
@@ -323,10 +335,12 @@ function RegenerateCodesDialog({
 	open,
 	onClose,
 	requirePassword,
+	onSaved,
 }: {
 	requirePassword: boolean
 	open: boolean
 	onClose: () => void
+	onSaved: () => void
 }) {
 	const [codes, setCodes] = useState<string[] | null>(null)
 	if (codes) {
@@ -382,6 +396,7 @@ function RegenerateCodesDialog({
 					return error?.message ?? "Could not generate codes"
 				}
 				setCodes(data.backupCodes)
+				onSaved()
 				return null
 			}}
 		/>

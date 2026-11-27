@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `hideAiSuggestions` integer DEFAULT false;

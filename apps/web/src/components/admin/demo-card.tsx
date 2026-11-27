@@ -1,6 +1,10 @@
 import { Dices, Loader2, MonitorPlay } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,6 +22,7 @@ import { queryClient } from "@/lib/queries"
 /** Demo UI card. */
 export function DemoCard() {
 	const [reseeding, setReseeding] = useState(false)
+	const { saved, flash } = useSavedFlash()
 
 	async function reseed() {
 		setReseeding(true)
@@ -26,6 +31,7 @@ export function DemoCard() {
 			// Anything cached from an earlier demo session is stale now.
 			void queryClient.invalidateQueries()
 			toast.success("Demo data reseeded")
+			flash()
 		} catch (error) {
 			toastError((error as Error).message)
 		} finally {
@@ -42,7 +48,8 @@ export function DemoCard() {
 					transactions, handy for showing it off without your real
 					balances on screen.
 				</CardDescription>
-				<CardAction className="flex flex-wrap justify-end gap-2">
+				<CardAction className="flex flex-wrap items-center justify-end gap-2">
+					<SavedIndicator saved={saved} showLabel={false} />
 					<Button
 						size="sm"
 						variant="ghost"

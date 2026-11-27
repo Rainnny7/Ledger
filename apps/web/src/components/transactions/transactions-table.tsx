@@ -2,6 +2,8 @@ import {
 	TransactionMenuItems,
 	WithContextMenu,
 } from "@/components/layout/app-context-menu"
+import { AskLedgerButton } from "@/components/chat/ask-ledger-button"
+import { transactionChargeAskPrompt } from "@/components/transactions/transactions-ask-prompt"
 import { Hint } from "@/components/common/hint"
 import { Money } from "@/components/common/money"
 import {
@@ -251,6 +253,14 @@ export function TransactionsTable({
 															aria-label="Has note"
 														/>
 													)}
+													<AskLedgerButton
+														variant="compact"
+														label="Ask About This Charge"
+														prompt={transactionChargeAskPrompt(
+															rowTransaction,
+															account?.currency
+														)}
+													/>
 												</div>
 												<div className="truncate text-xs text-muted-foreground">
 													{showAccount && account

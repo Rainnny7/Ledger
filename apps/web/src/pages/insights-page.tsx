@@ -24,6 +24,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { CATEGORY_META } from "@/lib/categories"
 import { formatMoney } from "@/lib/format"
+import { AskLedgerButton } from "@/components/chat/ask-ledger-button"
+import { rangeLabel } from "@/lib/ranges"
 
 /** Spending patterns: merchants, categories, and month-over-month trends. */
 export function InsightsPage() {
@@ -123,7 +125,14 @@ export function InsightsPage() {
 			<div className="grid gap-4 lg:grid-cols-5">
 				<Card className="lg:col-span-3">
 					<CardHeader>
-						<CardTitle>Spending by Category</CardTitle>
+						<CardTitle className="flex flex-wrap items-center gap-2">
+							Spending by Category
+							<AskLedgerButton
+								variant="compact"
+								label="Explain This Trend"
+								prompt={`Explain my spending by category for ${rangeLabel(page.range)} (${page.stats.days} days). I spent ${formatMoney(page.stats.spent)} net of refunds. What changed vs the previous period and what should I watch?`}
+							/>
+						</CardTitle>
 						<CardDescription>
 							Click a category to filter merchants and
 							transactions
@@ -172,7 +181,14 @@ export function InsightsPage() {
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Cash Flow</CardTitle>
+					<CardTitle className="flex flex-wrap items-center gap-2">
+						Cash Flow
+						<AskLedgerButton
+							variant="compact"
+							label="Explain This Trend"
+							prompt="Explain my cash flow trend over the last 12 months: months where I spent more than I earned, and what's driving the pattern."
+						/>
+					</CardTitle>
 					<CardDescription>
 						Money in vs out, last 12 months
 					</CardDescription>

@@ -1,5 +1,9 @@
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { CurrencySelect } from "@/components/common/currency-select"
 import { Label } from "@/components/ui/label"
 import { authClient } from "@/lib/auth-client"
@@ -26,11 +30,13 @@ export function CurrencyPreferenceField({
 	const home = useHomeCurrency()
 	const fx = useFx()
 	const [pendingCurrency, setPendingCurrency] = useState<string | null>(null)
+	const { saved, flash } = useSavedFlash()
 
 	async function changeCurrency(code: string) {
 		if (demoMode) {
 			setDemoPrefs({ currency: code })
 			toast.success(`Totals now show in ${currencyName(code)}`)
+			flash()
 			return
 		}
 		setPendingCurrency(code)
@@ -40,6 +46,7 @@ export function CurrencyPreferenceField({
 		} else {
 			toast.success(`Totals now show in ${currencyName(code)}`)
 			await queryClient.invalidateQueries()
+			flash()
 		}
 		setPendingCurrency(null)
 	}
@@ -57,7 +64,10 @@ export function CurrencyPreferenceField({
 				htmlFor={currencyId}
 				className="grid flex-1 basis-64 gap-1 font-normal"
 			>
-				<span className="font-medium">Default Currency</span>
+				<span className="flex items-center gap-2 font-medium">
+					Default Currency
+					<SavedIndicator saved={saved} showLabel={false} />
+				</span>
 				<span className="text-sm text-muted-foreground">
 					Totals across accounts, goals, subscriptions and jobs are
 					shown in this currency, converting others at daily reference

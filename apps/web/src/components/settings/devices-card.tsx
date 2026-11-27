@@ -3,6 +3,10 @@ import { useQuery } from "@tanstack/react-query"
 import { Laptop, Loader2, LogOut, Smartphone } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { toastError } from "@/lib/toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -44,6 +48,7 @@ export function DevicesCard() {
 		},
 	})
 	const [busy, setBusy] = useState<string | null>(null)
+	const { saved, flash } = useSavedFlash()
 	const currentId = current?.session.id
 	const others = (sessions.data ?? []).filter(
 		(session) => session.id !== currentId
@@ -59,6 +64,7 @@ export function DevicesCard() {
 			toastError(error.message ?? "Could not log out that device")
 		} else {
 			toast.success("Device logged out")
+			flash()
 		}
 		void sessions.refetch()
 	}
@@ -71,6 +77,7 @@ export function DevicesCard() {
 			toastError(error.message ?? "Could not log out other devices")
 		} else {
 			toast.success("Logged out everywhere else")
+			flash()
 		}
 		void sessions.refetch()
 	}
@@ -78,7 +85,10 @@ export function DevicesCard() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Devices</CardTitle>
+				<CardTitle className="flex items-center gap-2">
+					Devices
+					<SavedIndicator saved={saved} showLabel={false} />
+				</CardTitle>
 				<CardDescription>
 					Browsers logged in to your account. Log out any you don’t
 					recognise.

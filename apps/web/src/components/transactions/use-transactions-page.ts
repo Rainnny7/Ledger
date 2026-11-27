@@ -283,6 +283,7 @@ export function useTransactionsPage() {
 		links,
 		setLinks,
 		since,
+		until,
 		page,
 		perPage,
 		totalPages,

@@ -570,6 +570,12 @@ export const auth = betterAuth({
 				input: true,
 				required: false,
 			},
+			hideAiSuggestions: {
+				type: "boolean",
+				defaultValue: false,
+				input: true,
+				required: false,
+			},
 			// Settings → Preferences: the currency totals are shown in. Guessed from the browser at sign-up.
 			currency: { type: "string", input: true, required: false },
 			// Settings → Appearance: the mode (system / light / dark / AMOLED) and accent colour, so they follow you to every device. Unset until picked.

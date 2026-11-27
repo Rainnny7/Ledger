@@ -2,6 +2,10 @@ import { useQuery } from "@tanstack/react-query"
 import { Loader2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { CheckIcon } from "@/components/icons/check"
 import { CopyIcon } from "@/components/icons/copy"
 import { FileTextIcon } from "@/components/icons/file-text"
@@ -115,6 +119,8 @@ export function ApiKeysCard() {
 	const [creating, setCreating] = useState(false)
 	const [deleting, setDeleting] = useState<string | null>(null)
 	const [created, setCreated] = useState<NewApiKey | null>(null)
+	const { saved: createSaved, flash: flashCreate } = useSavedFlash()
+	const { saved: deleteSaved, flash: flashDelete } = useSavedFlash()
 
 	async function createKey(event: React.FormEvent) {
 		event.preventDefault()
@@ -132,6 +138,7 @@ export function ApiKeysCard() {
 		}
 		setCreated({ name: name.trim(), secret: data.key })
 		setName("")
+		flashCreate()
 		void keys.refetch()
 	}
 
@@ -153,6 +160,7 @@ export function ApiKeysCard() {
 			toastError(error.message ?? "Could not delete the key")
 		} else {
 			toast.success("API key deleted")
+			flashDelete()
 		}
 		void keys.refetch()
 	}
@@ -160,7 +168,10 @@ export function ApiKeysCard() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>API Keys</CardTitle>
+				<CardTitle className="flex items-center gap-2">
+					API Keys
+					<SavedIndicator saved={deleteSaved} showLabel={false} />
+				</CardTitle>
 				<CardDescription>
 					Read your accounts and transactions from scripts and other
 					tools over HTTP. Keys are read-only, limited to your own
@@ -212,7 +223,12 @@ export function ApiKeysCard() {
 							</SelectContent>
 						</Select>
 					</div>
-					<Button type="submit" disabled={creating || !name.trim()}>
+					<div className="flex items-center gap-2">
+						<SavedIndicator saved={createSaved} />
+						<Button
+							type="submit"
+							disabled={creating || !name.trim()}
+						>
 						{creating ? (
 							<Loader2 className="animate-spin" />
 						) : (
@@ -220,6 +236,7 @@ export function ApiKeysCard() {
 						)}{" "}
 						Create key
 					</Button>
+					</div>
 				</form>
 				{keys.error && !keys.data && (
 					<QueryError

@@ -1,6 +1,10 @@
 import { Loader2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -38,6 +42,7 @@ export function AddUserDialog({
 	const [makeAdmin, setMakeAdmin] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [busy, setBusy] = useState(false)
+	const { saved, flash } = useSavedFlash()
 
 	function close() {
 		onClose()
@@ -68,6 +73,7 @@ export function AddUserDialog({
 					? "Temporary password copied. Send it to them privately."
 					: "Send them the temporary password privately.",
 			})
+			flash()
 			onAdded()
 			close()
 		} finally {
@@ -130,22 +136,25 @@ export function AddUserDialog({
 							Make them an admin too
 						</Label>
 					)}
-					<DialogFooter>
+					<DialogFooter className="gap-2 sm:justify-end">
 						<Button type="button" variant="outline" onClick={close}>
 							Cancel
 						</Button>
-						<Button
-							type="submit"
-							disabled={
-								busy ||
-								!name.trim() ||
-								!email.trim() ||
-								!isStrongPassword(password)
-							}
-						>
-							{busy && <Loader2 className="animate-spin" />} Add
-							user
-						</Button>
+						<div className="flex items-center gap-2">
+							<SavedIndicator saved={saved} />
+							<Button
+								type="submit"
+								disabled={
+									busy ||
+									!name.trim() ||
+									!email.trim() ||
+									!isStrongPassword(password)
+								}
+							>
+								{busy && <Loader2 className="animate-spin" />}{" "}
+								Add user
+							</Button>
+						</div>
 					</DialogFooter>
 				</form>
 			</DialogContent>
@@ -166,6 +175,7 @@ export function SetPasswordDialog({
 	const [password, setPassword] = useState("")
 	const [error, setError] = useState<string | null>(null)
 	const [busy, setBusy] = useState(false)
+	const { saved, flash } = useSavedFlash()
 
 	function close() {
 		onClose()
@@ -199,6 +209,7 @@ export function SetPasswordDialog({
 					? "Copied to your clipboard. Send it to them privately."
 					: "Send it to them privately.",
 			})
+			flash()
 			onDone()
 			close()
 		} finally {
@@ -230,17 +241,20 @@ export function SetPasswordDialog({
 						onChange={setPassword}
 						autoFocus
 					/>
-					<DialogFooter>
+					<DialogFooter className="gap-2 sm:justify-end">
 						<Button type="button" variant="outline" onClick={close}>
 							Cancel
 						</Button>
-						<Button
-							type="submit"
-							disabled={busy || !isStrongPassword(password)}
-						>
-							{busy && <Loader2 className="animate-spin" />} Set
-							temporary password
-						</Button>
+						<div className="flex items-center gap-2">
+							<SavedIndicator saved={saved} />
+							<Button
+								type="submit"
+								disabled={busy || !isStrongPassword(password)}
+							>
+								{busy && <Loader2 className="animate-spin" />}{" "}
+								Set temporary password
+							</Button>
+						</div>
 					</DialogFooter>
 				</form>
 			</DialogContent>

@@ -1,6 +1,10 @@
 import { Loader2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -33,6 +37,7 @@ export function ChangePasswordCard() {
 	const [error, setError] = useState<string | null>(null)
 	const [needsRelogin, setNeedsRelogin] = useState(false)
 	const [busy, setBusy] = useState(false)
+	const { saved, flash } = useSavedFlash()
 
 	if (hasPassword.isPending) {
 		return null
@@ -89,6 +94,7 @@ export function ChangePasswordCard() {
 					? "Password changed. Other devices were logged out."
 					: "Password changed"
 			)
+			flash()
 			void queryClient.invalidateQueries({
 				queryKey: ["auth", "sessions"],
 			})
@@ -138,6 +144,7 @@ export function ChangePasswordCard() {
 					? "Password set. Other devices were logged out."
 					: "Password set"
 			)
+			flash()
 			void queryClient.invalidateQueries({
 				queryKey: ["auth", "has-password"],
 			})
@@ -248,10 +255,15 @@ export function ChangePasswordCard() {
 								/>
 								Logout my other devices
 							</Label>
-							<Button type="submit" disabled={busy || !setValid}>
-								{busy && <Loader2 className="animate-spin" />}{" "}
-								Set password
-							</Button>
+							<div className="flex items-center gap-2">
+								<SavedIndicator saved={saved} />
+								<Button type="submit" disabled={busy || !setValid}>
+									{busy && (
+										<Loader2 className="animate-spin" />
+									)}{" "}
+									Set password
+								</Button>
+							</div>
 						</div>
 					</form>
 				</CardContent>
@@ -351,10 +363,16 @@ export function ChangePasswordCard() {
 							/>
 							Logout my other devices
 						</Label>
-						<Button type="submit" disabled={busy || !changeValid}>
-							{busy && <Loader2 className="animate-spin" />}{" "}
-							Change password
-						</Button>
+						<div className="flex items-center gap-2">
+							<SavedIndicator saved={saved} />
+							<Button
+								type="submit"
+								disabled={busy || !changeValid}
+							>
+								{busy && <Loader2 className="animate-spin" />}{" "}
+								Change password
+							</Button>
+						</div>
 					</div>
 				</form>
 			</CardContent>

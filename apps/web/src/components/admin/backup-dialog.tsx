@@ -2,6 +2,10 @@ import { Loader2 } from "lucide-react"
 import { SaveIcon } from "@/components/icons/save"
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,6 +32,7 @@ export function BackUpDialog({
 }) {
 	const [note, setNote] = useState("")
 	const [saving, setSaving] = useState(false)
+	const { saved, flash } = useSavedFlash()
 
 	async function backUp() {
 		setSaving(true)
@@ -40,6 +45,7 @@ export function BackUpDialog({
 			void queryClient.invalidateQueries({ queryKey: tasksKey })
 			void queryClient.invalidateQueries({ queryKey: auditKey })
 			toast.success(data.summary)
+			flash()
 			setNote("")
 			onOpenChange(false)
 		} catch (error) {
@@ -77,15 +83,18 @@ export function BackUpDialog({
 							onChange={(event) => setNote(event.target.value)}
 						/>
 					</div>
-					<DialogFooter>
-						<Button type="submit" disabled={saving}>
-							{saving ? (
-								<Loader2 className="animate-spin" />
-							) : (
-								<SaveIcon size={24} className="flex" />
-							)}{" "}
-							Back up
-						</Button>
+					<DialogFooter className="gap-2 sm:justify-end">
+						<div className="flex items-center gap-2">
+							<SavedIndicator saved={saved} />
+							<Button type="submit" disabled={saving}>
+								{saving ? (
+									<Loader2 className="animate-spin" />
+								) : (
+									<SaveIcon size={24} className="flex" />
+								)}{" "}
+								Back up
+							</Button>
+						</div>
 					</DialogFooter>
 				</form>
 			</DialogContent>

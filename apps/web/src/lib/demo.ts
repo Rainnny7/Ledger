@@ -85,6 +85,7 @@ export const DEMO_IDENTITY = {
 export interface DemoPrefs {
 	currency?: string
 	includeOverdraft?: boolean
+	hideAiSuggestions?: boolean
 }
 
 function readPrefs(): DemoPrefs {

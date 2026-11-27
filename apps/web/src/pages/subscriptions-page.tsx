@@ -5,6 +5,7 @@ import { SubscriptionCalendarCard } from "@/components/subscriptions/subscriptio
 import { SubscriptionComingUp } from "@/components/subscriptions/subscription-coming-up"
 import { SubscriptionDialog } from "@/components/subscriptions/subscription-dialog"
 import { SubscriptionStatCard } from "@/components/subscriptions/subscription-stat-card"
+import { AskLedgerButton } from "@/components/chat/ask-ledger-button"
 import { SubscriptionSuggestionsCard } from "@/components/subscriptions/subscription-suggestions-card"
 import { SubscriptionsTable } from "@/components/subscriptions/subscriptions-table"
 import { subscriptionDueLabel } from "@/components/subscriptions/subscription-utils"
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/card"
 import { QueryError } from "@/components/ui/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
+import { formatMoney } from "@/lib/format"
 
 /** Recurring charges, upcoming payments, and calendar view. */
 export function SubscriptionsPage() {
@@ -123,7 +125,14 @@ export function SubscriptionsPage() {
 
 			<Card className="gap-0 pb-0">
 				<CardHeader className="pb-4">
-					<CardTitle>All Subscriptions</CardTitle>
+					<CardTitle className="flex flex-wrap items-center gap-2">
+						All Subscriptions
+						<AskLedgerButton
+							variant="tip"
+							label="Which Could I Cancel?"
+							prompt={`I have ${page.active.length} active subscriptions costing about ${formatMoney(page.monthly)}/month (${formatMoney(page.monthly * 12)}/year). Which of these could I cancel or downgrade to save money without much impact?`}
+						/>
+					</CardTitle>
 					<CardDescription>
 						{page.active.length} active
 						{page.subs.length > page.active.length

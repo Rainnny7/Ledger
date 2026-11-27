@@ -5,6 +5,10 @@ import { useQuery } from "@tanstack/react-query"
 import { Crown, Loader2, MoreHorizontal, ShieldCheck } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { toastError } from "@/lib/toast"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -67,6 +71,7 @@ export function UsersCard() {
 	})
 	const [dialog, setDialog] = useState<UserDialog | null>(null)
 	const [busy, setBusy] = useState<string | null>(null)
+	const { saved, flash } = useSavedFlash()
 
 	async function act(
 		user: AdminUser,
@@ -80,6 +85,7 @@ export function UsersCard() {
 			toastError(error.message ?? "Something went wrong")
 		} else {
 			toast.success(label)
+			flash()
 		}
 		refresh()
 	}
@@ -94,6 +100,7 @@ export function UsersCard() {
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
 					Users
+					<SavedIndicator saved={saved} showLabel={false} />
 					{users.data && (
 						<Badge variant="secondary">{users.data.length}</Badge>
 					)}
@@ -291,6 +298,7 @@ export function UsersCard() {
 						return error.message ?? "Could not change their role"
 					}
 					toast.success(admin ? "No longer an admin" : "Now an admin")
+					flash()
 					refresh()
 					return null
 				}}
@@ -311,6 +319,7 @@ export function UsersCard() {
 						return error.message ?? "Could not block this user"
 					}
 					toast.success("Login blocked")
+					flash()
 					refresh()
 					return null
 				}}
@@ -332,6 +341,7 @@ export function UsersCard() {
 						return error.message ?? "Could not delete this user"
 					}
 					toast.success("User deleted")
+					flash()
 					refresh()
 					return null
 				}}

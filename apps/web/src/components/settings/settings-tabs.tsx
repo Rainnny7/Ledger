@@ -97,6 +97,11 @@ const ALL_TABS: SettingsTabDefinition[] = [
 				keywords: "currency home money locale",
 			},
 			{
+				id: "ai-suggestions",
+				title: "AI suggestions",
+				keywords: "ask ledger chat hide ai sparkle suggestions",
+			},
+			{
 				id: "onboarding",
 				title: "Onboarding",
 				keywords: "tour setup wizard",

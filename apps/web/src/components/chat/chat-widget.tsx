@@ -48,7 +48,13 @@ import {
 import { cn } from "cn"
 import { MessageCircle, Square, X } from "lucide-react"
 import { AnimatePresence, m, useReducedMotion } from "motion/react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+	askLedgerRevision,
+	peekAskLedgerQueue,
+	shiftAskLedgerQueue,
+	subscribeAskLedger,
+} from "@/lib/ask-ledger"
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 
 const CHAT_API = "/api/banks/chat"
 const CHAT_SUGGESTIONS_API = "/api/banks/chat/suggestions"
@@ -200,6 +206,11 @@ function ChatWidgetPanel() {
 	const suggestionsAbortRef = useRef<AbortController | null>(null)
 
 	const busy = status === "submitted" || status === "streaming"
+	const askRevision = useSyncExternalStore(
+		subscribeAskLedger,
+		askLedgerRevision,
+		askLedgerRevision
+	)
 	const displayError = error ? chatErrorMessage(error) : null
 	const showThinking =
 		busy &&
@@ -317,6 +328,22 @@ function ChatWidgetPanel() {
 			controller.abort()
 		}
 	}, [status, error, messages])
+
+	// Contextual "Ask Ledger" buttons queue prompts elsewhere in the app: open the panel and send
+	// the next one whenever the chat is idle (re-runs on every queue change, even if already open).
+	useEffect(() => {
+		if (peekAskLedgerQueue().length === 0) {
+			return
+		}
+		setOpen(true)
+		if (busy) {
+			return
+		}
+		const next = shiftAskLedgerQueue()
+		if (next) {
+			submitText(next)
+		}
+	}, [askRevision, busy, submitText])
 
 	const toggleOpen = useCallback(() => {
 		setOpen((previous) => !previous)
@@ -572,7 +599,8 @@ function ChatWidgetPanel() {
 										{busy ? (
 											<PromptInputButton
 												aria-label="Stop response"
-												variant="outline"
+												variant="destructive"
+												className="border-destructive/40 bg-destructive text-white hover:bg-destructive/90 hover:text-white"
 												onClick={() => void stop()}
 											>
 												<Square className="size-4 fill-current" />

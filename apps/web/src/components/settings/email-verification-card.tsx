@@ -1,6 +1,10 @@
 import { Loader2, MailCheck, MailWarning } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,6 +35,7 @@ export function EmailVerificationCard() {
 		userId: string
 		endsAt: number
 	} | null>(null)
+	const { saved, flash } = useSavedFlash()
 	const user = session.data?.user
 	const userId = user?.id
 	const persistedEnd = userId ? readVerificationCooldownEnd(userId) : null
@@ -140,6 +145,7 @@ export function EmailVerificationCard() {
 			}
 			startCooldownWindow()
 			toast.success("Check your inbox for a verification link")
+			flash()
 		} finally {
 			setBusy(false)
 		}
@@ -167,19 +173,21 @@ export function EmailVerificationCard() {
 					Not verified
 				</div>
 				{emailLinks ? (
-					<Button
-						type="button"
-						variant="outline"
-						size="sm"
-						className="w-fit"
-						disabled={busy || resendBlocked}
-						onClick={() => void sendVerification()}
-					>
-						{busy && <Loader2 className="animate-spin" />}
-						{resendBlocked
-							? `Resend in ${formatResendCountdown(cooldownSeconds)}`
-							: "Send verification email"}
-					</Button>
+					<div className="flex w-fit items-center gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							disabled={busy || resendBlocked}
+							onClick={() => void sendVerification()}
+						>
+							{busy && <Loader2 className="animate-spin" />}
+							{resendBlocked
+								? `Resend in ${formatResendCountdown(cooldownSeconds)}`
+								: "Send verification email"}
+						</Button>
+						<SavedIndicator saved={saved} showLabel={false} />
+					</div>
 				) : (
 					<p className="text-sm text-muted-foreground">
 						This server has not set up outbound email. Ask an admin

@@ -1,5 +1,9 @@
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { toastError } from "@/lib/toast"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -22,6 +26,9 @@ type Saving = "registration" | "aiChat" | "mcp" | null
 export function FeatureFlagsCard() {
 	const settings = useAdminSettings()
 	const [saving, setSaving] = useState<Saving>(null)
+	const { saved: regSaved, flash: flashReg } = useSavedFlash()
+	const { saved: aiSaved, flash: flashAi } = useSavedFlash()
+	const { saved: mcpSaved, flash: flashMcp } = useSavedFlash()
 	const open = settings.data?.registrationOpen ?? false
 	const aiChat = settings.data?.aiChat
 
@@ -37,6 +44,7 @@ export function FeatureFlagsCard() {
 			toast.success(
 				next ? "Anyone can now create an account" : "Sign-ups closed"
 			)
+			flashReg()
 		} catch (error) {
 			toastError((error as Error).message)
 		} finally {
@@ -55,6 +63,7 @@ export function FeatureFlagsCard() {
 			void queryClient.invalidateQueries({ queryKey: auditKey })
 			void queryClient.invalidateQueries({ queryKey: ["config"] })
 			toast.success(next ? "AI chat enabled" : "AI chat disabled")
+			flashAi()
 		} catch (error) {
 			toastError((error as Error).message)
 		} finally {
@@ -73,6 +82,7 @@ export function FeatureFlagsCard() {
 			void queryClient.invalidateQueries({ queryKey: auditKey })
 			void queryClient.invalidateQueries({ queryKey: ["config"] })
 			toast.success(next ? "MCP server enabled" : "MCP server disabled")
+			flashMcp()
 		} catch (error) {
 			toastError((error as Error).message)
 		} finally {
@@ -102,6 +112,10 @@ export function FeatureFlagsCard() {
 						<div className="space-y-1">
 							<p className="flex items-center gap-2 text-sm font-medium">
 								Sign-ups
+								<SavedIndicator
+									saved={regSaved}
+									showLabel={false}
+								/>
 								{settings.data &&
 									(open ? (
 										<Badge>Open</Badge>
@@ -136,6 +150,10 @@ export function FeatureFlagsCard() {
 							<div className="space-y-1">
 								<p className="flex items-center gap-2 text-sm font-medium">
 									AI chat
+									<SavedIndicator
+										saved={aiSaved}
+										showLabel={false}
+									/>
 									{aiChat?.configured &&
 										settings.data &&
 										(aiChat.enabled ? (
@@ -237,6 +255,10 @@ export function FeatureFlagsCard() {
 						<div className="space-y-1">
 							<p className="flex items-center gap-2 text-sm font-medium">
 								MCP server
+								<SavedIndicator
+									saved={mcpSaved}
+									showLabel={false}
+								/>
 								{settings.data &&
 									(settings.data.mcp.enabled ? (
 										<Badge>On</Badge>

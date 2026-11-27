@@ -1,4 +1,8 @@
 import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
+import {
 	ACCENTS,
 	MODES,
 	type AccentId,
@@ -68,6 +72,7 @@ const MODE_OPTIONS: {
 /** Mode picker grid shared by Settings and onboarding. */
 export function AppearanceModePicker() {
 	const { mode, accent, changeMode } = useAppTheme()
+	const { saved, flash } = useSavedFlash()
 	const lightMode = MODES.find((entry) => entry.id === "light")!
 	const darkMode = MODES.find((entry) => entry.id === "dark")!
 	const accentEntry = ACCENTS.find((entry) => entry.id === accent)!
@@ -76,7 +81,10 @@ export function AppearanceModePicker() {
 
 	return (
 		<div className="grid gap-3">
-			<h3 className="text-sm font-medium">Mode</h3>
+			<h3 className="flex items-center gap-2 text-sm font-medium">
+				Mode
+				<SavedIndicator saved={saved} />
+			</h3>
 			<div
 				role="radiogroup"
 				aria-label="Mode"
@@ -93,9 +101,16 @@ export function AppearanceModePicker() {
 							type="button"
 							role="radio"
 							aria-checked={selected}
-							onClick={(event) =>
-								changeMode(option.id, event.currentTarget)
-							}
+							onClick={(event) => {
+								void changeMode(
+									option.id,
+									event.currentTarget
+								).then((ok) => {
+									if (ok) {
+										flash()
+									}
+								})
+							}}
 							className={cn(
 								"grid content-start gap-2.5 rounded-xl border p-2.5 text-left transition-colors outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50",
 								selected &&
@@ -145,10 +160,14 @@ export function AppearanceModePicker() {
 /** Accent colour picker shared by Settings and onboarding. */
 export function AppearanceAccentPicker() {
 	const { accent, changeAccent } = useAppTheme()
+	const { saved, flash } = useSavedFlash()
 
 	return (
 		<div className="grid gap-3">
-			<h3 className="text-sm font-medium">Accent</h3>
+			<h3 className="flex items-center gap-2 text-sm font-medium">
+				Accent
+				<SavedIndicator saved={saved} />
+			</h3>
 			<div
 				role="radiogroup"
 				aria-label="Accent colour"
@@ -164,12 +183,16 @@ export function AppearanceAccentPicker() {
 							aria-checked={selected}
 							aria-label={entry.label}
 							title={entry.label}
-							onClick={(event) =>
-								changeAccent(
+							onClick={(event) => {
+								void changeAccent(
 									entry.id as AccentId,
 									event.currentTarget
-								)
-							}
+								).then((ok) => {
+									if (ok) {
+										flash()
+									}
+								})
+							}}
 							className={cn(
 								"relative grid size-9 place-items-center rounded-full ring-1 ring-foreground/15 transition-shadow outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
 								selected &&

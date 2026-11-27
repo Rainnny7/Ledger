@@ -33,6 +33,10 @@ import { useQuery } from "@tanstack/react-query"
 import { BellRing, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 
 const KIND_OPTIONS: { value: NotificationKind; label: string }[] = [
 	{ value: "info", label: "Info" },
@@ -70,6 +74,7 @@ export function SendNotificationCard() {
 	const [href, setHref] = useState("")
 	const [emailAlso, setEmailAlso] = useState(false)
 	const [sending, setSending] = useState(false)
+	const { saved, flash } = useSavedFlash()
 
 	const smtpReady = smtp.data?.configured === true
 
@@ -101,6 +106,7 @@ export function SendNotificationCard() {
 				}),
 			})
 			toast.success(`Sent to ${result.sent} user${result.sent === 1 ? "" : "s"}`)
+			flash()
 			setTitle("")
 			setBody("")
 			setHref("")
@@ -122,7 +128,8 @@ export function SendNotificationCard() {
 				<CardDescription>
 					Deliver an in-app notification to everyone or specific people.
 				</CardDescription>
-				<CardAction>
+				<CardAction className="flex items-center gap-2">
+					<SavedIndicator saved={saved} />
 					<Button
 						size="sm"
 						disabled={sending || !!users.error}

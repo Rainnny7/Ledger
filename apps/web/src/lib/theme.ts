@@ -157,25 +157,27 @@ export function useAppTheme() {
 
 	/** Saves to the account too (not in demo mode: that's a look around, not your account). */
 	const saveToAccount = useCallback(
-		(changes: { theme: ModeChoice } | { accent: AccentId }) => {
+		async (
+			changes: { theme: ModeChoice } | { accent: AccentId }
+		): Promise<boolean> => {
 			if (!signedIn || demoMode) {
-				return
+				return true
 			}
-			void authClient.updateUser(changes).then(({ error }) => {
-				if (error) {
-					toastError(error.message ?? "Couldn’t save your appearance")
-				}
-			})
+			const { error } = await authClient.updateUser(changes)
+			if (error) {
+				toastError(error.message ?? "Couldn’t save your appearance")
+				return false
+			}
+			return true
 		},
 		[signedIn]
 	)
 
 	const changeMode = useCallback(
-		async (next: ModeChoice, from?: Element | null) => {
+		async (next: ModeChoice, from?: Element | null): Promise<boolean> => {
 			if (next === mode) {
-				return
+				return true
 			}
-			saveToAccount({ theme: next })
 			await applyWithTransition(
 				() =>
 					flushSync(() => {
@@ -184,20 +186,21 @@ export function useAppTheme() {
 					}),
 				from
 			)
+			return saveToAccount({ theme: next })
 		},
 		[mode, saveToAccount, setTheme]
 	)
 
 	const changeAccent = useCallback(
-		async (next: AccentId, from?: Element | null) => {
+		async (next: AccentId, from?: Element | null): Promise<boolean> => {
 			if (next === accent) {
-				return
+				return true
 			}
-			saveToAccount({ accent: next })
 			await applyWithTransition(
 				() => flushSync(() => storeAccent(next)),
 				from
 			)
+			return saveToAccount({ accent: next })
 		},
 		[accent, saveToAccount]
 	)

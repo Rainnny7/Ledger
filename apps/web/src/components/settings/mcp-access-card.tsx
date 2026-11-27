@@ -6,6 +6,10 @@ import { CheckIcon } from "@/components/icons/check"
 import { KeyRoundIcon } from "@/components/icons/key-round"
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -71,6 +75,8 @@ export function McpAccessCard() {
 	const [creating, setCreating] = useState(false)
 	const [revoking, setRevoking] = useState<string | null>(null)
 	const [created, setCreated] = useState<NewToken | null>(null)
+	const { saved: createSaved, flash: flashCreate } = useSavedFlash()
+	const { saved: revokeSaved, flash: flashRevoke } = useSavedFlash()
 
 	async function createToken(event: React.FormEvent) {
 		event.preventDefault()
@@ -79,6 +85,7 @@ export function McpAccessCard() {
 			const result = await api.createMcpToken(name.trim())
 			setCreated({ name: result.row.name, secret: result.token })
 			setName("")
+			flashCreate()
 		} catch (error) {
 			toastError((error as Error).message)
 		} finally {
@@ -101,6 +108,7 @@ export function McpAccessCard() {
 		try {
 			await api.revokeMcpToken(token.id)
 			toast.success("Token revoked")
+			flashRevoke()
 		} catch (error) {
 			toastError((error as Error).message)
 		} finally {
@@ -111,7 +119,10 @@ export function McpAccessCard() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>MCP Access</CardTitle>
+				<CardTitle className="flex items-center gap-2">
+					MCP Access
+					<SavedIndicator saved={revokeSaved} showLabel={false} />
+				</CardTitle>
 				<CardDescription>
 					Connect Claude Desktop, Claude Code or another MCP client to
 					your finances with a personal token. Access is read-only and
@@ -135,14 +146,20 @@ export function McpAccessCard() {
 							onChange={(event) => setName(event.target.value)}
 						/>
 					</div>
-					<Button type="submit" disabled={creating || !name.trim()}>
-						{creating ? (
-							<Loader2 className="animate-spin" />
-						) : (
-							<PlusIcon size={24} className="flex" />
-						)}{" "}
-						Create token
-					</Button>
+					<div className="flex items-center gap-2">
+						<SavedIndicator saved={createSaved} />
+						<Button
+							type="submit"
+							disabled={creating || !name.trim()}
+						>
+							{creating ? (
+								<Loader2 className="animate-spin" />
+							) : (
+								<PlusIcon size={24} className="flex" />
+							)}{" "}
+							Create token
+						</Button>
+					</div>
 				</form>
 				{tokens.error && !tokens.data && (
 					<QueryError

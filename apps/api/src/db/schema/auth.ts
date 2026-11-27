@@ -27,6 +27,9 @@ export const user = sqliteTable("user", {
 	includeOverdraft: integer("includeOverdraft", { mode: "boolean" }).default(
 		true
 	),
+	hideAiSuggestions: integer("hideAiSuggestions", { mode: "boolean" }).default(
+		false
+	),
 	currency: text("currency"),
 	theme: text("theme"),
 	accent: text("accent"),

@@ -1,5 +1,9 @@
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+	SavedIndicator,
+	useSavedFlash,
+} from "@/components/common/saved-indicator"
 import { Button } from "@/components/ui/button"
 import { CopyIcon } from "@/components/icons/copy"
 import {
@@ -33,6 +37,8 @@ export function ReleaseChannelCard() {
 	const settings = useAdminSettings()
 	const { data: info } = useUpdate(true)
 	const [busy, setBusy] = useState(false)
+	const { saved: channelSaved, flash: flashChannel } = useSavedFlash()
+	const { saved: switchSaved, flash: flashSwitch } = useSavedFlash()
 	const channel = settings.data?.releaseChannel ?? "stable"
 
 	async function changeChannel(next: ReleaseChannel) {
@@ -45,6 +51,7 @@ export function ReleaseChannelCard() {
 			await settings.refetch()
 			await queryClient.invalidateQueries({ queryKey: queryKeys.update })
 			void queryClient.invalidateQueries({ queryKey: auditKey })
+			flashChannel()
 		} catch (error) {
 			toastError((error as Error).message)
 		} finally {
@@ -59,6 +66,7 @@ export function ReleaseChannelCard() {
 			toast.success(
 				"Switching now. Ledger restarts in a moment; reload the page after."
 			)
+			flashSwitch()
 		} catch (error) {
 			toastError((error as Error).message)
 		} finally {
@@ -77,6 +85,10 @@ export function ReleaseChannelCard() {
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="grid gap-4">
+				<div className="flex items-center gap-2 text-sm font-medium">
+					Channel
+					<SavedIndicator saved={channelSaved} showLabel={false} />
+				</div>
 				<Select
 					items={CHANNEL_OPTIONS}
 					value={channel}
@@ -113,6 +125,7 @@ export function ReleaseChannelCard() {
 									Pull and switch to{" "}
 									{info.imageTag ?? "the selected channel"}
 								</Button>
+								<SavedIndicator saved={switchSaved} />
 								<span className="text-xs text-muted-foreground">
 									Ledger will restart.
 								</span>
