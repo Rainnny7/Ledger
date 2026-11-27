@@ -232,7 +232,7 @@ export function SendNotificationCard() {
 						<Label htmlFor="notify-href">Link (optional)</Label>
 						<Input
 							id="notify-href"
-							placeholder="/settings"
+							placeholder="/?settings=security"
 							value={href}
 							onChange={(event) => setHref(event.target.value)}
 						/>

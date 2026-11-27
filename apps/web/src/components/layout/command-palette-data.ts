@@ -10,7 +10,6 @@ import {
 	Receipt,
 	RefreshCw,
 	Rocket,
-	Settings,
 	Store,
 	Upload,
 	Users,
@@ -140,13 +139,6 @@ export const PAGES: PaletteItem[] = (
 			icon: Users,
 			to: "/contacts",
 			keywords: "people sharing",
-		},
-		{
-			id: "page:/settings",
-			label: "Settings",
-			icon: Settings,
-			to: "/settings",
-			keywords: "preferences currency password",
 		},
 	] as const
 ).map((page) => ({ ...page, group: "Pages" as const }))

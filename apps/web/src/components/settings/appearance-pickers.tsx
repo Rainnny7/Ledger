@@ -1,5 +1,3 @@
-import { Monitor } from "lucide-react"
-import { CheckIcon } from "@/components/icons/check"
 import {
 	ACCENTS,
 	MODES,
@@ -99,7 +97,7 @@ export function AppearanceModePicker() {
 								changeMode(option.id, event.currentTarget)
 							}
 							className={cn(
-								"grid gap-2.5 rounded-xl border p-2.5 text-left transition-colors outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50",
+								"grid content-start gap-2.5 rounded-xl border p-2.5 text-left transition-colors outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50",
 								selected &&
 									"border-primary bg-primary/5 ring-1 ring-primary hover:bg-primary/10"
 							)}
@@ -126,19 +124,15 @@ export function AppearanceModePicker() {
 									</span>
 								</span>
 							)}
-							<span className="flex items-start gap-2 px-0.5">
-								<span className="grid min-w-0 flex-1 gap-0.5">
-									<span className="flex items-center gap-1.5 text-sm font-medium">
-										{!entry && (
-											<Monitor className="size-3.5 text-muted-foreground" />
-										)}
+							<span className="px-0.5">
+								<span className="grid gap-0.5">
+									<span className="text-sm font-medium">
 										{option.label}
 									</span>
 									<span className="text-xs leading-snug text-muted-foreground">
 										{option.description}
 									</span>
 								</span>
-								<CheckIcon size={24} className="flex" />
 							</span>
 						</button>
 					)
@@ -185,7 +179,6 @@ export function AppearanceAccentPicker() {
 								background: `linear-gradient(135deg, ${entry.light} 50%, ${entry.dark} 50%)`,
 							}}
 						>
-							<CheckIcon size={24} className="flex" />
 						</button>
 					)
 				})}

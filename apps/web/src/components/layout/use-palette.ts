@@ -10,7 +10,6 @@
 	Receipt,
 	RefreshCw,
 	Rocket,
-	ShieldCheck,
 	Sun,
 	Timer,
 	Wallet,
@@ -40,18 +39,22 @@ import { ACCENTS, MODES, useAppTheme } from "@/lib/theme"
 import { formatMoney, formatShortDate } from "@/lib/format"
 import {
 	queryClient,
+	useAppConfig,
 	useGoals,
 	useInvoices,
 	useOverview,
 	useSubscriptions,
 	useWork,
 } from "@/lib/queries"
+import { settingsPaletteItems } from "@/components/settings/settings-tabs"
 
 /** Command palette state: searchable items, keyboard selection, and navigation/actions. */
 export function usePalette({ onDone }: { onDone: () => void }) {
 	const navigate = useNavigate()
 	const { mode, accent, changeMode, changeAccent } = useAppTheme()
-	const isAdmin = useSession().data?.user.role === "admin"
+	const session = useSession().data
+	const isAdmin = session?.user.role === "admin"
+	const config = useAppConfig()
 	const accounts = useOverview().data?.accounts
 	const goals = useGoals().data?.goals
 	const subscriptions = useSubscriptions().data?.subscriptions
@@ -138,16 +141,12 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 		const pages = PAGES.filter(
 			(page) => !(demoMode && page.to === "/contacts")
 		)
-		if (isAdmin && !demoMode) {
-			pages.push({
-				id: "page:/admin",
-				label: "Admin",
-				icon: ShieldCheck,
-				to: "/admin",
-				group: "Pages",
-				keywords: "users manage",
+		pages.push(
+			...settingsPaletteItems({
+				isAdmin,
+				showMcp: Boolean(config?.mcp),
 			})
-		}
+		)
 		const activeJobs = (jobs ?? []).filter(
 			(job) => !job.archived && job.access !== "view"
 		)
@@ -218,7 +217,16 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 			})),
 		]
 		return out
-	}, [accounts, goals, subscriptions, invoices, jobs, commands, isAdmin])
+	}, [
+		accounts,
+		goals,
+		subscriptions,
+		invoices,
+		jobs,
+		commands,
+		isAdmin,
+		config?.mcp,
+	])
 
 	const items = useMemo(() => {
 		const raw = query.trim()

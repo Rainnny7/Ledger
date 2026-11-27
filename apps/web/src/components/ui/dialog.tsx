@@ -3,15 +3,37 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
+import { themeTransitionRunning } from "@/lib/theme"
 import { XIcon } from "lucide-react"
 
 // Scroll locking hides the page scrollbar (Base UI sets overflow: hidden on <html>), so overlays
 // trap focus without locking scroll; popups use overscroll-contain so their own scrolling doesn't leak.
+// A click during a theme transition lands on the browser's transition overlay, which reads as a
+// press outside the dialog; ignore those so changing the theme from inside a dialog can't close it.
 function Dialog({
 	modal = "trap-focus",
+	onOpenChange,
 	...props
 }: DialogPrimitive.Root.Props) {
-	return <DialogPrimitive.Root data-slot="dialog" modal={modal} {...props} />
+	return (
+		<DialogPrimitive.Root
+			data-slot="dialog"
+			modal={modal}
+			onOpenChange={(open, eventDetails) => {
+				if (
+					!open &&
+					themeTransitionRunning() &&
+					(eventDetails.reason === "outside-press" ||
+						eventDetails.reason === "focus-out")
+				) {
+					eventDetails.cancel()
+					return
+				}
+				onOpenChange?.(open, eventDetails)
+			}}
+			{...props}
+		/>
+	)
 }
 
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {

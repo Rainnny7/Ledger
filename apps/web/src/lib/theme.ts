@@ -89,6 +89,17 @@ function subscribeToAccent(onChange: () => void) {
 	}
 }
 
+/** How many theme view transitions are still animating. */
+let runningThemeTransitions = 0
+
+/**
+ * Whether a theme change is animating. While it does, the browser's transition overlay covers the
+ * page and swallows clicks, so overlays use this to ignore the "press outside" those clicks look like.
+ */
+export function themeTransitionRunning() {
+	return runningThemeTransitions > 0
+}
+
 /**
  * Runs `apply`. Where supported, the change spreads out in a circle from `from` instead of swapping
  * in at once.
@@ -100,7 +111,12 @@ async function applyWithTransition(apply: () => void, from?: Element | null) {
 		apply()
 		return
 	}
-	await document.startViewTransition(apply).ready
+	const transition = document.startViewTransition(apply)
+	runningThemeTransitions++
+	void transition.finished.finally(() => {
+		runningThemeTransitions--
+	})
+	await transition.ready
 	const x = origin.left + origin.width / 2
 	const y = origin.top + origin.height / 2
 	const radius = Math.hypot(

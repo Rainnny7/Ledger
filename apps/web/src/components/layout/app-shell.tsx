@@ -12,7 +12,8 @@ import { ReceiptIcon } from "@/components/icons/receipt"
 import { RefreshCWIcon } from "@/components/icons/refresh-cw"
 import { RocketIcon } from "@/components/icons/rocket"
 import { SettingsIcon } from "@/components/icons/settings"
-import { ShieldCheckIcon } from "@/components/icons/shield-check"
+import { SettingsDialog } from "@/components/settings/settings-dialog"
+import { DEFAULT_SETTINGS_TAB } from "@/components/settings/settings-tabs"
 import {
 	type AnimatedIconHandle,
 	useAnimatedIcon,
@@ -89,7 +90,13 @@ import {
 	useAppTheme,
 } from "@/lib/theme"
 import { useQuery } from "@tanstack/react-query"
-import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
+import {
+	Link,
+	Outlet,
+	getRouteApi,
+	useLocation,
+	useNavigate,
+} from "@tanstack/react-router"
 import { cn } from "cn"
 import { Map, Monitor, MonitorPlay, Palette, X } from "lucide-react"
 import { domMax, LazyMotion, m } from "motion/react"
@@ -103,6 +110,8 @@ import {
 	useRef,
 	useState,
 } from "react"
+
+const appShellRoute = getRouteApi("/_authed/_app")
 
 const CommandPalette = lazy(() =>
 	import("@/components/layout/command-palette").then((module) => ({
@@ -619,8 +628,6 @@ function useNavCounts() {
 /** Section names for the tab title, beyond the nav'subscription own labels. */
 const EXTRA_TITLES: Record<string, string> = {
 	"/invoices/new": "New invoice",
-	"/settings": "Settings",
-	"/admin": "Admin",
 	"/contacts": "Contacts",
 }
 
@@ -766,6 +773,7 @@ function AppShellFrame() {
 	const { startOnboarding } = useOnboarding()
 	useHomeCurrencySetup(data?.user)
 	const navigate = useNavigate()
+	const appNavigate = appShellRoute.useNavigate()
 	const { pathname } = useLocation()
 	const counts = useNavCounts()
 	useRouteTitle(pathname)
@@ -785,6 +793,15 @@ function AppShellFrame() {
 		.toUpperCase()
 	const { ref: searchIconRef, handlers: searchIconHandlers } =
 		useAnimatedIcon<HTMLButtonElement>()
+
+	function openSettings() {
+		void appNavigate({
+			search: (previous) => ({
+				...previous,
+				settings: DEFAULT_SETTINGS_TAB,
+			}),
+		})
+	}
 
 	return (
 		<LazyMotion features={domMax} strict>
@@ -910,11 +927,7 @@ function AppShellFrame() {
 										<>
 											<MenuItem
 												icon={SettingsIcon}
-												onClick={() =>
-													navigate({
-														to: "/settings",
-													})
-												}
+												onClick={openSettings}
 											>
 												Settings
 											</MenuItem>
@@ -948,11 +961,7 @@ function AppShellFrame() {
 											</MenuItem>
 											<MenuItem
 												icon={SettingsIcon}
-												onClick={() =>
-													navigate({
-														to: "/settings",
-													})
-												}
+												onClick={openSettings}
 											>
 												Settings
 											</MenuItem>
@@ -964,18 +973,6 @@ function AppShellFrame() {
 												<Map className="size-4 shrink-0" />
 												Take the tour
 											</DropdownMenuItem>
-											{isAdmin && (
-												<MenuItem
-													icon={ShieldCheckIcon}
-													onClick={() =>
-														navigate({
-															to: "/admin",
-														})
-													}
-												>
-													Admin
-												</MenuItem>
-											)}
 											{isAdmin &&
 												updateInfo?.available &&
 												updateInfo.latest && (
@@ -1036,6 +1033,7 @@ function AppShellFrame() {
 				<Suspense fallback={null}>
 					<CommandPalette />
 					<ChatWidget />
+					<SettingsDialog />
 				</Suspense>
 				<main className="mx-auto max-w-[80rem] px-4 py-8">
 					<InvitesBanner enabled={!demoMode} />
