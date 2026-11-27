@@ -79,7 +79,6 @@ import { setDisplayCurrency } from "@/lib/format"
 import { usePageTitle } from "@/lib/page-title"
 import { useUnreadIndicator } from "@/lib/use-unread-indicator"
 import {
-	queryClient,
 	queryKeys,
 	useGoals,
 	useOverview,
@@ -1125,8 +1124,6 @@ function AppShellFrame() {
 											if (demoMode) {
 												setDemoMode(false)
 											}
-											// Don'theme leave this user'subscription data in memory for whoever signs in next.
-											queryClient.clear()
 											navigate({
 												to: "/login",
 												replace: true,

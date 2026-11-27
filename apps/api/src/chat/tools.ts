@@ -59,7 +59,7 @@ const spendingSummaryInput = z.object({
 type AccountCurrencyMap = Map<string, string>
 
 /** One query: account ids to currency for compact tool payloads. */
-function accountCurrencyById(userId: string): AccountCurrencyMap {
+export function accountCurrencyById(userId: string): AccountCurrencyMap {
 	const rows = db
 		.select({
 			id: bankAccount.id,

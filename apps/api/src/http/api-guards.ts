@@ -1,4 +1,5 @@
 import { Elysia } from "elysia"
+import { auth } from "../auth/index.ts"
 import { CLIENT_IP_HEADER } from "../auth/hooks.ts"
 import {
 	AI_CHAT_BODY_PATHS,
@@ -9,6 +10,7 @@ import {
 	STATEMENT_UPLOAD_PATH,
 } from "../banks/upload-gate.ts"
 import { env } from "../config/env.ts"
+import { DIGEST_UNSUBSCRIBE_PATH } from "../digest/unsubscribe.ts"
 import { MCP_PATH } from "../mcp/path.ts"
 
 const API_PREFIX = "/api/"
@@ -63,13 +65,20 @@ function clientAddress(
  * maximum request body size instead.
  */
 export const apiGuards = new Elysia({ name: "api-guards" }).onRequest(
-	({ request, server, status }) => {
+	async ({ request, server, status }) => {
 		const { pathname } = new URL(request.url)
 		if (!pathname.startsWith(API_PREFIX)) {
 			return
 		}
 
 		const isUpload = pathname === STATEMENT_UPLOAD_PATH
+		if (
+			isUpload &&
+			!SAFE_METHODS.has(request.method) &&
+			!(await auth.api.getSession({ headers: request.headers }))
+		) {
+			return status(401, { error: "Unauthorized" })
+		}
 		const isChat = AI_CHAT_BODY_PATHS.has(pathname)
 		const limit = isUpload
 			? STATEMENT_MAX_REQUEST_BYTES
@@ -92,8 +101,11 @@ export const apiGuards = new Elysia({ name: "api-guards" }).onRequest(
 		}
 
 		// MCP clients are non-browser programs that authenticate with a bearer token, not a cookie.
+		// Mail clients' one-click unsubscribe (RFC 8058) posts a form with no Origin; the signed token in
+		// the URL is what authorises it.
 		if (
 			pathname !== MCP_PATH &&
+			pathname !== DIGEST_UNSUBSCRIBE_PATH &&
 			!SAFE_METHODS.has(request.method) &&
 			FORM_CONTENT_TYPE.test(
 				request.headers.get("content-type") || "text/plain"

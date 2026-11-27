@@ -36,6 +36,12 @@ export const authClient = createAuthClient({
 					required: false,
 					input: true,
 				},
+				// Settings → Preferences; "off" or "monthly" spending digest email.
+				spendingDigest: {
+					type: "string",
+					required: false,
+					input: true,
+				},
 				// Settings → Preferences; the currency totals are converted to.
 				currency: { type: "string", required: false, input: true },
 				// Settings → Appearance; the mode (system / light / dark / AMOLED), applied on every device you log in on.

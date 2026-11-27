@@ -30,6 +30,10 @@ export const user = sqliteTable("user", {
 	hideAiSuggestions: integer("hideAiSuggestions", {
 		mode: "boolean",
 	}).default(false),
+	/** Monthly spending digest email: "off" (default) or "monthly". */
+	spendingDigest: text("spendingDigest").default("off"),
+	/** The month ("YYYY-MM") the last digest covered, so a month is never emailed twice. */
+	spendingDigestLastPeriod: text("spendingDigestLastPeriod"),
 	currency: text("currency"),
 	theme: text("theme"),
 	accent: text("accent"),

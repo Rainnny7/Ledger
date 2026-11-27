@@ -4,7 +4,7 @@
  * sync, so uploading the same statement twice (or one a sync already covered) adds nothing.
  */
 import { randomUUID } from "node:crypto"
-import { unzipSync } from "fflate"
+import { archiveErrorMessage, unzipPdfEntries } from "./unzip-pdfs.ts"
 import { getDocumentProxy } from "unpdf"
 import { toCents, toCentsOrNull } from "@ledger/shared/money"
 import { and, asc, eq, ne } from "drizzle-orm"
@@ -122,42 +122,37 @@ export function collectPdfs(uploads: UploadedFile[]): {
 			})
 			continue
 		}
+		const archiveCounters = { total, count }
 		let entries: Record<string, Uint8Array>
 		try {
-			entries = unzipSync(upload.bytes, {
-				filter: (entry) => {
-					if (
-						!/\.pdf$/i.test(entry.name) ||
-						/(^|\/)(__MACOSX|\.)/.test(entry.name)
-					) {
-						return false
-					}
-					if (entry.originalSize > MAX_PDF_BYTES) {
-						rejected.push({
-							name: entry.name,
-							status: "error",
-							message: "Too large for a statement",
-						})
-						return false
-					}
-					total += entry.originalSize
-					if (total > MAX_TOTAL_BYTES || ++count > MAX_FILES) {
-						throw new Error("Archive is too large")
-					}
-					return true
+			entries = unzipPdfEntries(
+				upload.bytes,
+				{
+					maxPdfBytes: MAX_PDF_BYTES,
+					maxTotalBytes: MAX_TOTAL_BYTES,
+					maxFiles: MAX_FILES,
 				},
-			})
+				archiveCounters,
+				(name, message) => {
+					rejected.push({
+						name,
+						status: "error",
+						message,
+					})
+				}
+			)
 		} catch (error) {
+			total = archiveCounters.total
+			count = archiveCounters.count
 			rejected.push({
 				name: upload.name,
 				status: "error",
-				message:
-					(error as Error).message === "Archive is too large"
-						? "Archive is too large"
-						: "Could not open this archive",
+				message: archiveErrorMessage(error),
 			})
 			continue
 		}
+		total = archiveCounters.total
+		count = archiveCounters.count
 		for (const [name, bytes] of Object.entries(entries)) {
 			if (uploadKindFromBytes(bytes) !== "pdf") {
 				rejected.push({

@@ -223,7 +223,7 @@ test("magic link verify plus backup code issues a session", async () => {
 	assert.ok(live.length > 0)
 })
 
-test("unverified password user cannot request a magic link", async () => {
+test("unverified password user can request a login link", async () => {
 	enableTestSmtp()
 	const email = "unverified-password@example.com"
 	db.insert(user)
@@ -248,10 +248,8 @@ test("unverified password user cannot request a magic link", async () => {
 		})
 		.run()
 	const response = await magicLink(email, undefined, "10.0.0.20")
-	assert.equal(response.status, 400)
-	const body = await bodyOf(response)
-	assert.equal(body.code, "EMAIL_NOT_VERIFIED")
-	assert.equal(sentMail.length, 0)
+	assert.equal(response.status, 200)
+	assert.equal(sentMail.length, 1)
 })
 
 test("registration closed between request and verify does not create a user", async () => {
@@ -808,33 +806,59 @@ test("a login-link user can turn on two-factor without a password after a recent
 	assert.equal((await bodyOf(stale)).code, "RECENT_LOGIN_REQUIRED")
 })
 
-test("with SMTP configured a password sign-up must verify its email before it can log in", async () => {
+test("with SMTP configured password sign-up is refused", async () => {
 	enableTestSmtp()
 	setSetting("registration_open", "true")
-	const email = "needs-verification@example.com"
+	const signUp = await post(
+		"/sign-up/email",
+		{
+			name: "Blocked",
+			email: "needs-verification@example.com",
+			password: "Correct-Horse-Battery-9",
+		},
+		{ "x-ledger-client-ip": "10.0.0.38" }
+	)
+	assert.equal(signUp.status, 403)
+	assert.equal((await bodyOf(signUp)).code, "PASSWORD_SIGNUP_DISABLED")
+	assert.equal(sentMail.length, 0)
+})
+
+test("after verify-email, a pre-verification password is removed", async () => {
+	setSetting("smtp_config", "")
+	setSetting("registration_open", "true")
+	const email = "stripped-on-verify@example.com"
 	const password = "Correct-Horse-Battery-9"
 	const signUp = await post(
 		"/sign-up/email",
-		{ name: "Needs Verification", email, password },
-		{ "x-ledger-client-ip": "10.0.0.38" }
+		{ name: "Victim", email, password },
+		{ "x-ledger-client-ip": "10.0.0.41" }
 	)
 	assert.equal(signUp.status, 200)
-	assert.equal(((await signUp.json()) as { token: unknown }).token, null)
-	assert.equal(sentMail.length, 1)
-	const signIn = () =>
-		post(
-			"/sign-in/email",
-			{ email, password },
-			{ "x-ledger-client-ip": "10.0.0.39" }
-		)
-	const refused = await signIn()
-	assert.equal(refused.status, 403)
-	assert.equal((await bodyOf(refused)).code, "EMAIL_NOT_VERIFIED")
-	db.update(user)
-		.set({ emailVerified: true })
-		.where(eq(user.email, email))
-		.run()
-	assert.equal((await signIn()).status, 200)
+	const userId = (
+		(await signUp.json()) as { user: { id: string } }
+	).user.id
+	enableTestSmtp()
+	const token = await createEmailVerificationToken(
+		env.APP_SECRET,
+		email,
+		undefined,
+		3600
+	)
+	const verify = await get(
+		`/verify-email?token=${token}&callbackURL=/email-verified`,
+		"10.0.0.42"
+	)
+	assert.equal(verify.status, 302)
+	assert.equal(
+		db.select().from(account).where(eq(account.userId, userId)).get(),
+		undefined
+	)
+	const signIn = await post(
+		"/sign-in/email",
+		{ email, password },
+		{ "x-ledger-client-ip": "10.0.0.43" }
+	)
+	assert.equal(signIn.status, 401)
 })
 
 test("without SMTP a password sign-up logs straight in", async () => {

@@ -876,6 +876,11 @@ export const api = {
 			method: "POST",
 			body: JSON.stringify({ name }),
 		}),
+	/** Emails the signed-in user last month's spending digest right now (ignores the monthly schedule). */
+	sendTestDigest: () =>
+		request<{ ok: true; period: string }>("/digest/test", {
+			method: "POST",
+		}),
 	revokeMcpToken: (id: string) =>
 		request<{ ok: true }>(`/mcp-tokens/${id}`, { method: "DELETE" }),
 

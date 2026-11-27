@@ -50,7 +50,10 @@ import {
 	signInBackoffBlocked,
 	type AdminBody,
 } from "./hooks.ts"
-import { userHasCredentialPassword } from "./credentials.ts"
+import {
+	discardPasswordSetBeforeEmailProof,
+	userHasCredentialPassword,
+} from "./credentials.ts"
 import {
 	auditMagicLinkVerify,
 	markMagicLinkSignUp,
@@ -364,6 +367,13 @@ export const auth = betterAuth({
 					})
 				}
 			}
+			if (context.path === "/sign-up/email" && isSmtpConfigured()) {
+				throw new APIError("FORBIDDEN", {
+					code: "PASSWORD_SIGNUP_DISABLED",
+					message:
+						"Create your account with an email sign-in link instead.",
+				})
+			}
 			// New passwords must meet the complexity rules, wherever they're set from.
 			const newPasswordField = NEW_PASSWORD_FIELD.get(context.path)
 			if (newPasswordField) {
@@ -522,6 +532,9 @@ export const auth = betterAuth({
 		// A password login that is refused for an unverified address sends a fresh link.
 		sendOnSignIn: true,
 		autoSignInAfterVerification: false,
+		afterEmailVerification: async (verified) => {
+			await discardPasswordSetBeforeEmailProof(verified.id)
+		},
 		sendVerificationEmail: async ({
 			user: target,
 			url,
@@ -574,6 +587,19 @@ export const auth = betterAuth({
 				type: "boolean",
 				defaultValue: false,
 				input: true,
+				required: false,
+			},
+			// Settings → Preferences: "off" or "monthly" spending digest email (opt-in).
+			spendingDigest: {
+				type: "string",
+				defaultValue: "off",
+				input: true,
+				required: false,
+			},
+			// Month ("YYYY-MM") of the last digest sent; server-managed so a month is never emailed twice.
+			spendingDigestLastPeriod: {
+				type: "string",
+				input: false,
 				required: false,
 			},
 			// Settings → Preferences: the currency totals are shown in. Guessed from the browser at sign-up.

@@ -60,6 +60,8 @@ import {
 import { clearUpdateCache, getUpdateInfo } from "./admin/updates.ts"
 import { boundedString, id, jsonBody } from "./http/validation.ts"
 import { isSmtpConfigured } from "./mail/smtp.ts"
+import { spendingDigestAvailable } from "./digest/service.ts"
+import { digestRoutes, publicDigest } from "./routes/digest.ts"
 
 runMigrations()
 getOwnerId()
@@ -350,6 +352,7 @@ const signedIn = new Elysia({ name: "logged-in-routes", prefix: "/api/banks" })
 	.use(invoices)
 	.use(sharing)
 	.use(mcpTokens)
+	.use(digestRoutes)
 	.get("/*", apiNotFound)
 	.all("/*", apiNotFound)
 
@@ -373,6 +376,7 @@ app.use(apiErrors)
 		mcp: mcpEnabled(),
 		turnstileSiteKey,
 		emailLinks: isSmtpConfigured(),
+		spendingDigest: spendingDigestAvailable(),
 	}))
 	.use(
 		authLookup({
@@ -404,7 +408,9 @@ app.use(apiErrors)
 	.use(apiV1)
 	.use(notifications)
 	// Share links: anyone with the link can see that one invoice (and pay it), no login.
-	.group("/api/public", (group) => group.use(publicInvoices))
+	.group("/api/public", (group) =>
+		group.use(publicInvoices).use(publicDigest)
+	)
 	// PayPal's instant updates. Each delivery is checked with PayPal before anything is done with it.
 	.post(
 		"/api/webhooks/paypal/:connectionId",

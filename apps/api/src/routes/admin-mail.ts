@@ -25,6 +25,15 @@ const smtpBody = z.object({
 	password: boundedString(500).optional(),
 	fromAddress: boundedString(254).email(),
 	fromName: boundedString(120),
+	dkimDomainName: boundedString(253).optional(),
+	dkimKeySelector: boundedString(63).optional(),
+	dkimPrivateKey: boundedString(8000)
+		.refine(
+			(key) =>
+				key === "" || /-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(key),
+			"The DKIM key must be a PEM private key"
+		)
+		.optional(),
 })
 
 const smtpTestBody = z.object({ to: boundedString(254).email() })

@@ -183,6 +183,7 @@ export function AuthPage() {
 	const passwordRef = useRef<HTMLInputElement>(null)
 	const codeRef = useRef<HTMLInputElement>(null)
 
+	const emailFirstSignUp = config?.emailLinks === true
 	const copy =
 		step === "code" && useBackup
 			? {
@@ -190,6 +191,12 @@ export function AuthPage() {
 					description:
 						"Enter one of the backup codes you saved when you turned on 2FA.",
 				}
+			: step === "register" && emailFirstSignUp
+				? {
+						...STEP_COPY.register,
+						description:
+							"Enter your name and we’ll email you a sign-in link to create your account.",
+					}
 			: step === "verify"
 				? {
 						...STEP_COPY.verify,
@@ -230,6 +237,7 @@ export function AuthPage() {
 
 	const locked = step !== "email"
 	const isRegister = step === "register"
+	const passwordRegister = isRegister && !emailFirstSignUp
 	const passwordsDiffer =
 		confirmPassword.length > 0 && confirmPassword !== password
 
@@ -366,6 +374,13 @@ export function AuthPage() {
 							? "register"
 							: "closed"
 				)
+				if (!found.exists && found.registrationOpen && emailFirstSignUp) {
+					setMagicLinkEnabled(true)
+				}
+				return
+			}
+			if (isRegister && emailFirstSignUp) {
+				await requestMagicLink()
 				return
 			}
 			const fetchOptions = {
@@ -416,14 +431,18 @@ export function AuthPage() {
 		}
 	}
 
+	const registerSubmitLabel =
+		isRegister && emailFirstSignUp ? "Email sign-in link" : SUBMIT_LABEL.register
+
 	const submitDisabled =
 		pending ||
 		(step === "email" && (!email.trim() || config === null)) ||
 		(step === "password" && !password) ||
-		(isRegister &&
+		(passwordRegister &&
 			(!name.trim() ||
 				!isStrongPassword(password) ||
 				password !== confirmPassword)) ||
+		(isRegister && emailFirstSignUp && !name.trim()) ||
 		(step === "code" && !code.trim())
 
 	return (
@@ -506,7 +525,7 @@ export function AuthPage() {
 								</div>
 							</Reveal>
 
-							<Reveal open={step === "password" || isRegister}>
+							<Reveal open={step === "password" || passwordRegister}>
 								<div className="grid gap-2">
 									<Label htmlFor="password">Password</Label>
 									<PasswordInput
@@ -541,7 +560,7 @@ export function AuthPage() {
 								</div>
 							</Reveal>
 
-							<Reveal open={isRegister} className="gap-3">
+							<Reveal open={passwordRegister} className="gap-3">
 								<PasswordRules
 									id="password-rules"
 									password={password}
@@ -666,9 +685,11 @@ export function AuthPage() {
 							disabled={submitDisabled}
 						>
 							{pending && <Loader2 className="animate-spin" />}
-							{SUBMIT_LABEL[step]}
+							{step === "register"
+								? registerSubmitLabel
+								: SUBMIT_LABEL[step]}
 						</Button>
-						{(step === "password" || isRegister) &&
+						{(step === "password" || passwordRegister) &&
 						magicLinkEnabled ? (
 							<Button
 								type="button"

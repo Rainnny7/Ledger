@@ -15,7 +15,13 @@ import {
 	SHARE_KINDS,
 	type ShareRow,
 } from "../sharing/access.ts"
+import { slidingWindowRateLimit } from "../http/sliding-window-rate-limit.ts"
 import { boundedString, id, jsonBody } from "../http/validation.ts"
+
+const shareCreateLimit = slidingWindowRateLimit({
+	max: 10,
+	windowMs: 60_000,
+})
 
 /** Elysia plugin wiring HTTP handlers for this area. */
 export const sharing = new Elysia({ name: "sharing" }).use(sessionUser)
@@ -192,6 +198,11 @@ sharing.post(
 		const userId = user.id
 		if (!ownedItem(userId, kind, itemId)) {
 			return status(404, { error: "Not found" })
+		}
+		if (shareCreateLimit.record(userId)) {
+			return status(429, {
+				error: "Too many share attempts. Try again in a minute.",
+			})
 		}
 		const to = body.email
 		if (to === user.email.toLowerCase()) {

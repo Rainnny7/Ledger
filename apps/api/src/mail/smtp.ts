@@ -13,6 +13,10 @@ interface StoredSmtpConfig {
 	passwordCipher: string
 	fromAddress: string
 	fromName: string
+	/** Optional DKIM signing by Ledger, for relays that don't sign mail themselves. */
+	dkimDomainName?: string
+	dkimKeySelector?: string
+	dkimPrivateKeyCipher?: string
 }
 
 /** SMTP settings safe to return from the API (no secret material). */
@@ -25,6 +29,9 @@ export interface PublicSmtpConfig {
 	fromName: string
 	passwordSet: boolean
 	configured: boolean
+	dkimDomainName: string
+	dkimKeySelector: string
+	dkimPrivateKeySet: boolean
 }
 
 /** Body accepted when saving SMTP settings (password optional to keep the stored one). */
@@ -36,6 +43,11 @@ export interface SmtpConfigInput {
 	password?: string
 	fromAddress: string
 	fromName: string
+	/** Leave the domain blank to turn DKIM signing off. */
+	dkimDomainName?: string
+	dkimKeySelector?: string
+	/** PEM private key; blank or omitted keeps the stored one. */
+	dkimPrivateKey?: string
 }
 
 function loadStored(): StoredSmtpConfig | null {
@@ -63,6 +75,9 @@ function toPublic(stored: StoredSmtpConfig | null): PublicSmtpConfig {
 		fromName: stored?.fromName?.trim() ?? "",
 		passwordSet,
 		configured: Boolean(host && fromAddress && passwordSet),
+		dkimDomainName: stored?.dkimDomainName?.trim() ?? "",
+		dkimKeySelector: stored?.dkimKeySelector?.trim() ?? "",
+		dkimPrivateKeySet: Boolean(stored?.dkimPrivateKeyCipher?.trim()),
 	}
 }
 
@@ -81,6 +96,14 @@ export function saveSmtpConfig(input: SmtpConfigInput): PublicSmtpConfig {
 	if (passwordPlain) {
 		passwordCipher = encrypt(passwordPlain)
 	}
+	const dkimDomainName = input.dkimDomainName?.trim() ?? ""
+	const dkimPrivateKey = input.dkimPrivateKey?.trim()
+	let dkimPrivateKeyCipher = existing?.dkimPrivateKeyCipher ?? ""
+	if (!dkimDomainName) {
+		dkimPrivateKeyCipher = ""
+	} else if (dkimPrivateKey) {
+		dkimPrivateKeyCipher = encrypt(dkimPrivateKey)
+	}
 	const stored: StoredSmtpConfig = {
 		host: input.host.trim(),
 		port: input.port,
@@ -89,6 +112,11 @@ export function saveSmtpConfig(input: SmtpConfigInput): PublicSmtpConfig {
 		passwordCipher,
 		fromAddress: input.fromAddress.trim(),
 		fromName: input.fromName.trim(),
+		dkimDomainName,
+		dkimKeySelector: dkimDomainName
+			? (input.dkimKeySelector?.trim() ?? "")
+			: "",
+		dkimPrivateKeyCipher,
 	}
 	setSetting(SMTP_CONFIG_KEY, JSON.stringify(stored))
 	return toPublic(stored)
@@ -101,7 +129,18 @@ export function isSmtpConfigured(): boolean {
 
 function transportFromStored(stored: StoredSmtpConfig) {
 	const password = decrypt<string>(stored.passwordCipher)
+	const dkim =
+		stored.dkimDomainName &&
+		stored.dkimKeySelector &&
+		stored.dkimPrivateKeyCipher
+			? {
+					domainName: stored.dkimDomainName,
+					keySelector: stored.dkimKeySelector,
+					privateKey: decrypt<string>(stored.dkimPrivateKeyCipher),
+				}
+			: undefined
 	return createTransport({
+		dkim,
 		host: stored.host,
 		port: stored.port,
 		secure: stored.secure,
@@ -118,6 +157,8 @@ export async function sendMail(options: {
 	subject: string
 	text: string
 	html?: string
+	/** Extra message headers, such as List-Unsubscribe. */
+	headers?: Record<string, string>
 }): Promise<void> {
 	const stored = loadStored()
 	if (!stored || !isSmtpConfigured()) {
@@ -135,6 +176,7 @@ export async function sendMail(options: {
 			subject: options.subject,
 			text: options.text,
 			html: options.html,
+			headers: options.headers,
 		})
 	} catch (error) {
 		const message =

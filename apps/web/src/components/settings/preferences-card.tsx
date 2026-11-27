@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Button } from "@/components/ui/button"
+import { api } from "@/lib/api"
 import { authClient, useSession } from "@/lib/auth-client"
 import { demoMode, setDemoPrefs, useDemoPrefs } from "@/lib/demo"
 import { queryClient } from "@/lib/queries"
@@ -30,11 +32,19 @@ function hideAiSavedMessage(value: boolean) {
 	return value ? "Ask Ledger buttons hidden" : "Ask Ledger buttons shown"
 }
 
+function digestSavedMessage(value: boolean) {
+	return value
+		? "You'll get a spending digest each month"
+		: "Monthly spending digest turned off"
+}
+
 /** Display currency and overdraft-counting preferences. */
 export function PreferencesCard() {
 	const { data } = useSession()
 	const demo = useDemoPrefs()
-	const aiChat = Boolean(useAppConfig()?.aiChat)
+	const config = useAppConfig()
+	const aiChat = Boolean(config?.aiChat)
+	const digestAvailable = Boolean(config?.spendingDigest)
 	const saved =
 		demo.includeOverdraft ??
 		(data?.user as { includeOverdraft?: boolean | null } | undefined)
@@ -45,6 +55,13 @@ export function PreferencesCard() {
 		(data?.user as { hideAiSuggestions?: boolean | null } | undefined)
 			?.hideAiSuggestions ??
 		false
+	const digestSaved =
+		(data?.user as { spendingDigest?: string | null } | undefined)
+			?.spendingDigest === "monthly"
+	const [digestPending, setDigestPending] = useState<boolean | null>(null)
+	const [sendingTest, setSendingTest] = useState(false)
+	const digestChecked = digestPending ?? digestSaved
+	const { saved: digestFlash, flash: flashDigest } = useSavedFlash()
 	const [pending, setPending] = useState<boolean | null>(null)
 	const [hideAiPending, setHideAiPending] = useState<boolean | null>(null)
 	const checked = pending ?? saved
@@ -94,6 +111,34 @@ export function PreferencesCard() {
 		toast.success(hideAiSavedMessage(value))
 		flashHideAi()
 		setHideAiPending(null)
+	}
+
+	async function toggleDigest(value: boolean) {
+		setDigestPending(value)
+		const { error } = await authClient.updateUser({
+			spendingDigest: value ? "monthly" : "off",
+		})
+		if (error) {
+			toastError(error.message ?? "Could not save that")
+			setDigestPending(null)
+			return
+		}
+		await queryClient.invalidateQueries()
+		toast.success(digestSavedMessage(value))
+		flashDigest()
+		setDigestPending(null)
+	}
+
+	async function sendTestDigest() {
+		setSendingTest(true)
+		try {
+			await api.sendTestDigest()
+			toast.success("Test digest sent. Check your inbox.")
+		} catch (error) {
+			toastError((error as Error).message)
+		} finally {
+			setSendingTest(false)
+		}
 	}
 
 	return (
@@ -164,6 +209,57 @@ export function PreferencesCard() {
 						/>
 					</div>
 				) : null}
+				{demoMode ? null : (
+					<div
+						id="settings-section-spending-digest"
+						className="grid gap-3"
+					>
+						<div className="flex items-start justify-between gap-4">
+							<Label
+								htmlFor="pref-digest"
+								className="grid gap-1 font-normal"
+							>
+								<span className="flex items-center gap-2 font-medium">
+									Monthly spending digest
+									<SavedIndicator
+										saved={digestFlash}
+										showLabel={false}
+									/>
+								</span>
+								<span className="text-sm text-muted-foreground">
+									{digestAvailable
+										? "Emails you a summary of last month on the 1st: totals, how it compares, unusual charges and new subscriptions. Only totals and a few flagged items (merchant names and amounts) are shared with the AI provider that writes the wording."
+										: "Not available: the server needs outgoing email and AI set up first (ask the admin)."}
+								</span>
+							</Label>
+							<Switch
+								id="pref-digest"
+								checked={digestChecked}
+								disabled={
+									!digestAvailable || digestPending !== null
+								}
+								onCheckedChange={(nextChecked) =>
+									void toggleDigest(nextChecked)
+								}
+							/>
+						</div>
+						{digestAvailable ? (
+							<div>
+								<Button
+									type="button"
+									variant="secondary"
+									size="sm"
+									disabled={sendingTest}
+									onClick={() => void sendTestDigest()}
+								>
+									{sendingTest
+										? "Sending..."
+										: "Send me a test digest now"}
+								</Button>
+							</div>
+						) : null}
+					</div>
+				)}
 			</CardContent>
 		</Card>
 	)

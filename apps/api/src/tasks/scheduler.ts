@@ -27,6 +27,7 @@ import {
 import { env } from "../config/env.ts"
 import { syncInBackground } from "../banks/sessions.ts"
 import { refreshRates } from "../fx/rates.ts"
+import { runSpendingDigestTask } from "../digest/service.ts"
 
 /** Shape of TaskRun as stored and returned by the API. */
 export interface TaskRun {
@@ -269,6 +270,14 @@ const TASKS: Task[] = [
 			"Saves a copy of the whole database to data/backups, keeping the most recent 14 (BACKUPS_KEPT). Download one from Admin → Tasks. Restoring needs the same APP_SECRET, since saved bank details stay encrypted.",
 		intervalMs: 24 * HOUR,
 		run: backUp,
+	},
+	{
+		id: "spending-digest",
+		label: "Send spending digests",
+		description:
+			"Emails the monthly spending digest to people who turned it on, once their local date moves into a new month. Each month is sent at most once per person, and nothing is sent unless outgoing email and AI are set up.",
+		intervalMs: HOUR,
+		run: runSpendingDigestTask,
 	},
 	{
 		id: "tidy-up",

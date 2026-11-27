@@ -14,6 +14,7 @@ Ledger is a single process: the built web app and API on one port (`3001` by def
 - [Backups and restore](#backups-and-restore)
 - [Updating](#updating)
 - [Unattended updates (Watchtower)](#unattended-updates-watchtower)
+- [Email deliverability](#email-deliverability)
 - [Troubleshooting](#troubleshooting)
 
 ## Requirements
@@ -199,6 +200,20 @@ services:
 ```
 
 Review release notes before auto-upgrading production; database migrations are forward-only and backups are still your responsibility.
+
+## Email deliverability
+
+Ledger sends mail (sign-in links, notifications and the monthly spending digest) through the SMTP server you set in Admin → Outbound Email. Whether it reaches an inbox depends on your domain's DNS, not on Ledger.
+
+**Monthly spending digest.** Each person can opt in under Settings → Preferences (off by default). It needs outgoing email configured and `AI_API_KEY` set. Early each month, once a person's own calendar date reaches the new month, Ledger emails a summary of the month that just ended: totals, comparison with earlier months, category shifts, unusual charges and new or pricier subscriptions. All figures are computed by Ledger. Only aggregates and a few flagged items (merchant names and amounts, no account numbers and no full transaction lists) are sent to your AI provider (`AI_BASE_URL`), which writes the short commentary; if that call fails the email goes out without commentary. Every digest has an unsubscribe link and `List-Unsubscribe` headers (one-click, RFC 8058). The links use `PUBLIC_URL`, so set it to the address people can reach. Admin → Tasks → Send spending digests runs the check on demand, and "Send me a test digest now" in Preferences sends yourself last month's digest regardless of the schedule.
+
+**Checklist.** Use a From address on a domain you control, then set up:
+
+- **SPF.** Publish a TXT record on the From domain that lists your SMTP provider, e.g. `v=spf1 include:_spf.your-provider.com ~all`. Self-hosted relay: `v=spf1 ip4:YOUR.SERVER.IP ~all`.
+- **DKIM.** Messages must be signed with a key whose public half is in DNS (`selector._domainkey.example.com`). Most providers (and your own mail server) sign for you; use theirs and leave Ledger's DKIM fields empty. If your SMTP server does not sign, generate a key (`openssl genrsa -out dkim.pem 2048`, then `openssl rsa -in dkim.pem -pubout`), publish the public key as a TXT record `v=DKIM1; k=rsa; p=<public key>`, and enter the domain, selector and private key in Admin → Outbound Email. Ledger stores the key encrypted with your `APP_SECRET`. Don't sign twice.
+- **DMARC.** Publish `_dmarc.example.com` TXT, starting with `v=DMARC1; p=none; rua=mailto:you@example.com`, and tighten to `quarantine` once reports look clean. DMARC passes only when SPF or DKIM passes and its domain matches the From domain (alignment), so the From address, the SPF-checked envelope domain and the DKIM `d=` domain should all be on the same domain (or a subdomain of it).
+- **PTR / reverse DNS.** If you send from your own server's IP, its reverse DNS must resolve to a hostname that resolves back to that IP, and ideally matches the name your server announces. Hosted providers handle this for you. Many home and cloud IPs are blocked outright; a provider relay is usually easier.
+- **Test it.** Turn on the digest, press "Send me a test digest now", and send to a throwaway address from [mail-tester.com](https://www.mail-tester.com). It scores SPF, DKIM, DMARC, headers and content, and tells you what to fix.
 
 ## Troubleshooting
 

@@ -230,6 +230,15 @@ export const SUGGESTED = [
 const RECENT_KEY = "ledger:palette-recent"
 const RECENT_MAX = 5
 
+/** Drops palette recents so a new account does not inherit another user's shortcuts. */
+export function clearPaletteRecents() {
+	try {
+		localStorage.removeItem(RECENT_KEY)
+	} catch {
+		// Storage blocked: nothing to clear.
+	}
+}
+
 /** readRecent. */
 export function readRecent(): string[] {
 	try {

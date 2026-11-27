@@ -38,7 +38,6 @@ import { DEMO_PERSONAS, demoMode, demoPersona, setDemoMode } from "@/lib/demo"
 import { ACCENTS, MODES, useAppTheme } from "@/lib/theme"
 import { formatMoney, formatShortDate } from "@/lib/format"
 import {
-	queryClient,
 	useAppConfig,
 	useGoals,
 	useInvoices,
@@ -122,7 +121,6 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 					if (demoMode) {
 						setDemoMode(false)
 					}
-					queryClient.clear()
 					void navigate({ to: "/login", replace: true })
 				},
 			},

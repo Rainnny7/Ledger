@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card"
 import { PasswordDialog } from "@/components/settings/password-dialog"
 import { authClient } from "@/lib/auth-client"
-import { queryClient, useHasPassword } from "@/lib/queries"
+import { useHasPassword } from "@/lib/queries"
 
 /** Danger-zone card that deletes the account and all its data after password confirmation. */
 export function DeleteAccountCard() {
@@ -141,7 +141,6 @@ export function DeleteAccountCard() {
 						}
 						return "Could not send the confirmation email"
 					}
-					queryClient.clear()
 					toast.success("Your account and data were deleted")
 					flash()
 					void navigate({ to: "/login", replace: true })

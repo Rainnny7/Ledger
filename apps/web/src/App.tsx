@@ -9,6 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { MODE_CLASSES } from "@/lib/theme-classes"
 import { MODE_IDS } from "@ledger/shared/themes"
 import { queryClient } from "@/lib/queries"
+import { SessionQueryCacheSync } from "@/lib/session-query-cache"
 import { router } from "./router.ts"
 
 const ConfirmHost = lazy(() =>
@@ -49,6 +50,7 @@ export default function App() {
 	return (
 		<ErrorBoundary fullScreen>
 			<QueryClientProvider client={queryClient}>
+				<SessionQueryCacheSync />
 				<ThemeProvider
 					attribute="class"
 					themes={MODE_IDS}

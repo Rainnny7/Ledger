@@ -17,7 +17,18 @@ import {
 	buildChatSuggestionsSystemPrompt,
 	buildChatSystemPrompt,
 } from "./system-prompt.ts"
-import { createChatTools } from "./tools.ts"
+import { createChatTools, financeToolDefinitions } from "./tools.ts"
+
+const CHAT_TOOL_PART_TYPES = new Set(
+	financeToolDefinitions.map((definition) => `tool-${definition.name}`)
+)
+
+const URL_FETCHING_PART_TYPES = new Set([
+	"file",
+	"reasoning-file",
+	"source-url",
+	"source-document",
+])
 
 const followUpLine = z.string().trim().min(1).max(60)
 
@@ -54,10 +65,65 @@ export function parseFollowUpSuggestions(raw: string): string[] {
 	return suggestions
 }
 
-const uiMessagePart = z.looseObject({
-	type: z.string(),
-	text: z.string().optional(),
-})
+const uiMessagePart = z
+	.looseObject({
+		type: z.string(),
+		text: z.string().optional(),
+	})
+	.superRefine((part, context) => {
+		if (URL_FETCHING_PART_TYPES.has(part.type)) {
+			context.addIssue({
+				code: "custom",
+				message: `Message part type "${part.type}" is not supported.`,
+			})
+			return
+		}
+		if (part.type === "text") {
+			if (typeof part.text !== "string") {
+				context.addIssue({
+					code: "custom",
+					message: "Text parts need a text field.",
+					path: ["text"],
+				})
+			}
+			return
+		}
+		if (part.type === "reasoning" || part.type === "step-start") {
+			return
+		}
+		if (
+			part.type === "dynamic-tool" ||
+			(part.type.startsWith("tool-") && CHAT_TOOL_PART_TYPES.has(part.type))
+		) {
+			const toolCallId = (part as { toolCallId?: unknown }).toolCallId
+			if (typeof toolCallId !== "string" || toolCallId.length === 0) {
+				context.addIssue({
+					code: "custom",
+					message: "Tool parts need a toolCallId.",
+					path: ["toolCallId"],
+				})
+			}
+			return
+		}
+		if (part.type.startsWith("tool-")) {
+			context.addIssue({
+				code: "custom",
+				message: `Unknown tool part "${part.type}".`,
+			})
+			return
+		}
+		if (part.type.startsWith("data-") || part.type === "custom") {
+			context.addIssue({
+				code: "custom",
+				message: `Message part type "${part.type}" is not supported.`,
+			})
+			return
+		}
+		context.addIssue({
+			code: "custom",
+			message: `Message part type "${part.type}" is not supported.`,
+		})
+	})
 
 const uiMessage = z.looseObject({
 	id: z.string().min(1).max(120),

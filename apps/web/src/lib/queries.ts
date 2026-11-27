@@ -317,6 +317,8 @@ export type AppConfig = {
 	turnstileSiteKey: string | null
 	/** Whether the server can send login, verify, and delete confirmation links. */
 	emailLinks: boolean
+	/** Whether the monthly spending digest can be turned on (outgoing email and AI are both set up). */
+	spendingDigest: boolean
 }
 
 /** Whether the signed-in user has a credential password (passwordless magic-link accounts do not). */

@@ -7,7 +7,6 @@ import { user } from "../db/schema/index.ts"
 import { isDemoEmail } from "../demo/personas.ts"
 import { jsonBody } from "../http/validation.ts"
 import { isSmtpConfigured } from "../mail/smtp.ts"
-import { userHasCredentialPassword } from "./credentials.ts"
 import { CLIENT_IP_HEADER, isPlausibleEmail } from "./hooks.ts"
 
 /** Lookups allowed per address per window; generous for a person, tight for a scraper. */
@@ -79,23 +78,15 @@ export function authLookup(options: AuthLookupOptions) {
 			}
 			const email = body.email.trim().toLowerCase()
 			const found = db
-				.select({ id: user.id, emailVerified: user.emailVerified })
+				.select({ id: user.id })
 				.from(user)
 				.where(eq(user.email, email))
 				.get()
 			const exists = Boolean(found) && !isDemoEmail(email)
-			let magicLink = isSmtpConfigured()
-			if (
-				found &&
-				!found.emailVerified &&
-				userHasCredentialPassword(found.id)
-			) {
-				magicLink = false
-			}
 			return {
 				exists,
 				registrationOpen: options.registrationOpen(),
-				magicLink,
+				magicLink: isSmtpConfigured(),
 			}
 		},
 		{ body: jsonBody(lookupBody) }

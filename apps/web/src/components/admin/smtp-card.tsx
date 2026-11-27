@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { adminFetch, smtpKey } from "@/lib/admin"
 import { queryClient } from "@/lib/queries"
@@ -36,6 +37,10 @@ export type SmtpSettings = {
 	fromName: string
 	passwordSet: boolean
 	configured: boolean
+	dkimDomainName: string
+	dkimKeySelector: string
+	dkimPrivateKey?: string
+	dkimPrivateKeySet: boolean
 }
 
 type SmtpForm = {
@@ -46,6 +51,9 @@ type SmtpForm = {
 	password: string
 	fromAddress: string
 	fromName: string
+	dkimDomainName: string
+	dkimKeySelector: string
+	dkimPrivateKey: string
 }
 
 /** Admin form to configure outbound email (SMTP). */
@@ -73,6 +81,9 @@ export function SmtpCard() {
 			password: "",
 			fromAddress: smtp.data.fromAddress,
 			fromName: smtp.data.fromName,
+			dkimDomainName: smtp.data.dkimDomainName,
+			dkimKeySelector: smtp.data.dkimKeySelector,
+			dkimPrivateKey: "",
 		}
 		return { ...base, ...edits }
 	}, [smtp.data, edits])
@@ -94,9 +105,14 @@ export function SmtpCard() {
 				username: form.username.trim(),
 				fromAddress: form.fromAddress.trim(),
 				fromName: form.fromName.trim(),
+				dkimDomainName: form.dkimDomainName.trim(),
+				dkimKeySelector: form.dkimKeySelector.trim(),
 			}
 			if (form.password.trim()) {
 				body.password = form.password
+			}
+			if (form.dkimPrivateKey.trim()) {
+				body.dkimPrivateKey = form.dkimPrivateKey
 			}
 			await adminFetch<SmtpSettings>("smtp", {
 				method: "PUT",
@@ -260,6 +276,71 @@ export function SmtpCard() {
 									onChange={(event) =>
 										patch("fromName", event.target.value)
 									}
+								/>
+							</div>
+						</div>
+						<div className="grid gap-3 border-t pt-4 sm:grid-cols-2">
+							<p className="text-sm text-muted-foreground sm:col-span-2">
+								DKIM signing is optional. Only fill this in if
+								your SMTP server doesn't already sign outgoing
+								mail. Clear the domain to turn it off.
+							</p>
+							<div className="grid gap-1.5">
+								<Label htmlFor="smtp-dkim-domain">
+									DKIM domain
+								</Label>
+								<Input
+									id="smtp-dkim-domain"
+									placeholder="example.com"
+									value={form.dkimDomainName}
+									onChange={(event) =>
+										patch(
+											"dkimDomainName",
+											event.target.value
+										)
+									}
+									autoComplete="off"
+								/>
+							</div>
+							<div className="grid gap-1.5">
+								<Label htmlFor="smtp-dkim-selector">
+									DKIM selector
+								</Label>
+								<Input
+									id="smtp-dkim-selector"
+									placeholder="ledger"
+									value={form.dkimKeySelector}
+									onChange={(event) =>
+										patch(
+											"dkimKeySelector",
+											event.target.value
+										)
+									}
+									autoComplete="off"
+								/>
+							</div>
+							<div className="grid gap-1.5 sm:col-span-2">
+								<Label htmlFor="smtp-dkim-key">
+									DKIM private key (PEM)
+								</Label>
+								<Textarea
+									id="smtp-dkim-key"
+									rows={4}
+									className="font-mono text-xs"
+									value={form.dkimPrivateKey}
+									placeholder={
+										smtp.data?.dkimPrivateKeySet
+											? "Key saved — leave blank to keep"
+											: "-----BEGIN PRIVATE KEY-----"
+									}
+									onChange={(event) =>
+										patch(
+											"dkimPrivateKey",
+											event.target.value
+										)
+									}
+									autoComplete="off"
+									spellCheck={false}
 								/>
 							</div>
 						</div>
