@@ -1,8 +1,8 @@
 import { encode } from "uqr"
 
 import { usePdfcnTheme, useSafeMemo } from "@/components/pdf/theme-provider"
-import { View, Text as PDFText, StyleSheet } from "@/lib/pdf-primitives"
-import type { Style } from "@/lib/pdf-primitives"
+import { View, Text as PDFText } from "@/lib/pdf-primitives"
+import { StyleSheet, type Style } from "@/lib/pdf-primitives-style"
 import { Rect, Svg } from "@/lib/pdf-svg"
 import { resolveColor } from "@/lib/resolve-color"
 import type { PDFComponentProps } from "@/types/pdf-components"

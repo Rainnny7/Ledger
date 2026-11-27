@@ -10,19 +10,14 @@ import type { InvoicePdfData } from "@/components/pdf/blocks/invoice-shared/invo
 import { KeyValue } from "@/components/pdf/key-value/key-value"
 import { PageHeader } from "@/components/pdf/page-header/page-header"
 import { Section } from "@/components/pdf/section/section"
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHeader,
-	TableRow,
-} from "@/components/pdf/table/table"
 import { Text } from "@/components/pdf/text/text"
 import {
 	PdfcnThemeProvider,
 	usePdfcnTheme,
 } from "@/components/pdf/theme-provider"
-import { Document, Page, StyleSheet, View } from "@/lib/pdf-primitives"
+import { InvoiceLineItemsTable } from "@/components/pdf/blocks/invoice-shared/invoice-line-items-table"
+import { Document, Page, View } from "@/lib/pdf-primitives"
+import { StyleSheet } from "@/lib/pdf-primitives-style"
 import type { PdfcnTheme } from "@/types/pdf-themes"
 
 /** pdfcn "Invoice Minimal": quiet header, outlined number stamp, compact table. */
@@ -129,32 +124,7 @@ const InvoiceMinimalContent = ({ data }: { data: InvoicePdfData }) => {
 						/>
 					</View>
 				</View>
-				<Table variant="compact">
-					<TableHeader>
-						<TableRow header>
-							<TableCell>Description</TableCell>
-							<TableCell align="center">Qty</TableCell>
-							<TableCell align="right">Rate</TableCell>
-							<TableCell align="right">Total</TableCell>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{data.items.map((item, index) => (
-							<TableRow key={index}>
-								<TableCell>{item.description}</TableCell>
-								<TableCell align="center">
-									{item.quantity}
-								</TableCell>
-								<TableCell align="right">
-									{item.unitPrice}
-								</TableCell>
-								<TableCell align="right">
-									{item.amount}
-								</TableCell>
-							</TableRow>
-						))}
-					</TableBody>
-				</Table>
+				<InvoiceLineItemsTable items={data.items} />
 				<Section
 					noWrap
 					spacing="none"

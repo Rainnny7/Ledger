@@ -59,9 +59,9 @@ export function PartyBlock({
 			>
 				{party.name || "—"}
 			</Text>
-			{party.lines.map((line, i) => (
+			{party.lines.map((line) => (
 				<Text
-					key={i}
+					key={line}
 					noMargin
 					style={{ color: theme.colors.mutedForeground, fontSize: 9 }}
 				>
@@ -176,9 +176,9 @@ function MethodCard({ method }: { method: InvoicePdfMethod }) {
 					>
 						{method.label}
 					</Text>
-					{method.lines.map((line, index) => (
+					{method.lines.map((line) => (
 						<Text
-							key={index}
+							key={`${line.label}:${line.value}`}
 							noMargin
 							style={{
 								color: theme.colors.foreground,
@@ -275,8 +275,11 @@ export function PaymentDetails({ data }: { data: InvoicePdfData }) {
 						</View>
 					</Card>
 				)}
-				{data.methods.map((method, index) => (
-					<MethodCard key={index} method={method} />
+				{data.methods.map((method) => (
+					<MethodCard
+						key={`${method.label}-${method.link ?? ""}`}
+						method={method}
+					/>
 				))}
 			</View>
 		</View>

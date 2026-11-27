@@ -1,6 +1,6 @@
 import { usePdfcnTheme, useSafeMemo } from "@/components/pdf/theme-provider"
-import { View, Text as PDFText, StyleSheet, Image } from "@/lib/pdf-primitives"
-import type { Style } from "@/lib/pdf-primitives"
+import { View, Text as PDFText, Image } from "@/lib/pdf-primitives"
+import { StyleSheet, type Style } from "@/lib/pdf-primitives-style"
 import type { PdfcnTheme } from "@/types/pdf-themes"
 
 /** HTTP method used when fetching the image from a URL. */

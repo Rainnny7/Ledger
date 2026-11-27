@@ -3,7 +3,7 @@ import type { ReactElement, ReactNode } from "react"
 
 import { usePdfcnTheme, useSafeMemo } from "@/components/pdf/theme-provider"
 import { View, Text as PDFText } from "@/lib/pdf-primitives"
-import type { Style } from "@/lib/pdf-primitives"
+import type { Style } from "@/lib/pdf-primitives-style"
 
 import { createTableStyles } from "./table.styles.ts"
 import type {

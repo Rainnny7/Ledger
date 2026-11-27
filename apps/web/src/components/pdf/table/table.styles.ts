@@ -1,4 +1,4 @@
-import { StyleSheet } from "@/lib/pdf-primitives"
+import { StyleSheet } from "@/lib/pdf-primitives-style"
 import type { PdfcnTheme } from "@/types/pdf-themes"
 
 /**

@@ -21,7 +21,9 @@ import {
 	PdfcnThemeProvider,
 	usePdfcnTheme,
 } from "@/components/pdf/theme-provider"
-import { Document, Page, StyleSheet, View } from "@/lib/pdf-primitives"
+import { invoicePdfLineKey } from "@/components/pdf/blocks/invoice-shared/invoice-pdf-line-key"
+import { Document, Page, View } from "@/lib/pdf-primitives"
+import { StyleSheet } from "@/lib/pdf-primitives-style"
 import type { PdfcnTheme } from "@/types/pdf-themes"
 
 /** pdfcn "Invoice Modern": branded header band, meta row, primary-header table. */
@@ -99,8 +101,8 @@ const InvoiceModernContent = ({ data }: { data: InvoicePdfData }) => {
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{data.items.map((item, index) => (
-							<TableRow key={index}>
+						{data.items.map((item, itemIndex) => (
+							<TableRow key={invoicePdfLineKey(item, itemIndex)}>
 								<TableCell>{item.description}</TableCell>
 								<TableCell align="center">
 									{item.quantity}
