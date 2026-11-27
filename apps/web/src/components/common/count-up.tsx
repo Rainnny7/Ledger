@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from "react"
-import { ForeignMoney, negativeMoneyClass } from "@/components/common/money"
+import { ForeignMoney } from "@/components/common/money"
+import { negativeMoneyClass } from "@/components/common/negative-money-class"
 import { formatMoney, getDisplayCurrency } from "@/lib/format"
 import { cn } from "cn"
 

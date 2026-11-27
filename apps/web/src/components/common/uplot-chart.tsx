@@ -179,6 +179,11 @@ export function UPlotChart({
 	const hasRevealedRef = useRef(false)
 	const [hoverIndex, setHoverIndex] = useState<number | null>(null)
 	const [zoomed, setZoomed] = useState(false)
+	const [trackedData, setTrackedData] = useState(data)
+	if (trackedData !== data) {
+		setTrackedData(data)
+		setZoomed(false)
+	}
 
 	useEffect(() => {
 		dataRef.current = data
@@ -318,8 +323,6 @@ export function UPlotChart({
 			chart.scales.x.min ?? 0,
 			chart.scales.x.max ?? 0,
 		]
-		// oxlint-disable-next-line react/set-state-in-effect -- a rebuilt chart starts unzoomed
-		setZoomed(false)
 		if (hover === "band") {
 			bandElement = document.createElement("div")
 			bandElement.className = "u-hover-band"
@@ -367,8 +370,6 @@ export function UPlotChart({
 			chart.scales.x.min ?? 0,
 			chart.scales.x.max ?? 0,
 		]
-		// oxlint-disable-next-line react/set-state-in-effect -- new data resets the zoom window
-		setZoomed(false)
 	}, [data])
 
 	const resetZoom = () => {

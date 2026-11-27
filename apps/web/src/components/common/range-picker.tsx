@@ -129,9 +129,8 @@ function CustomRangeDialog({
 }) {
 	const [amount, setAmount] = useState("18")
 	const [unit, setUnit] = useState<Unit>("months")
-	const perUnit = UNITS.find(
-		(unitOption) => unitOption.value === unit
-	)!.perUnit
+	const selectedUnit = UNITS.find((unitOption) => unitOption.value === unit)
+	const perUnit = selectedUnit?.perUnit ?? UNITS[0].perUnit
 	const customAmount = Number(amount)
 	const days = Math.round(customAmount * perUnit)
 	const valid =
