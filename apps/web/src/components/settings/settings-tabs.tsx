@@ -10,7 +10,6 @@ import { TerminalIcon } from "@/components/icons/terminal"
 import type { AnimatedIconComponent } from "@/components/icons/use-animated-icon"
 import { UserIcon } from "@/components/icons/user"
 import { UsersIcon } from "@/components/icons/users"
-import { demoMode } from "@/lib/demo"
 import type { ComponentType } from "react"
 import {
 	SettingsAccountPanel,
@@ -62,6 +61,8 @@ export interface SettingsTabDefinition {
 	Panel: ComponentType
 	/** Shown only when this returns true (defaults to visible). */
 	visible?: (context: SettingsTabVisibilityContext) => boolean
+	/** In demo mode the tab still shows, but its panel is greyed out and non-interactive. */
+	demoLocked?: boolean
 }
 
 /** Inputs that decide which tabs appear. */
@@ -122,7 +123,7 @@ const ALL_TABS: SettingsTabDefinition[] = [
 			},
 		],
 		Panel: SettingsNotificationsPanel,
-		visible: () => !demoMode,
+		demoLocked: true,
 	},
 	{
 		id: "security",
@@ -148,6 +149,7 @@ const ALL_TABS: SettingsTabDefinition[] = [
 			},
 		],
 		Panel: SettingsSecurityPanel,
+		demoLocked: true,
 	},
 	{
 		id: "developer",
@@ -168,7 +170,7 @@ const ALL_TABS: SettingsTabDefinition[] = [
 			},
 		],
 		Panel: SettingsDeveloperPanel,
-		visible: () => !demoMode,
+		demoLocked: true,
 	},
 	{
 		id: "account",
@@ -184,6 +186,7 @@ const ALL_TABS: SettingsTabDefinition[] = [
 			},
 		],
 		Panel: SettingsAccountPanel,
+		demoLocked: true,
 	},
 	{
 		id: "server-general",
@@ -209,7 +212,8 @@ const ALL_TABS: SettingsTabDefinition[] = [
 			},
 		],
 		Panel: SettingsServerGeneralPanel,
-		visible: ({ isAdmin }) => isAdmin && !demoMode,
+		visible: ({ isAdmin }) => isAdmin,
+		demoLocked: true,
 	},
 	{
 		id: "server-users",
@@ -225,7 +229,8 @@ const ALL_TABS: SettingsTabDefinition[] = [
 			},
 		],
 		Panel: SettingsServerUsersPanel,
-		visible: ({ isAdmin }) => isAdmin && !demoMode,
+		visible: ({ isAdmin }) => isAdmin,
+		demoLocked: true,
 	},
 	{
 		id: "server-email",
@@ -246,7 +251,8 @@ const ALL_TABS: SettingsTabDefinition[] = [
 			},
 		],
 		Panel: SettingsServerEmailPanel,
-		visible: ({ isAdmin }) => isAdmin && !demoMode,
+		visible: ({ isAdmin }) => isAdmin,
+		demoLocked: true,
 	},
 	{
 		id: "server-tasks",
@@ -267,7 +273,8 @@ const ALL_TABS: SettingsTabDefinition[] = [
 			},
 		],
 		Panel: SettingsServerTasksPanel,
-		visible: ({ isAdmin }) => isAdmin && !demoMode,
+		visible: ({ isAdmin }) => isAdmin,
+		demoLocked: true,
 	},
 	{
 		id: "server-activity",
@@ -283,7 +290,8 @@ const ALL_TABS: SettingsTabDefinition[] = [
 			},
 		],
 		Panel: SettingsServerActivityPanel,
-		visible: ({ isAdmin }) => isAdmin && !demoMode,
+		visible: ({ isAdmin }) => isAdmin,
+		demoLocked: true,
 	},
 ]
 

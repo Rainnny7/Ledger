@@ -209,57 +209,57 @@ export function PreferencesCard() {
 						/>
 					</div>
 				) : null}
-				{demoMode ? null : (
-					<div
-						id="settings-section-spending-digest"
-						className="grid gap-3"
-					>
-						<div className="flex items-start justify-between gap-4">
-							<Label
-								htmlFor="pref-digest"
-								className="grid gap-1 font-normal"
-							>
-								<span className="flex items-center gap-2 font-medium">
-									Monthly spending digest
-									<SavedIndicator
-										saved={digestFlash}
-										showLabel={false}
-									/>
-								</span>
-								<span className="text-sm text-muted-foreground">
-									{digestAvailable
-										? "Emails you a summary of last month on the 1st: totals, how it compares, unusual charges and new subscriptions. Only totals and a few flagged items (merchant names and amounts) are shared with the AI provider that writes the wording."
-										: "Not available: the server needs outgoing email and AI set up first (ask the admin)."}
-								</span>
-							</Label>
-							<Switch
-								id="pref-digest"
-								checked={digestChecked}
-								disabled={
-									!digestAvailable || digestPending !== null
-								}
-								onCheckedChange={(nextChecked) =>
-									void toggleDigest(nextChecked)
-								}
-							/>
-						</div>
-						{digestAvailable ? (
-							<div>
-								<Button
-									type="button"
-									variant="secondary"
-									size="sm"
-									disabled={sendingTest}
-									onClick={() => void sendTestDigest()}
-								>
-									{sendingTest
-										? "Sending..."
-										: "Send me a test digest now"}
-								</Button>
-							</div>
-						) : null}
+				<div
+					id="settings-section-spending-digest"
+					inert={demoMode}
+					aria-disabled={demoMode}
+					className={`grid gap-3 ${demoMode ? "opacity-50 select-none" : ""}`}
+				>
+					<div className="flex items-start justify-between gap-4">
+						<Label
+							htmlFor="pref-digest"
+							className="grid gap-1 font-normal"
+						>
+							<span className="flex items-center gap-2 font-medium">
+								Monthly spending digest
+								<SavedIndicator
+									saved={digestFlash}
+									showLabel={false}
+								/>
+							</span>
+							<span className="text-sm text-muted-foreground">
+								{digestAvailable
+									? "Emails you a summary of last month on the 1st: totals, how it compares, unusual charges and new subscriptions. Only totals and a few flagged items (merchant names and amounts) are shared with the AI provider that writes the wording."
+									: "Not available: the server needs outgoing email and AI set up first (ask the admin)."}
+							</span>
+						</Label>
+						<Switch
+							id="pref-digest"
+							checked={digestChecked}
+							disabled={
+								!digestAvailable || digestPending !== null
+							}
+							onCheckedChange={(nextChecked) =>
+								void toggleDigest(nextChecked)
+							}
+						/>
 					</div>
-				)}
+					{digestAvailable ? (
+						<div>
+							<Button
+								type="button"
+								variant="secondary"
+								size="sm"
+								disabled={sendingTest}
+								onClick={() => void sendTestDigest()}
+							>
+								{sendingTest
+									? "Sending..."
+									: "Send me a test digest now"}
+							</Button>
+						</div>
+					) : null}
+				</div>
 			</CardContent>
 		</Card>
 	)

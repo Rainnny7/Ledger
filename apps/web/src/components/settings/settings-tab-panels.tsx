@@ -20,7 +20,6 @@ import { McpAccessCard } from "@/components/settings/mcp-access-card"
 import { NotificationsCard } from "@/components/settings/notifications-card"
 import { PreferencesCard } from "@/components/settings/preferences-card"
 import { TwoFactorCard } from "@/components/settings/two-factor-card"
-import { demoMode } from "@/lib/demo"
 import { useAppConfig } from "@/lib/queries"
 import { useSession } from "@/lib/auth-client"
 import type { ReactNode } from "react"
@@ -72,42 +71,22 @@ export function SettingsNotificationsPanel() {
 	)
 }
 
-/** Security tab panel (matches former settings page demo behaviour). */
+/** Security tab panel. */
 export function SettingsSecurityPanel() {
 	return (
 		<div className="grid gap-8">
-			{demoMode ? (
-				<div
-					inert
-					aria-disabled
-					className="grid gap-8 opacity-50 select-none"
-				>
-					<SettingsSection sectionId="password">
-						<ChangePasswordCard />
-					</SettingsSection>
-					<SettingsSection sectionId="two-factor">
-						<TwoFactorCard />
-					</SettingsSection>
-					<SettingsSection sectionId="delete-account">
-						<DeleteAccountCard />
-					</SettingsSection>
-				</div>
-			) : (
-				<>
-					<SettingsSection sectionId="email">
-						<EmailVerificationCard />
-					</SettingsSection>
-					<SettingsSection sectionId="password">
-						<ChangePasswordCard />
-					</SettingsSection>
-					<SettingsSection sectionId="two-factor">
-						<TwoFactorCard />
-					</SettingsSection>
-					<SettingsSection sectionId="devices">
-						<DevicesCard />
-					</SettingsSection>
-				</>
-			)}
+			<SettingsSection sectionId="email">
+				<EmailVerificationCard />
+			</SettingsSection>
+			<SettingsSection sectionId="password">
+				<ChangePasswordCard />
+			</SettingsSection>
+			<SettingsSection sectionId="two-factor">
+				<TwoFactorCard />
+			</SettingsSection>
+			<SettingsSection sectionId="devices">
+				<DevicesCard />
+			</SettingsSection>
 		</div>
 	)
 }
@@ -115,9 +94,6 @@ export function SettingsSecurityPanel() {
 /** Developer tab panel. */
 export function SettingsDeveloperPanel() {
 	const config = useAppConfig()
-	if (demoMode) {
-		return null
-	}
 	return (
 		<div className="grid gap-8">
 			<SettingsSection sectionId="api-keys">
@@ -136,13 +112,7 @@ export function SettingsDeveloperPanel() {
 export function SettingsAccountPanel() {
 	return (
 		<SettingsSection sectionId="delete-account">
-			{demoMode ? (
-				<div inert aria-disabled className="opacity-50 select-none">
-					<DeleteAccountCard />
-				</div>
-			) : (
-				<DeleteAccountCard />
-			)}
+			<DeleteAccountCard />
 		</SettingsSection>
 	)
 }

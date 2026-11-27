@@ -222,12 +222,24 @@ export function SettingsDialogLayout({
 								<Alert>
 									<AlertDescription>
 										Demo mode: preferences changed here only
-										last until you exit demo mode.
-										Everything else is turned off.
+										last until you exit demo mode. Anything
+										greyed out is turned off.
 									</AlertDescription>
 								</Alert>
 							) : null}
-							{Panel ? <Panel /> : null}
+							{Panel ? (
+								demoMode && activeTab?.demoLocked ? (
+									<div
+										inert
+										aria-disabled
+										className="opacity-50 select-none"
+									>
+										<Panel />
+									</div>
+								) : (
+									<Panel />
+								)
+							) : null}
 						</m.div>
 					</div>
 				</section>
