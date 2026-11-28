@@ -50,7 +50,8 @@ export function AccountHeaderCard({
 
 	return (
 		<Card>
-			<CardContent className="grid items-center gap-5 lg:grid-cols-[1fr_1.2fr]">
+			{/* min-h fits the tallest variant (meter wrapped onto its own row) so switching accounts doesn't resize the card. */}
+			<CardContent className="grid items-center gap-5 lg:min-h-40 lg:grid-cols-[1fr_1.2fr]">
 				<div className="grid gap-2">
 					<div className="flex min-w-0 items-center gap-2">
 						{connection ? (

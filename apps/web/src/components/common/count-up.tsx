@@ -64,8 +64,12 @@ export function CountUp({
 	}, [value, duration])
 
 	return (
-		<span className={cn("tabular-nums", className)}>
-			<span ref={ref} aria-hidden />
+		<span className={cn("inline-grid tabular-nums", className)}>
+			{/* Invisible copy of the final value reserves its width so the count-up never shifts neighbours. */}
+			<span aria-hidden className="invisible col-start-1 row-start-1">
+				{format(value)}
+			</span>
+			<span ref={ref} aria-hidden className="col-start-1 row-start-1" />
 			<span className="sr-only">{format(value)}</span>
 		</span>
 	)
