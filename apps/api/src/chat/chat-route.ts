@@ -16,6 +16,7 @@ import { AI_CHAT_RATE_WINDOW_MS, aiChatLimits } from "./limits.ts"
 import {
 	buildChatSuggestionsSystemPrompt,
 	buildChatSystemPrompt,
+	buildChatTitleSystemPrompt,
 } from "./system-prompt.ts"
 import { createChatTools, financeToolDefinitions } from "./tools.ts"
 
@@ -33,6 +34,26 @@ function stripSuggestionLine(line: string): string {
 		.replace(/^["'“”‘’]+/, "")
 		.replace(/["'“”‘’]+$/, "")
 		.trim()
+}
+
+const TITLE_MAX_LENGTH = 60
+
+/** Clean a model-generated title: first line only, no quotes or trailing punctuation, capped length. */
+export function parseChatTitle(raw: string): string | null {
+	const firstLine = raw.split(/\r?\n/).find((line) => line.trim().length > 0)
+	if (!firstLine) {
+		return null
+	}
+	const cleaned = stripSuggestionLine(firstLine)
+		.replace(/^title:\s*/i, "")
+		.replace(/[.!?:;,]+$/, "")
+		.trim()
+	if (!cleaned) {
+		return null
+	}
+	return cleaned.length > TITLE_MAX_LENGTH
+		? `${cleaned.slice(0, TITLE_MAX_LENGTH - 1).trimEnd()}…`
+		: cleaned
 }
 
 /** Parse model plain-text into up to three validated follow-up questions. */
@@ -246,6 +267,53 @@ chatRoutes.post(
 			return { suggestions: parseFollowUpSuggestions(text) }
 		} catch {
 			return { suggestions: [] as string[] }
+		}
+	},
+	{ body: jsonBody(chatBody) }
+)
+
+chatRoutes.post(
+	"/chat/title",
+	async ({ user, body, request, status }) => {
+		if (!aiChatAvailable()) {
+			return status(503, {
+				error: "AI chat isn't set up on this server.",
+			})
+		}
+		// Titles are requested once per conversation, so they share the suggestions budget.
+		if (suggestionsRateLimited(user.id)) {
+			return status(429, {
+				error: "Too many title requests. Try again in a few minutes.",
+			})
+		}
+		const openingMessages = body.messages.slice(
+			0,
+			aiChatLimits.titleMessageSlice
+		)
+		const gateway = createOpenAICompatible({
+			name: "ai-gateway",
+			baseURL: env.AI_BASE_URL,
+			apiKey: env.AI_API_KEY,
+		})
+		try {
+			const modelMessages = await convertToModelMessages(
+				openingMessages as UIMessage[]
+			)
+			const { text } = await generateText({
+				model: gateway(env.AI_MODEL),
+				system: buildChatTitleSystemPrompt(),
+				messages: [
+					...modelMessages,
+					{
+						role: "user",
+						content: "Write the title for this conversation now.",
+					},
+				],
+				abortSignal: request.signal,
+			})
+			return { title: parseChatTitle(text) }
+		} catch {
+			return { title: null }
 		}
 	},
 	{ body: jsonBody(chatBody) }

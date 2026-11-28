@@ -9,6 +9,10 @@ import {
 	ChatWidgetInputFooter,
 	ChatWidgetThinking,
 } from "@/components/chat/chat-widget-input-footer"
+import {
+	ChatWidgetHistoryControl,
+	ChatWidgetSettingsControl,
+} from "@/components/chat/chat-widget-header-controls"
 import { ChatWidgetNewChatControl } from "@/components/chat/chat-widget-new-chat"
 import { useChatWidgetPanel } from "@/components/chat/use-chat-widget-panel"
 import { Button } from "@/components/ui/button"
@@ -47,6 +51,11 @@ export function ChatWidgetPanel() {
 		handleNewChatClick,
 		showFollowUps,
 		toggleOpen,
+		history,
+		settings,
+		updateSettings,
+		size,
+		startResize,
 	} = useChatWidgetPanel()
 
 	const panelMotion = reduceMotion
@@ -79,8 +88,7 @@ export function ChatWidgetPanel() {
 		<div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-end p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5 print:hidden">
 			<div
 				className={cn(
-					"pointer-events-auto flex flex-col items-end gap-3",
-					open && "w-full sm:w-auto"
+					"pointer-events-auto flex max-w-full flex-col items-end gap-3"
 				)}
 			>
 				<AnimatePresence>
@@ -89,21 +97,75 @@ export function ChatWidgetPanel() {
 							ref={panelRef}
 							key="ask-ledger-panel"
 							aria-label="Ask Ledger chat"
-							className="flex h-[min(520px,calc(100dvh-5rem))] w-full origin-bottom-right flex-col overflow-hidden rounded-xl border bg-popover text-[13px] text-popover-foreground shadow-lg ring-1 ring-foreground/10 sm:h-[520px] sm:w-[360px]"
-							style={{ transformOrigin: "100% 100%" }}
+							className="relative flex origin-bottom-right flex-col overflow-hidden rounded-xl border bg-popover text-[13px] text-popover-foreground shadow-lg ring-1 ring-foreground/10"
+							style={{
+								transformOrigin: "100% 100%",
+								width: size.width,
+								height: size.height,
+								maxWidth: "calc(100vw - 2rem)",
+								maxHeight: "calc(100dvh - 5rem)",
+							}}
 							{...panelMotion}
 						>
+							<div
+								aria-hidden
+								className="absolute inset-y-3 left-0 z-10 w-1.5 cursor-ew-resize touch-none"
+								onPointerDown={(event) =>
+									startResize(event, {
+										horizontal: true,
+										vertical: false,
+									})
+								}
+							/>
+							<div
+								aria-hidden
+								className="absolute inset-x-3 top-0 z-10 h-1.5 cursor-ns-resize touch-none"
+								onPointerDown={(event) =>
+									startResize(event, {
+										horizontal: false,
+										vertical: true,
+									})
+								}
+							/>
+							<div
+								aria-hidden
+								className="absolute top-0 left-0 z-20 size-3 cursor-nwse-resize touch-none"
+								onPointerDown={(event) =>
+									startResize(event, {
+										horizontal: true,
+										vertical: true,
+									})
+								}
+							/>
 							<header className="flex shrink-0 items-center justify-between gap-1.5 border-b px-2.5 py-2">
 								<h2 className="text-[13px] font-semibold">
 									Ask Ledger
 								</h2>
-								<ChatWidgetNewChatControl
-									messagesEmpty={messages.length === 0}
-									confirmOpen={newChatConfirmOpen}
-									onConfirmOpenChange={setNewChatConfirmOpen}
-									onNewChatClick={handleNewChatClick}
-									onResetChat={resetChat}
-								/>
+								<div className="flex items-center gap-1">
+									<ChatWidgetHistoryControl
+										conversations={history.conversations}
+										activeId={history.activeId}
+										onOpen={(id) => {
+											if (!busy) {
+												history.openConversation(id)
+											}
+										}}
+										onDelete={history.deleteConversation}
+									/>
+									<ChatWidgetSettingsControl
+										settings={settings}
+										onChange={updateSettings}
+									/>
+									<ChatWidgetNewChatControl
+										messagesEmpty={messages.length === 0}
+										confirmOpen={newChatConfirmOpen}
+										onConfirmOpenChange={
+											setNewChatConfirmOpen
+										}
+										onNewChatClick={handleNewChatClick}
+										onResetChat={resetChat}
+									/>
+								</div>
 							</header>
 
 							<Conversation className="min-h-0 flex-1">
@@ -119,6 +181,7 @@ export function ChatWidgetPanel() {
 												<ChatMessageRow
 													key={message.id}
 													message={message}
+													settings={settings}
 												/>
 											))}
 											<ChatWidgetThinking

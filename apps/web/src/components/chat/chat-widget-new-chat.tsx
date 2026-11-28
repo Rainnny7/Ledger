@@ -53,8 +53,8 @@ export function ChatWidgetNewChatControl({
 				<PopoverHeader>
 					<PopoverTitle>Start a new chat?</PopoverTitle>
 					<PopoverDescription>
-						This clears the current conversation. Chats aren't
-						saved, so it can't be brought back.
+						This clears the current conversation. The current chat
+						stays in your history.
 					</PopoverDescription>
 				</PopoverHeader>
 				<div className="flex justify-end gap-2">

@@ -8,6 +8,7 @@ export const AI_CHAT_MAX_REQUEST_BYTES = 512 * 1024
 export const AI_CHAT_BODY_PATHS = new Set([
 	"/api/banks/chat",
 	"/api/banks/chat/suggestions",
+	"/api/banks/chat/title",
 ])
 
 /** Hard limits for the finance AI chat (enforced on the server and shown in Admin settings). */
@@ -19,4 +20,6 @@ export const aiChatLimits = {
 	maxToolStepsPerAnswer: 50,
 	/** How many recent messages are sent when generating follow-up suggestions. */
 	suggestionsMessageSlice: 6,
+	/** How many opening messages are sent when generating a conversation title. */
+	titleMessageSlice: 4,
 } as const

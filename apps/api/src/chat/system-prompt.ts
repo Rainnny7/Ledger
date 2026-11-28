@@ -10,6 +10,15 @@ export function buildChatSuggestionsSystemPrompt(): string {
 	].join("\n")
 }
 
+/** System instructions for naming a conversation in the chat history list. */
+export function buildChatTitleSystemPrompt(): string {
+	return [
+		"You name a conversation between a user and their personal finance assistant.",
+		"Reply with only a concise title of 2 to 6 words that summarizes what the user wants to know.",
+		"Use sentence case. No quotes, no trailing punctuation, no emoji.",
+	].join("\n")
+}
+
 /** System instructions for the finance assistant (read-only, tool-grounded). */
 export function buildChatSystemPrompt(): string {
 	const today = todayIso()

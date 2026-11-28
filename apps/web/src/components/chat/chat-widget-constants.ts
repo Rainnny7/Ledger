@@ -1,4 +1,5 @@
 export const CHAT_API = "/api/banks/chat"
+export const CHAT_TITLE_API = "/api/banks/chat/title"
 export const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
 
 export const SUGGESTED_QUESTIONS = [

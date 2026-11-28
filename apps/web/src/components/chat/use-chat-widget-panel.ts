@@ -4,6 +4,9 @@ import { DefaultChatTransport, isTextUIPart } from "ai"
 import { useCallback, useMemo, useRef, useState } from "react"
 import { CHAT_API, TIME_ZONE } from "@/components/chat/chat-widget-constants"
 import { chatErrorMessage } from "@/components/chat/chat-widget-errors"
+import { useChatHistory } from "@/components/chat/use-chat-history"
+import { useChatPanelResize } from "@/components/chat/use-chat-panel-resize"
+import { useChatSettings } from "@/components/chat/use-chat-settings"
 import {
 	useAskLedgerQueueDrain,
 	useChatFollowUpSuggestions,
@@ -37,6 +40,14 @@ export function useChatWidgetPanel() {
 	)
 
 	const chat = useChat({ transport })
+	const history = useChatHistory({
+		messages: chat.messages,
+		status: chat.status,
+		setMessages: chat.setMessages,
+	})
+	const { startNewConversation } = history
+	const { settings, updateSettings } = useChatSettings()
+	const { size, startResize } = useChatPanelResize()
 	const [input, setInput] = useState("")
 	const [open, setOpen] = useState(false)
 	const [newChatConfirmOpen, setNewChatConfirmOpen] = useState(false)
@@ -81,13 +92,14 @@ export function useChatWidgetPanel() {
 		suggestionsAbortRef.current?.abort()
 		void chat.stop()
 		chat.setMessages([])
+		startNewConversation()
 		chat.clearError()
 		setInput("")
 		setFollowUpSuggestions([])
 		setFollowUpHidden(false)
 		setNewChatConfirmOpen(false)
 		textareaRef.current?.focus()
-	}, [chat])
+	}, [chat, startNewConversation])
 
 	const handleNewChatClick = useCallback(() => {
 		if (chat.messages.length === 0) {
@@ -124,6 +136,11 @@ export function useChatWidgetPanel() {
 
 	return {
 		...chat,
+		history,
+		settings,
+		updateSettings,
+		size,
+		startResize,
 		input,
 		setInput,
 		open,
