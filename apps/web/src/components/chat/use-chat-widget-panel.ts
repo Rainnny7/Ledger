@@ -116,34 +116,9 @@ export function useChatWidgetPanel() {
 		setOpen(false)
 	}, [])
 
-	const clickIsOutsidePanel = useCallback((target: EventTarget | null) => {
-		if (!(target instanceof Node)) {
-			return true
-		}
-		if (panelRef.current?.contains(target)) {
-			return false
-		}
-		if (toggleRef.current?.contains(target)) {
-			return false
-		}
-		if (target instanceof Element) {
-			if (target.closest('[data-slot="popover-content"]')) {
-				return false
-			}
-			if (target.closest('[data-slot="tooltip-content"]')) {
-				return false
-			}
-			if (target.closest('[role="dialog"], [data-streamdown]')) {
-				return false
-			}
-		}
-		return true
-	}, [])
-
 	useChatPanelDismiss({
 		open,
 		newChatConfirmOpen,
-		clickIsOutsidePanel,
 		closePanel,
 	})
 

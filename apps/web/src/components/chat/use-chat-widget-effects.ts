@@ -127,30 +127,19 @@ export function useAskLedgerQueueDrain({
 	}, [busy])
 }
 
-/** Closes the chat panel on outside click or Escape. */
+/** Closes the chat panel on Escape. Clicking elsewhere (e.g. navigating) leaves it open. */
 export function useChatPanelDismiss({
 	open,
 	newChatConfirmOpen,
-	clickIsOutsidePanel,
 	closePanel,
 }: {
 	open: boolean
 	newChatConfirmOpen: boolean
-	clickIsOutsidePanel: (target: EventTarget | null) => boolean
 	closePanel: () => void
 }) {
 	useEffect(() => {
 		if (!open) {
 			return
-		}
-		const onPointerDown = (event: MouseEvent | TouchEvent) => {
-			if (newChatConfirmOpen) {
-				return
-			}
-			if (!clickIsOutsidePanel(event.target)) {
-				return
-			}
-			closePanel()
 		}
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.key !== "Escape" || newChatConfirmOpen) {
@@ -158,14 +147,9 @@ export function useChatPanelDismiss({
 			}
 			closePanel()
 		}
-		const passiveTouch = { passive: true } as const
-		document.addEventListener("mousedown", onPointerDown)
-		document.addEventListener("touchstart", onPointerDown, passiveTouch)
 		document.addEventListener("keydown", onKeyDown)
 		return () => {
-			document.removeEventListener("mousedown", onPointerDown)
-			document.removeEventListener("touchstart", onPointerDown)
 			document.removeEventListener("keydown", onKeyDown)
 		}
-	}, [open, newChatConfirmOpen, clickIsOutsidePanel, closePanel])
+	}, [open, newChatConfirmOpen, closePanel])
 }
