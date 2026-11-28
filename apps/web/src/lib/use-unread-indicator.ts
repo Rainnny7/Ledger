@@ -3,8 +3,8 @@ import { setUnreadTitleCount } from "@/lib/page-title"
 import { useNotifications } from "@/lib/queries"
 
 const BadgeMask =
-	'<defs><mask id="ledger-unread-cutout"><rect width="32" height="32" fill="white"/><circle cx="23" cy="9" r="11" fill="black"/></mask></defs>'
-const BadgeDot = '<circle cx="23" cy="9" r="9" fill="#ef4444"/>'
+	'<defs><mask id="ledger-unread-cutout"><rect width="32" height="32" fill="white"/><circle cx="26" cy="6" r="6" fill="black"/></mask></defs>'
+const BadgeDot = '<circle cx="26" cy="6" r="4" fill="#ef4444"/>'
 
 let faviconSvgTemplate: string | null = null
 /** The tab's own icon href, captured once at module level so a remount can still restore it after the badge was applied. */
