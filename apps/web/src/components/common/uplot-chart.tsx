@@ -171,7 +171,6 @@ export function UPlotChart({
 	const tooltipRef = useRef<HTMLDivElement>(null)
 	const chartRef = useRef<uPlot | null>(null)
 	const dataRef = useRef(data)
-	const fullRangeRef = useRef<[number, number] | null>(null)
 	// Share of the plot width (0..1) the series are drawn across; animated by animateReveal.
 	const revealProgressRef = useRef(1)
 	const revealFrameRef = useRef<number | null>(null)
@@ -319,10 +318,6 @@ export function UPlotChart({
 			hasRevealedRef.current = true
 			animateReveal(chart, revealProgressRef, revealFrameRef)
 		}
-		fullRangeRef.current = [
-			chart.scales.x.min ?? 0,
-			chart.scales.x.max ?? 0,
-		]
 		if (hover === "band") {
 			bandElement = document.createElement("div")
 			bandElement.className = "u-hover-band"
@@ -366,18 +361,13 @@ export function UPlotChart({
 		chart.setData(data)
 		// A new range (e.g. a time-range switch) sweeps in like the first render.
 		animateReveal(chart, revealProgressRef, revealFrameRef)
-		fullRangeRef.current = [
-			chart.scales.x.min ?? 0,
-			chart.scales.x.max ?? 0,
-		]
 	}, [data])
 
 	const resetZoom = () => {
 		const chart = chartRef.current
-		const fullRange = fullRangeRef.current
-		if (chart && fullRange) {
-			chart.setScale("x", { min: fullRange[0], max: fullRange[1] })
-		}
+		// Re-applying the data with resetScales re-derives the full x range (and auto y range) from it.
+		// The scales can't be read back right after setData (uPlot commits them in a microtask).
+		chart?.setData(dataRef.current, true)
 		setZoomed(false)
 	}
 
@@ -412,9 +402,9 @@ export function UPlotChart({
 				{zoomed && (
 					<Button
 						type="button"
-						variant="ghost"
+						variant="outline"
 						size="xs"
-						className="absolute top-0 right-0 z-10"
+						className="absolute top-0 right-0 z-10 bg-card shadow-md"
 						onClick={resetZoom}
 					>
 						Reset zoom
