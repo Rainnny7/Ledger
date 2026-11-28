@@ -1,6 +1,7 @@
 import { SparklesIcon } from "@/components/icons/sparkles"
 import { Button } from "@/components/ui/button"
 import {
+	type SharedTooltipHandle,
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
@@ -25,6 +26,8 @@ export interface AskLedgerButtonProps {
 	label: string
 	variant?: AskLedgerButtonVariant
 	className?: string
+	/** When set, compact variant uses a shared tooltip root instead of owning one. */
+	handle?: SharedTooltipHandle
 }
 
 /**
@@ -35,6 +38,7 @@ export function AskLedgerButton({
 	label,
 	variant = "compact",
 	className,
+	handle,
 }: AskLedgerButtonProps) {
 	const config = useAppConfig()
 	const hidden = useHideAiSuggestions()
@@ -57,24 +61,32 @@ export function AskLedgerButton({
 		)
 	}
 
+	const compactButton = (
+		<Button
+			type="button"
+			variant="outline"
+			size="icon-xs"
+			className={cn("shrink-0", askLedgerAccentClass, className)}
+			aria-label={label}
+			onClick={handleClick}
+		/>
+	)
+
+	if (handle) {
+		return (
+			<TooltipTrigger
+				handle={handle}
+				payload={{ label, side: "top" }}
+				render={compactButton}
+			>
+				<SparklesIcon size={16} className="flex" />
+			</TooltipTrigger>
+		)
+	}
+
 	return (
 		<Tooltip>
-			<TooltipTrigger
-				render={
-					<Button
-						type="button"
-						variant="outline"
-						size="icon-xs"
-						className={cn(
-							"shrink-0",
-							askLedgerAccentClass,
-							className
-						)}
-						aria-label={label}
-						onClick={handleClick}
-					/>
-				}
-			>
+			<TooltipTrigger render={compactButton}>
 				<SparklesIcon size={16} className="flex" />
 			</TooltipTrigger>
 			<TooltipContent side="top">{label}</TooltipContent>

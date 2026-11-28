@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip"
 import type { Subscription } from "@/lib/api"
 import { formatLongDate, formatMoney, isoDate } from "@/lib/format"
-import { useConverter } from "@/lib/currency"
+import { useConverter } from "@/lib/converter-provider"
 import { useNow } from "@/lib/use-now"
 import { cn } from "cn"
 

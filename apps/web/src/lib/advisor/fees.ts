@@ -121,7 +121,7 @@ export function feesOf(context: Ctx): { tips: Tip[]; yearly: number } {
 			yearly: yearlyEstimate,
 			action: {
 				label: "See these fees",
-				to: link("/transactions", {
+				to: link("/accounts", {
 					category: "fees",
 					merchants: merchantsOf(group.txs),
 					from: addDays(context.today, -89),

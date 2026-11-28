@@ -1,29 +1,11 @@
-import { AdvisorSpotlight } from "@/components/advisor/advisor-spotlight"
-import { BalanceChart, CashflowChart } from "@/components/common/charts"
-import { RangePicker } from "@/components/common/range-picker"
-import { ConnectionSection } from "@/components/dashboard/connection-section"
-import { DashboardRecentActivity } from "@/components/dashboard/dashboard-recent-activity"
-import { DashboardStatsGrid } from "@/components/dashboard/dashboard-stats-grid"
-import type { DashboardStatDelta } from "@/components/dashboard/dashboard-stat"
-import { NeedsAttention } from "@/components/dashboard/needs-attention"
-import { UpcomingList } from "@/components/dashboard/upcoming-list"
-import { GoalsSpotlight } from "@/components/goals/goals-spotlight"
-import { buttonVariants } from "@/components/ui/button-variants"
-import {
-	Card,
-	CardAction,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+import { DashboardHeroCard } from "@/components/dashboard/dashboard-hero-card"
+import { DashboardInboxCard } from "@/components/dashboard/dashboard-inbox-card"
+import { DashboardMonthSoFarCard } from "@/components/dashboard/dashboard-month-so-far-card"
+import { DashboardProgressCard } from "@/components/dashboard/dashboard-progress-card"
 import type { Account, Connection, Subscription, Transaction } from "@/lib/api"
 import type { Converter } from "@/lib/currency"
 import { inHomeCurrency } from "@/lib/currency"
-import { type RangeKey, rangeStart } from "@/lib/ranges"
-import { ChevronRight } from "lucide-react"
-import { Link } from "@tanstack/react-router"
+import { type RangeKey } from "@/lib/ranges"
 
 type SpendFigures = {
 	now: number
@@ -32,14 +14,9 @@ type SpendFigures = {
 	prev: number
 }
 
-/**
- * Dashboard body once at least one account exists: stats, charts, alerts, upcoming payments
- * and the connections list.
- */
+/** Home dashboard content when at least one bank connection exists. */
 export function DashboardConnected({
 	connections,
-	accounts,
-	transactions,
 	cad,
 	cadTx,
 	home,
@@ -51,26 +28,12 @@ export function DashboardConnected({
 	owing,
 	spend,
 	txReady,
-	statSeries,
-	statDelta,
 	series,
-	flow,
 	range,
 	onRangeChange,
 	upcoming,
-	subscriptionCount,
-	suggestionCount,
-	onSelectTransaction,
-	onRefreshConnection,
-	onFullRefreshConnection,
-	onUploadStatements,
-	onToggleInstant,
-	onForget,
-	onRemove,
 }: {
 	connections: Connection[]
-	accounts: Account[]
-	transactions: Transaction[]
 	cad: Account[]
 	cadTx: Transaction[]
 	home: ReturnType<typeof inHomeCurrency>
@@ -82,43 +45,14 @@ export function DashboardConnected({
 	owing: number
 	spend: SpendFigures
 	txReady: boolean
-	statSeries: {
-		totalBalance: number[]
-		available: number[]
-		owing: number[]
-		spent: number[]
-	}
-	statDelta: {
-		totalBalance?: DashboardStatDelta
-		available?: DashboardStatDelta
-		owing?: DashboardStatDelta
-		spent?: DashboardStatDelta
-	}
-	series: Parameters<typeof BalanceChart>[0]["data"]
-	flow: Parameters<typeof CashflowChart>[0]["data"]
+	series: { date: string; balance: number }[]
 	range: RangeKey
 	onRangeChange: (range: RangeKey) => void
 	upcoming: Subscription[]
-	subscriptionCount: number
-	suggestionCount: number
-	onSelectTransaction: (transaction: Transaction) => void
-	onRefreshConnection: (connection: Connection) => void
-	onFullRefreshConnection: (connection: Connection) => void
-	onUploadStatements: (connectionId: string) => void
-	onToggleInstant: (connection: Connection) => void
-	onForget: (connection: Connection) => void
-	onRemove: (connection: Connection) => void
 }) {
 	return (
-		<>
-			<NeedsAttention
-				connections={connections}
-				transactions={cadTx}
-				converter={converter}
-			/>
-			<GoalsSpotlight />
-			<AdvisorSpotlight />
-			<DashboardStatsGrid
+		<div className="grid gap-4">
+			<DashboardHeroCard
 				cad={cad}
 				home={home}
 				converter={converter}
@@ -129,122 +63,25 @@ export function DashboardConnected({
 				owing={owing}
 				spend={spend}
 				txReady={txReady}
-				statSeries={statSeries}
-				statDelta={statDelta}
+				series={series}
+				range={range}
+				onRangeChange={onRangeChange}
 			/>
-
-			<div className="grid gap-4 lg:grid-cols-5">
-				<Card className="lg:col-span-3">
-					<CardHeader>
-						<CardTitle>Total Balance</CardTitle>
-						<CardDescription>
-							All accounts combined, end of day
-						</CardDescription>
-						<CardAction>
-							<RangePicker
-								value={range}
-								onChange={onRangeChange}
-								options={["30d", "90d", "6m", "1y"]}
-							/>
-						</CardAction>
-					</CardHeader>
-					<CardContent>
-						{txReady ? (
-							<BalanceChart
-								data={series}
-								from={rangeStart(range)}
-							/>
-						) : (
-							<Skeleton className="h-56" />
-						)}
-					</CardContent>
-				</Card>
-				<Card className="lg:col-span-2">
-					<CardHeader>
-						<CardTitle>Cash Flow</CardTitle>
-						<CardDescription>
-							Money in vs out, last 6 months
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						{txReady ? (
-							<CashflowChart data={flow} />
-						) : (
-							<Skeleton className="h-56" />
-						)}
-					</CardContent>
-				</Card>
-			</div>
-
-			<div className="grid gap-4 lg:grid-cols-2">
-				<Card>
-					<CardHeader>
-						<CardTitle>Upcoming Payments</CardTitle>
-						<CardDescription>
-							Subscriptions & bills due in the next 2 weeks
-						</CardDescription>
-						<CardAction>
-							<Link
-								to="/subscriptions"
-								className={buttonVariants({
-									variant: "ghost",
-									size: "sm",
-								})}
-							>
-								View all <ChevronRight />
-							</Link>
-						</CardAction>
-					</CardHeader>
-					<CardContent>
-						<UpcomingList
-							items={upcoming}
-							empty={subscriptionCount === 0}
-							suggestions={suggestionCount}
-						/>
-					</CardContent>
-				</Card>
-				<Card>
-					<CardHeader>
-						<CardTitle>Recent Activity</CardTitle>
-						<CardDescription>
-							Latest across all accounts
-						</CardDescription>
-						<CardAction>
-							<Link
-								to="/insights"
-								className={buttonVariants({
-									variant: "ghost",
-									size: "sm",
-								})}
-							>
-								Insights <ChevronRight />
-							</Link>
-						</CardAction>
-					</CardHeader>
-					<CardContent className="grid gap-0.5">
-						<DashboardRecentActivity
-							transactions={transactions}
-							accounts={accounts}
-							txReady={txReady}
-							onSelectTransaction={onSelectTransaction}
-						/>
-					</CardContent>
-				</Card>
-			</div>
-
-			{connections.map((connection) => (
-				<ConnectionSection
-					key={connection.id}
-					connection={connection}
-					accounts={accounts}
-					onRefresh={onRefreshConnection}
-					onFullRefresh={onFullRefreshConnection}
-					onUploadStatements={onUploadStatements}
-					onToggleInstant={onToggleInstant}
-					onForget={onForget}
-					onRemove={onRemove}
+			<div className="grid gap-4 lg:grid-cols-[1.25fr_1fr]">
+				<DashboardInboxCard
+					connections={connections}
+					transactions={cadTx}
+					converter={converter}
+					upcoming={upcoming}
 				/>
-			))}
-		</>
+				<div className="grid gap-4">
+					<DashboardMonthSoFarCard
+						transactions={cadTx}
+						txReady={txReady}
+					/>
+					<DashboardProgressCard />
+				</div>
+			</div>
+		</div>
 	)
 }

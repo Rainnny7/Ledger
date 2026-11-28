@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from "react"
 import {
+	type SharedTooltipHandle,
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
@@ -14,14 +15,26 @@ export function Hint({
 	children,
 	side,
 	className,
+	handle,
 }: {
 	label: ReactNode
 	children: ReactElement
 	side?: "top" | "bottom" | "left" | "right"
 	className?: string
+	/** When set, uses a shared tooltip root instead of owning one. */
+	handle?: SharedTooltipHandle
 }) {
 	if (label === null || label === undefined || label === "") {
 		return children
+	}
+	if (handle) {
+		return (
+			<TooltipTrigger
+				handle={handle}
+				payload={{ label, side, className }}
+				render={children}
+			/>
+		)
 	}
 	return (
 		<Tooltip>

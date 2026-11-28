@@ -4,7 +4,8 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { currencyName, useConverter } from "@/lib/currency"
+import { currencyName } from "@/lib/currency"
+import { useConverter } from "@/lib/converter-provider"
 import {
 	formatDate,
 	formatMoney,

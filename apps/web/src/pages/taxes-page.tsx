@@ -13,7 +13,8 @@ import { QueryError } from "@/components/ui/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { Transaction } from "@/lib/api"
 import { useSession } from "@/lib/auth-client"
-import { inHomeCurrency, useConverter } from "@/lib/currency"
+import { inHomeCurrency } from "@/lib/currency"
+import { useConverter } from "@/lib/converter-provider"
 import { DEMO_IDENTITY, demoMode } from "@/lib/demo"
 import { formatMoney } from "@/lib/format"
 import { useOverview, useTransactions } from "@/lib/queries"
@@ -138,13 +139,8 @@ export function TaxesPage() {
 	}
 
 	const txLink = (extra: Record<string, string>) => {
-		const params = new URLSearchParams({
-			from,
-			to,
-			...(accountId === "all" ? {} : { account: accountId }),
-			...extra,
-		})
-		return `/transactions?${params}`
+		const params = new URLSearchParams({ from, to, ...extra })
+		return `${accountId === "all" ? "/accounts" : `/accounts/${accountId}`}?${params}`
 	}
 
 	const loading = !txq.data || !overview.data

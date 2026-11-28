@@ -25,14 +25,16 @@ import { useMemo } from "react"
 
 type Model = ReturnType<typeof useTransactionsPage>
 
-/** React/UI entry: `TransactionsPageCard`. */
+/**
+ * The one transactions card on the Accounts page: totals, filters, bulk actions, table and paging
+ * for every account, or for the account picked in the route (which hides the account column and
+ * shows the running balance instead).
+ */
 export function TransactionsPageCard({ model }: { model: Model }) {
 	const {
 		converter,
 		query,
 		setQuery,
-		accountId,
-		setAccountId,
 		category,
 		setCategory,
 		flow,
@@ -54,8 +56,8 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 		setPicked,
 		applying,
 		accounts,
-		transactions,
-		accountItems,
+		account,
+		accountTransactions,
 		filtered,
 		totals,
 		shown,
@@ -78,11 +80,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 		() =>
 			transactionsSpendingAskPrompt({
 				query,
-				accountName:
-					accountId === "all"
-						? null
-						: (accounts.find((account) => account.id === accountId)
-								?.name ?? null),
+				accountName: account?.name ?? null,
 				period,
 				category,
 				tag,
@@ -94,8 +92,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 			}),
 		[
 			query,
-			accountId,
-			accounts,
+			account,
 			period,
 			category,
 			tag,
@@ -120,7 +117,7 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 						<CardDescription>
 							{loading
 								? " "
-								: `of ${transactions.length.toLocaleString()}`}
+								: `of ${accountTransactions.length.toLocaleString()}`}
 							{totals.mixed && ` · totals in ${converter.home}`}
 						</CardDescription>
 					</div>
@@ -167,13 +164,6 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							changed()
 						}}
 						className="col-span-2 w-full min-w-0 md:col-span-1 md:min-w-48 md:flex-1"
-					/>
-					<TransactionsFilterSelect
-						label="Account"
-						items={accountItems}
-						value={accountId}
-						onChange={(next) => (setAccountId(next), changed())}
-						className="w-full min-w-0 md:w-44"
 					/>
 					<TransactionsFilterSelect
 						label="Period"
@@ -293,8 +283,10 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 					</div>
 				) : filtered.length === 0 ? (
 					<p className="px-4 py-12 text-center text-sm text-muted-foreground">
-						{transactions.length === 0
-							? "No transactions yet. Connect a bank to see them here."
+						{accountTransactions.length === 0
+							? account
+								? "No transactions were found for this account yet."
+								: "No transactions yet. Connect a bank to see them here."
 							: "No transactions match."}
 					</p>
 				) : (
@@ -303,7 +295,13 @@ export function TransactionsPageCard({ model }: { model: Model }) {
 							transactions={shown}
 							accounts={accounts}
 							onSelect={setSelected}
-							showAccount={accounts.length > 1}
+							showAccount={!account && accounts.length > 1}
+							showBalance={
+								account !== null &&
+								accountTransactions.some(
+									(row) => row.runningBalance !== null
+								)
+							}
 							selection={{ ids: picked, toggle }}
 						/>
 						<TransactionsPagination

@@ -1,6 +1,6 @@
 import { URL_OPTIONS } from "@/lib/url-state"
 import { parseAsInteger, useQueryStates } from "nuqs"
-import { useCallback, useMemo } from "react"
+import { useCallback, useMemo, useRef } from "react"
 
 /** Allowed row counts for transaction tables (also in the URL as `perPage`). */
 export const TRANSACTIONS_PER_PAGE_OPTIONS = [25, 50, 75, 100, 200] as const
@@ -29,17 +29,25 @@ export function usePagination(totalCount: number) {
 
 	const perPage = useMemo(() => normalizePerPage(urlPerPage), [urlPerPage])
 	const totalPages = Math.max(1, Math.ceil(totalCount / perPage) || 1)
+	const totalPagesRef = useRef(totalPages)
+	totalPagesRef.current = totalPages
 	const page = useMemo(() => {
 		const value = urlPage < 1 ? 1 : urlPage
 		return Math.min(value, totalPages)
 	}, [urlPage, totalPages])
+	const pageRef = useRef(page)
+	pageRef.current = page
 
 	const setPage = useCallback(
 		(next: number) => {
-			const clamped = Math.max(1, Math.min(next, totalPages))
+			const pages = totalPagesRef.current
+			const clamped = Math.max(1, Math.min(next, pages))
+			if (clamped === pageRef.current) {
+				return
+			}
 			void setStates({ page: clamped <= 1 ? null : clamped })
 		},
-		[setStates, totalPages]
+		[setStates]
 	)
 
 	const setPerPage = useCallback(

@@ -138,6 +138,15 @@ function scrollUpIfHere(to: string, pathname: string) {
 	}
 }
 
+/** First path segment for scroll and outlet fade (`/accounts/x` → `/accounts`, `/` stays `/`). */
+function pageSectionKey(pathname: string) {
+	if (pathname === "/") {
+		return "/"
+	}
+	const [, first] = pathname.split("/")
+	return first ? `/${first}` : "/"
+}
+
 /** Every new page starts at the top (the browser would otherwise keep, or restore, the old scroll). */
 function useScrollTopOnPageChange(pathname: string) {
 	useEffect(() => {
@@ -166,8 +175,13 @@ type NavEntry = {
 
 /** The everyday pages, always in the bar. */
 const NAV: NavEntry[] = [
-	{ to: "/", label: "Bank Accounts", icon: WalletIcon, count: "accounts" },
-	{ to: "/transactions", label: "Transactions", icon: ReceiptIcon },
+	{ to: "/", label: "Home", icon: WalletIcon },
+	{
+		to: "/accounts",
+		label: "Accounts",
+		icon: ReceiptIcon,
+		count: "accounts",
+	},
 	{ to: "/insights", label: "Insights", icon: ChartPieIcon },
 	{
 		to: "/subscriptions",
@@ -206,8 +220,8 @@ const ALL_NAV = [...NAV, ...BUSINESS_NAV]
 
 /** `data-tour` ids for the onboarding spotlight tour. */
 const NAV_TOUR_ID: Record<string, string> = {
-	"/": "nav-bank-accounts",
-	"/transactions": "nav-transactions",
+	"/": "nav-home",
+	"/accounts": "nav-accounts",
 	"/insights": "nav-insights",
 	"/subscriptions": "nav-subscriptions",
 	"/goals": "nav-goals",
@@ -569,7 +583,7 @@ function ScrollNav({
 
 function navItemActive(to: string, pathname: string) {
 	if (to === "/") {
-		return pathname === "/" || pathname.startsWith("/accounts")
+		return pathname === "/"
 	}
 	return pathname.startsWith(to)
 }
@@ -733,7 +747,7 @@ const EXTRA_TITLES: Record<string, string> = {
 	"/contacts": "Contacts",
 }
 
-/** The browser tab title for where you are: "Bank Accounts | Ledger", "TD Chequing | Ledger"… */
+/** The browser tab title for where you are: "Accounts | Ledger", "TD Chequing | Ledger"… */
 function useRouteTitle(pathname: string) {
 	const overview = useOverview().data
 	const accountId = pathname.match(/^\/accounts\/([^/]+)/)?.[1]
@@ -751,7 +765,7 @@ function useRouteTitle(pathname: string) {
 		const account = overview?.accounts.find(
 			(candidate) => candidate.id === accountId
 		)
-		title = account ? account.name : "Bank Accounts"
+		title = account ? account.name : "Accounts"
 	} else if (!title && editingInvoice) {
 		const invoice = invoices?.invoices.find((i) => i.id === editingInvoice)
 		title = invoice ? `Invoice ${invoice.number}` : "Invoices"
@@ -880,8 +894,9 @@ function AppShellFrame() {
 	const appNavigate = appShellRoute.useNavigate()
 	const { pathname } = useLocation()
 	const counts = useNavCounts()
+	const pageSection = pageSectionKey(pathname)
 	useRouteTitle(pathname)
-	useScrollTopOnPageChange(pathname)
+	useScrollTopOnPageChange(pageSection)
 	useAccountTheme()
 	const user = demoMode ? DEMO_IDENTITY : data?.user
 	const signedIn = Boolean(data?.user) && !demoMode
@@ -970,15 +985,10 @@ function AppShellFrame() {
 												? counts.accountsAlert
 												: null
 										}
-										// Account detail pages live under Bank Accounts.
-										active={
-											item.to === "/"
-												? pathname === "/" ||
-													pathname.startsWith(
-														"/accounts"
-													)
-												: pathname.startsWith(item.to)
-										}
+										active={navItemActive(
+											item.to,
+											pathname
+										)}
 									/>
 								))}
 								<NavGroup
@@ -1160,9 +1170,9 @@ function AppShellFrame() {
 				</Suspense>
 				<main className="mx-auto max-w-[80rem] px-4 py-8">
 					<InvitesBanner enabled={!demoMode} />
-					{/* Keyed by route so each page fades in when you navigate to it. */}
+					{/* Keyed by top-level section so in-section navigation (e.g. accounts) does not remount. */}
 					<div
-						key={pathname}
+						key={pageSection}
 						className="animate-[ledger-fade_220ms_ease-out_both]"
 					>
 						<Outlet />

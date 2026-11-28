@@ -95,7 +95,7 @@ export function paceTips(context: Ctx): Tip[] {
 					: "."),
 			action: {
 				label: `See ${lowercaseCategory(hotspot.c)} this month`,
-				to: link("/transactions", {
+				to: link("/accounts", {
 					category: hotspot.c,
 					from: `${context.thisMonth}-01`,
 				}),
@@ -166,7 +166,7 @@ export function habitTips(context: Ctx): Tip[] {
 			yearly: (coffeeTotal * scale) / 2,
 			action: {
 				label: "See purchases",
-				to: link("/transactions", {
+				to: link("/accounts", {
 					merchants: merchantsOf(coffee),
 					from: addDays(context.today, -29),
 				}),
@@ -194,7 +194,7 @@ export function habitTips(context: Ctx): Tip[] {
 			yearly: deliveryTotal * scale * 0.25,
 			action: {
 				label: "See orders",
-				to: link("/transactions", {
+				to: link("/accounts", {
 					merchants: merchantsOf(delivery),
 					from: addDays(context.today, -29),
 				}),
@@ -241,7 +241,7 @@ export function habitTips(context: Ctx): Tip[] {
 			yearly: (stats.total * scale) / 3,
 			action: {
 				label: "See purchases",
-				to: link("/transactions", {
+				to: link("/accounts", {
 					merchants: key,
 					from: addDays(context.today, -29),
 				}),

@@ -318,7 +318,7 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 						hint: `${formatMoney(transaction.amount, currencyOf.get(transaction.accountId))} · ${formatShortDate(transaction.date)}`,
 						icon: transaction.amount > 0 ? Wallet : Receipt,
 						group: "Transactions" as const,
-						to: `/transactions?period=all&tx=${transaction.id}`,
+						to: `/accounts?period=all&tx=${transaction.id}`,
 					}))
 			: []
 		const merchantItems = merchants
@@ -334,7 +334,7 @@ export function usePalette({ onDone }: { onDone: () => void }) {
 			label: `Search transactions for “${text}”`,
 			icon: SearchIcon,
 			group: "Search",
-			to: `/transactions?q=${encodeURIComponent(text)}&period=all`,
+			to: `/accounts?q=${encodeURIComponent(text)}&period=all`,
 		}
 		return [...txItems, ...capped, ...merchantItems, search]
 	}, [query, pool, merchants, transactions, accounts, recent])

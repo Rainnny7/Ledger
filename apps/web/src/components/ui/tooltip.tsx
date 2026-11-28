@@ -1,5 +1,23 @@
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
 import { cn } from "cn"
+import type { ReactNode } from "react"
+
+/** Payload for a detached {@link TooltipTrigger} tied to one shared {@link Tooltip}. */
+export type SharedTooltipPayload = {
+	label: ReactNode
+	side?: "top" | "bottom" | "left" | "right"
+	className?: string
+}
+
+/** Handle type for detached tooltip triggers. */
+export type SharedTooltipHandle = ReturnType<typeof createSharedTooltipHandle>
+
+/**
+ * Creates a handle so many {@link TooltipTrigger}s can share one {@link Tooltip} root.
+ */
+export function createSharedTooltipHandle() {
+	return TooltipPrimitive.createHandle<SharedTooltipPayload>()
+}
 
 function TooltipProvider({
 	delay = 0,
@@ -14,7 +32,9 @@ function TooltipProvider({
 	)
 }
 
-function Tooltip({ ...props }: TooltipPrimitive.Root.Props) {
+function Tooltip({
+	...props
+}: TooltipPrimitive.Root.Props<SharedTooltipPayload>) {
 	return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
 }
 

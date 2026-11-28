@@ -6,15 +6,16 @@ const TOUR_STEP_DEFINITIONS: {
 	description: string
 }[] = [
 	{
-		element: '[data-tour="nav-bank-accounts"]',
-		title: "Bank Accounts",
+		element: '[data-tour="nav-home"]',
+		title: "Home",
 		description:
-			"Your linked accounts, balances, and overdraft at a glance.",
+			"Your net worth, what needs attention, and how this month is going.",
 	},
 	{
-		element: '[data-tour="nav-transactions"]',
-		title: "Transactions",
-		description: "Search and categorise spending across all accounts.",
+		element: '[data-tour="nav-accounts"]',
+		title: "Accounts",
+		description:
+			"Every linked account and its transactions: search, categorise and tag spending in one place.",
 	},
 	{
 		element: '[data-tour="nav-insights"]',

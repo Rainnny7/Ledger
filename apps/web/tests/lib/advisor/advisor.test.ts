@@ -116,7 +116,7 @@ test("spots coffee and delivery habits with a yearly saving", () => {
 	assert.ok((delivery.yearly ?? 0) > 100)
 	// Their buttons open Transactions narrowed to just those merchants over the same 30 days.
 	const coffeeLink = new URL(coffee.action!.to, "http://x")
-	assert.equal(coffeeLink.pathname, "/transactions")
+	assert.equal(coffeeLink.pathname, "/accounts")
 	assert.equal(coffeeLink.searchParams.get("merchants"), "starbucks")
 	assert.equal(coffeeLink.searchParams.get("from"), addDays(TODAY, -29))
 	assert.equal(
@@ -138,7 +138,7 @@ test("a category running hot links to that category this month", () => {
 	const pace = report.tips.find((tip) => tip.id.startsWith("pace:transport:"))
 	assert.ok(pace, "pace tip")
 	const url = new URL(pace.action!.to, "http://x")
-	assert.equal(url.pathname, "/transactions")
+	assert.equal(url.pathname, "/accounts")
 	assert.equal(url.searchParams.get("category"), "transport")
 	assert.equal(url.searchParams.get("from"), "2026-11-01")
 	// The tip's figure is net of refunds, so the link keeps them in view for the totals to match.

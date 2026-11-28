@@ -50,3 +50,6 @@ Thumbs.db
 *.sln
 *.sw?
 .turbo
+
+# TanStack Router generator scratch files
+.tanstack/

@@ -8,7 +8,7 @@ import { byUrgency } from "@/components/goals/goal-sort"
 import { leaveShared, splitShared } from "@/lib/sharing"
 import { api, type Goal, type GoalInput } from "@/lib/api"
 import { isoDate } from "@/lib/format"
-import { useConverter } from "@/lib/currency"
+import { useConverter } from "@/lib/converter-provider"
 import { useGoals } from "@/lib/queries"
 import { useIntent } from "@/lib/url-state"
 

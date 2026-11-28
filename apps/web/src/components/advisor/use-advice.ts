@@ -1,6 +1,7 @@
 import { buildAdvice, type AdvisorReport, type Tip } from "@/lib/advisor"
 import { api } from "@/lib/api"
-import { inHomeCurrency, useConverter } from "@/lib/currency"
+import { inHomeCurrency } from "@/lib/currency"
+import { useConverter } from "@/lib/converter-provider"
 import { demoMode } from "@/lib/demo"
 import { isoDate } from "@/lib/format"
 import {

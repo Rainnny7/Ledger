@@ -72,17 +72,17 @@ export const PAGES: PaletteItem[] = (
 	[
 		{
 			id: "page:/",
-			label: "Bank Accounts",
+			label: "Home",
 			icon: Wallet,
 			to: "/",
-			keywords: "home dashboard balances",
+			keywords: "dashboard overview net worth",
 		},
 		{
-			id: "page:/transactions",
-			label: "Transactions",
+			id: "page:/accounts",
+			label: "Accounts",
 			icon: Receipt,
-			to: "/transactions",
-			keywords: "search spending",
+			to: "/accounts",
+			keywords: "bank balances transactions search spending",
 		},
 		{
 			id: "page:/insights",
@@ -178,14 +178,14 @@ export const ACTIONS: PaletteItem[] = (
 			id: "action:connect",
 			label: "Connect a Bank Account",
 			icon: Landmark,
-			to: "/?connect=1",
+			to: "/accounts?connect=1",
 			keywords: "add link bank",
 		},
 		{
 			id: "action:upload",
 			label: "Upload a Statement",
 			icon: Upload,
-			to: "/?upload=1",
+			to: "/accounts?upload=1",
 			keywords: "import csv ofx pdf",
 		},
 		{
@@ -199,21 +199,21 @@ export const ACTIONS: PaletteItem[] = (
 			id: "action:business",
 			label: "Business Transactions",
 			icon: BriefcaseBusiness,
-			to: "/transactions?tag=business&period=all",
+			to: "/accounts?tag=business&period=all",
 			keywords: "tax tagged work expenses",
 		},
 		{
 			id: "action:export",
 			label: "Export Transactions to CSV",
 			icon: DownloadIcon,
-			to: "/transactions?period=all&export=1",
+			to: "/accounts?period=all&export=1",
 			keywords: "download spreadsheet excel",
 		},
 		{
 			id: "action:review",
 			label: "Uncategorized Transactions",
 			icon: SparklesIcon,
-			to: "/transactions?category=other&period=all",
+			to: "/accounts?category=other&period=all",
 			keywords: "other tidy review fix",
 		},
 	] as const
@@ -347,6 +347,6 @@ export function merchantItem(bucket: {
 		hint: `${bucket.count} transaction${bucket.count === 1 ? "" : "s"}`,
 		icon: Store,
 		group: "Merchants",
-		to: `/transactions?q=${encodeURIComponent(bucket.name)}&period=all`,
+		to: `/accounts?q=${encodeURIComponent(bucket.name)}&period=all`,
 	}
 }

@@ -18,15 +18,16 @@ import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as ITokenRouteImport } from './routes/i.$token'
 import { Route as AuthedAppIndexRouteImport } from './routes/_authed/_app/index'
 import { Route as AuthedAppRealRouteRouteImport } from './routes/_authed/_app/_real/route'
+import { Route as AuthedAppAccountsRouteImport } from './routes/_authed/_app/accounts'
 import { Route as AuthedAppAdvisorRouteImport } from './routes/_authed/_app/advisor'
 import { Route as AuthedAppGoalsRouteImport } from './routes/_authed/_app/goals'
 import { Route as AuthedAppInsightsRouteImport } from './routes/_authed/_app/insights'
 import { Route as AuthedAppSubscriptionsRouteImport } from './routes/_authed/_app/subscriptions'
 import { Route as AuthedAppTaxesRouteImport } from './routes/_authed/_app/taxes'
-import { Route as AuthedAppTransactionsRouteImport } from './routes/_authed/_app/transactions'
 import { Route as AuthedAppWorkRouteImport } from './routes/_authed/_app/work'
 import { Route as GuestLoginLinkRouteImport } from './routes/_guest/login_.link'
 import { Route as AuthedAppRealContactsRouteImport } from './routes/_authed/_app/_real/contacts'
+import { Route as AuthedAppAccountsIndexRouteImport } from './routes/_authed/_app/accounts.index'
 import { Route as AuthedAppAccountsIdRouteImport } from './routes/_authed/_app/accounts.$id'
 import { Route as AuthedAppInvoicesIndexRouteImport } from './routes/_authed/_app/invoices/index'
 import { Route as AuthedAppInvoicesIdRouteImport } from './routes/_authed/_app/invoices/$id'
@@ -73,6 +74,11 @@ const AuthedAppRealRouteRoute = AuthedAppRealRouteRouteImport.update({
   id: '/_real',
   getParentRoute: () => AuthedAppRouteRoute,
 } as any)
+const AuthedAppAccountsRoute = AuthedAppAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AuthedAppRouteRoute,
+} as any)
 const AuthedAppAdvisorRoute = AuthedAppAdvisorRouteImport.update({
   id: '/advisor',
   path: '/advisor',
@@ -98,11 +104,6 @@ const AuthedAppTaxesRoute = AuthedAppTaxesRouteImport.update({
   path: '/taxes',
   getParentRoute: () => AuthedAppRouteRoute,
 } as any)
-const AuthedAppTransactionsRoute = AuthedAppTransactionsRouteImport.update({
-  id: '/transactions',
-  path: '/transactions',
-  getParentRoute: () => AuthedAppRouteRoute,
-} as any)
 const AuthedAppWorkRoute = AuthedAppWorkRouteImport.update({
   id: '/work',
   path: '/work',
@@ -118,10 +119,15 @@ const AuthedAppRealContactsRoute = AuthedAppRealContactsRouteImport.update({
   path: '/contacts',
   getParentRoute: () => AuthedAppRealRouteRoute,
 } as any)
+const AuthedAppAccountsIndexRoute = AuthedAppAccountsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedAppAccountsRoute,
+} as any)
 const AuthedAppAccountsIdRoute = AuthedAppAccountsIdRouteImport.update({
-  id: '/accounts/$id',
-  path: '/accounts/$id',
-  getParentRoute: () => AuthedAppRouteRoute,
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthedAppAccountsRoute,
 } as any)
 const AuthedAppInvoicesIndexRoute = AuthedAppInvoicesIndexRouteImport.update({
   id: '/invoices/',
@@ -145,18 +151,19 @@ export interface FileRoutesByFullPath {
   '/email-verified': typeof EmailVerifiedRoute
   '/login': typeof GuestLoginRoute
   '/i/$token': typeof ITokenRoute
+  '/accounts': typeof AuthedAppAccountsRouteWithChildren
   '/advisor': typeof AuthedAppAdvisorRoute
   '/goals': typeof AuthedAppGoalsRoute
   '/insights': typeof AuthedAppInsightsRoute
   '/subscriptions': typeof AuthedAppSubscriptionsRoute
   '/taxes': typeof AuthedAppTaxesRoute
-  '/transactions': typeof AuthedAppTransactionsRoute
   '/work': typeof AuthedAppWorkRoute
   '/login/link': typeof GuestLoginLinkRoute
   '/contacts': typeof AuthedAppRealContactsRoute
   '/accounts/$id': typeof AuthedAppAccountsIdRoute
   '/invoices/$id': typeof AuthedAppInvoicesIdRoute
   '/invoices/new': typeof AuthedAppInvoicesNewRoute
+  '/accounts/': typeof AuthedAppAccountsIndexRoute
   '/invoices/': typeof AuthedAppInvoicesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -170,13 +177,13 @@ export interface FileRoutesByTo {
   '/insights': typeof AuthedAppInsightsRoute
   '/subscriptions': typeof AuthedAppSubscriptionsRoute
   '/taxes': typeof AuthedAppTaxesRoute
-  '/transactions': typeof AuthedAppTransactionsRoute
   '/work': typeof AuthedAppWorkRoute
   '/login/link': typeof GuestLoginLinkRoute
   '/contacts': typeof AuthedAppRealContactsRoute
   '/accounts/$id': typeof AuthedAppAccountsIdRoute
   '/invoices/$id': typeof AuthedAppInvoicesIdRoute
   '/invoices/new': typeof AuthedAppInvoicesNewRoute
+  '/accounts': typeof AuthedAppAccountsIndexRoute
   '/invoices': typeof AuthedAppInvoicesIndexRoute
 }
 export interface FileRoutesById {
@@ -189,12 +196,12 @@ export interface FileRoutesById {
   '/_guest/login': typeof GuestLoginRoute
   '/i/$token': typeof ITokenRoute
   '/_authed/_app/_real': typeof AuthedAppRealRouteRouteWithChildren
+  '/_authed/_app/accounts': typeof AuthedAppAccountsRouteWithChildren
   '/_authed/_app/advisor': typeof AuthedAppAdvisorRoute
   '/_authed/_app/goals': typeof AuthedAppGoalsRoute
   '/_authed/_app/insights': typeof AuthedAppInsightsRoute
   '/_authed/_app/subscriptions': typeof AuthedAppSubscriptionsRoute
   '/_authed/_app/taxes': typeof AuthedAppTaxesRoute
-  '/_authed/_app/transactions': typeof AuthedAppTransactionsRoute
   '/_authed/_app/work': typeof AuthedAppWorkRoute
   '/_guest/login_/link': typeof GuestLoginLinkRoute
   '/_authed/_app/': typeof AuthedAppIndexRoute
@@ -202,6 +209,7 @@ export interface FileRoutesById {
   '/_authed/_app/accounts/$id': typeof AuthedAppAccountsIdRoute
   '/_authed/_app/invoices/$id': typeof AuthedAppInvoicesIdRoute
   '/_authed/_app/invoices/new': typeof AuthedAppInvoicesNewRoute
+  '/_authed/_app/accounts/': typeof AuthedAppAccountsIndexRoute
   '/_authed/_app/invoices/': typeof AuthedAppInvoicesIndexRoute
 }
 export interface FileRouteTypes {
@@ -212,18 +220,19 @@ export interface FileRouteTypes {
     | '/email-verified'
     | '/login'
     | '/i/$token'
+    | '/accounts'
     | '/advisor'
     | '/goals'
     | '/insights'
     | '/subscriptions'
     | '/taxes'
-    | '/transactions'
     | '/work'
     | '/login/link'
     | '/contacts'
     | '/accounts/$id'
     | '/invoices/$id'
     | '/invoices/new'
+    | '/accounts/'
     | '/invoices/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -237,13 +246,13 @@ export interface FileRouteTypes {
     | '/insights'
     | '/subscriptions'
     | '/taxes'
-    | '/transactions'
     | '/work'
     | '/login/link'
     | '/contacts'
     | '/accounts/$id'
     | '/invoices/$id'
     | '/invoices/new'
+    | '/accounts'
     | '/invoices'
   id:
     | '__root__'
@@ -255,12 +264,12 @@ export interface FileRouteTypes {
     | '/_guest/login'
     | '/i/$token'
     | '/_authed/_app/_real'
+    | '/_authed/_app/accounts'
     | '/_authed/_app/advisor'
     | '/_authed/_app/goals'
     | '/_authed/_app/insights'
     | '/_authed/_app/subscriptions'
     | '/_authed/_app/taxes'
-    | '/_authed/_app/transactions'
     | '/_authed/_app/work'
     | '/_guest/login_/link'
     | '/_authed/_app/'
@@ -268,6 +277,7 @@ export interface FileRouteTypes {
     | '/_authed/_app/accounts/$id'
     | '/_authed/_app/invoices/$id'
     | '/_authed/_app/invoices/new'
+    | '/_authed/_app/accounts/'
     | '/_authed/_app/invoices/'
   fileRoutesById: FileRoutesById
 }
@@ -344,6 +354,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedAppRealRouteRouteImport
       parentRoute: typeof AuthedAppRouteRoute
     }
+    '/_authed/_app/accounts': {
+      id: '/_authed/_app/accounts'
+      path: '/accounts'
+      fullPath: '/accounts'
+      preLoaderRoute: typeof AuthedAppAccountsRouteImport
+      parentRoute: typeof AuthedAppRouteRoute
+    }
     '/_authed/_app/advisor': {
       id: '/_authed/_app/advisor'
       path: '/advisor'
@@ -379,13 +396,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedAppTaxesRouteImport
       parentRoute: typeof AuthedAppRouteRoute
     }
-    '/_authed/_app/transactions': {
-      id: '/_authed/_app/transactions'
-      path: '/transactions'
-      fullPath: '/transactions'
-      preLoaderRoute: typeof AuthedAppTransactionsRouteImport
-      parentRoute: typeof AuthedAppRouteRoute
-    }
     '/_authed/_app/work': {
       id: '/_authed/_app/work'
       path: '/work'
@@ -407,12 +417,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedAppRealContactsRouteImport
       parentRoute: typeof AuthedAppRealRouteRoute
     }
+    '/_authed/_app/accounts/': {
+      id: '/_authed/_app/accounts/'
+      path: '/'
+      fullPath: '/accounts/'
+      preLoaderRoute: typeof AuthedAppAccountsIndexRouteImport
+      parentRoute: typeof AuthedAppAccountsRoute
+    }
     '/_authed/_app/accounts/$id': {
       id: '/_authed/_app/accounts/$id'
-      path: '/accounts/$id'
+      path: '/$id'
       fullPath: '/accounts/$id'
       preLoaderRoute: typeof AuthedAppAccountsIdRouteImport
-      parentRoute: typeof AuthedAppRouteRoute
+      parentRoute: typeof AuthedAppAccountsRoute
     }
     '/_authed/_app/invoices/': {
       id: '/_authed/_app/invoices/'
@@ -449,17 +466,29 @@ const AuthedAppRealRouteRouteChildren: AuthedAppRealRouteRouteChildren = {
 const AuthedAppRealRouteRouteWithChildren =
   AuthedAppRealRouteRoute._addFileChildren(AuthedAppRealRouteRouteChildren)
 
+interface AuthedAppAccountsRouteChildren {
+  AuthedAppAccountsIdRoute: typeof AuthedAppAccountsIdRoute
+  AuthedAppAccountsIndexRoute: typeof AuthedAppAccountsIndexRoute
+}
+
+const AuthedAppAccountsRouteChildren: AuthedAppAccountsRouteChildren = {
+  AuthedAppAccountsIdRoute: AuthedAppAccountsIdRoute,
+  AuthedAppAccountsIndexRoute: AuthedAppAccountsIndexRoute,
+}
+
+const AuthedAppAccountsRouteWithChildren =
+  AuthedAppAccountsRoute._addFileChildren(AuthedAppAccountsRouteChildren)
+
 interface AuthedAppRouteRouteChildren {
   AuthedAppRealRouteRoute: typeof AuthedAppRealRouteRouteWithChildren
+  AuthedAppAccountsRoute: typeof AuthedAppAccountsRouteWithChildren
   AuthedAppAdvisorRoute: typeof AuthedAppAdvisorRoute
   AuthedAppGoalsRoute: typeof AuthedAppGoalsRoute
   AuthedAppInsightsRoute: typeof AuthedAppInsightsRoute
   AuthedAppSubscriptionsRoute: typeof AuthedAppSubscriptionsRoute
   AuthedAppTaxesRoute: typeof AuthedAppTaxesRoute
-  AuthedAppTransactionsRoute: typeof AuthedAppTransactionsRoute
   AuthedAppWorkRoute: typeof AuthedAppWorkRoute
   AuthedAppIndexRoute: typeof AuthedAppIndexRoute
-  AuthedAppAccountsIdRoute: typeof AuthedAppAccountsIdRoute
   AuthedAppInvoicesIdRoute: typeof AuthedAppInvoicesIdRoute
   AuthedAppInvoicesNewRoute: typeof AuthedAppInvoicesNewRoute
   AuthedAppInvoicesIndexRoute: typeof AuthedAppInvoicesIndexRoute
@@ -467,15 +496,14 @@ interface AuthedAppRouteRouteChildren {
 
 const AuthedAppRouteRouteChildren: AuthedAppRouteRouteChildren = {
   AuthedAppRealRouteRoute: AuthedAppRealRouteRouteWithChildren,
+  AuthedAppAccountsRoute: AuthedAppAccountsRouteWithChildren,
   AuthedAppAdvisorRoute: AuthedAppAdvisorRoute,
   AuthedAppGoalsRoute: AuthedAppGoalsRoute,
   AuthedAppInsightsRoute: AuthedAppInsightsRoute,
   AuthedAppSubscriptionsRoute: AuthedAppSubscriptionsRoute,
   AuthedAppTaxesRoute: AuthedAppTaxesRoute,
-  AuthedAppTransactionsRoute: AuthedAppTransactionsRoute,
   AuthedAppWorkRoute: AuthedAppWorkRoute,
   AuthedAppIndexRoute: AuthedAppIndexRoute,
-  AuthedAppAccountsIdRoute: AuthedAppAccountsIdRoute,
   AuthedAppInvoicesIdRoute: AuthedAppInvoicesIdRoute,
   AuthedAppInvoicesNewRoute: AuthedAppInvoicesNewRoute,
   AuthedAppInvoicesIndexRoute: AuthedAppInvoicesIndexRoute,

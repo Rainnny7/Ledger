@@ -8,29 +8,40 @@ import {
 	transactionPeriodItems,
 	transactionTagItems,
 } from "@/components/transactions/transactions-filter-items"
+import {
+	shownRunningBalance,
+	useIncludeOverdraft,
+} from "@/components/accounts/account-figures"
 import { usePagination } from "@/components/transactions/use-pagination"
 import { useTransactionsUrl } from "@/components/transactions/use-transactions-url"
 import { type Transaction } from "@/lib/api"
 import { CATEGORY_META, TAX_TAG_META } from "@/lib/categories"
-import { inHomeCurrency, useConverter } from "@/lib/currency"
+import { inHomeCurrency } from "@/lib/currency"
+import { useConverter } from "@/lib/converter-provider"
 import { downloadCsv } from "@/lib/finance"
 import { formatShortDate } from "@/lib/format"
 import { useOverview, useTransactions } from "@/lib/queries"
 import { useIntent } from "@/lib/url-state"
-import { useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { toastError } from "@/lib/toast"
 
-/** React/UI entry: `useTransactionsPage`. */
-export function useTransactionsPage() {
+const EMPTY_PICKED: ReadonlySet<string> = new Set()
+
+/**
+ * State for the Accounts page's transactions card: URL-backed filters, paging, bulk selection and
+ * CSV export, scoped to one account or to all of them.
+ *
+ * @param accountId The account picked in the route, or null for every account.
+ */
+export function useTransactionsPage(accountId: string | null) {
 	const overview = useOverview()
 	const txq = useTransactions(null)
 	const converter = useConverter()
+	const includeOverdraft = useIncludeOverdraft()
 	const url = useTransactionsUrl()
 	const {
 		query,
 		setQuery,
-		accountId,
-		setAccountId,
 		category,
 		setCategory,
 		flow,
@@ -50,28 +61,39 @@ export function useTransactionsPage() {
 	const [picked, setPicked] = useState<ReadonlySet<string>>(new Set())
 	const [applying, setApplying] = useState(false)
 	const lastPicked = useRef<string | null>(null)
+	const [previousAccountId, setPreviousAccountId] = useState(accountId)
+	// Reset during render (not in an effect) so a switched account never shows the old picks or sheet.
+	if (accountId !== previousAccountId) {
+		setPreviousAccountId(accountId)
+		setSelected(null)
+		setPicked(EMPTY_PICKED)
+		lastPicked.current = null
+	}
 
 	const accounts = useMemo(
 		() => overview.data?.accounts ?? [],
 		[overview.data]
 	)
 	const transactions = useMemo(() => txq.data?.transactions ?? [], [txq.data])
-	const accountItems = useMemo(
-		() => [
-			{ value: "all", label: "All accounts" },
-			...accounts.map((account) => ({
-				value: account.id,
-				label: account.name,
-			})),
-		],
-		[accounts]
+	const account = useMemo(
+		() => accounts.find((candidate) => candidate.id === accountId) ?? null,
+		[accounts, accountId]
+	)
+	const accountTransactions = useMemo(
+		() =>
+			accountId
+				? transactions.filter(
+						(transaction) => transaction.accountId === accountId
+					)
+				: transactions,
+		[transactions, accountId]
 	)
 
 	const filtered = useMemo(
 		() =>
 			filterTransactions(transactions, {
 				query,
-				accountId,
+				accountId: accountId ?? "all",
 				flow,
 				category,
 				tag,
@@ -112,12 +134,14 @@ export function useTransactionsPage() {
 	const { page, perPage, totalPages, setPage, setPerPage, resetPage } =
 		pagination
 	const shown = filtered.slice((page - 1) * perPage, page * perPage)
+	const shownRef = useRef(shown)
+	shownRef.current = shown
+
 	const pickedShown = shown.filter((row) => picked.has(row.id))
 	const allShownPicked =
 		shown.length > 0 && pickedShown.length === shown.length
 	const filtersOn =
 		query ||
-		accountId !== "all" ||
 		category !== "all" ||
 		flow !== "all" ||
 		tag !== "all" ||
@@ -148,10 +172,17 @@ export function useTransactionsPage() {
 		lastPicked.current = null
 	}
 
-	function toggle(row: Transaction, range: boolean) {
+	const toggle = useCallback((row: Transaction, range: boolean) => {
 		setPicked((cur) => {
-			const next = new Set(cur)
-			const on = !cur.has(row.id)
+			const shownIds = new Set(shownRef.current.map((entry) => entry.id))
+			const next = new Set<string>()
+			for (const id of cur) {
+				if (shownIds.has(id)) {
+					next.add(id)
+				}
+			}
+			const on = !next.has(row.id)
+			const shown = shownRef.current
 			const startIndex = lastPicked.current
 				? shown.findIndex(
 						(shownRow) => shownRow.id === lastPicked.current
@@ -179,7 +210,7 @@ export function useTransactionsPage() {
 			return next
 		})
 		lastPicked.current = row.id
-	}
+	}, [])
 
 	async function recategorize(value: string) {
 		setApplying(true)
@@ -219,35 +250,52 @@ export function useTransactionsPage() {
 	)
 
 	function exportCsv() {
-		const byId = new Map(accounts.map((account) => [account.id, account]))
-		downloadCsv("transactions.csv", [
+		const byId = new Map(
+			accounts.map((candidate) => [candidate.id, candidate])
+		)
+		const header = [
+			"Date",
+			"Account",
+			"Merchant",
+			"Description",
+			"Category",
+			"Tax tag",
+			"Amount",
+			"Currency",
+			"Pending",
+			"Note",
+		]
+		downloadCsv(
+			account
+				? `${account.name.replace(/[^\w]+/g, "-").toLowerCase()}-transactions.csv`
+				: "transactions.csv",
 			[
-				"Date",
-				"Account",
-				"Merchant",
-				"Description",
-				"Category",
-				"Tax tag",
-				"Amount",
-				"Currency",
-				"Pending",
-				"Note",
-			],
-			...filtered.map((transaction) => [
-				transaction.date,
-				byId.get(transaction.accountId)?.name,
-				transaction.merchant,
-				transaction.description,
-				CATEGORY_META[transaction.category].label,
-				transaction.taxTag
-					? TAX_TAG_META[transaction.taxTag].label
-					: "",
-				transaction.amount.toFixed(2),
-				byId.get(transaction.accountId)?.currency,
-				transaction.pending ? "yes" : "",
-				transaction.note,
-			]),
-		])
+				account ? [...header, "Balance"] : header,
+				...filtered.map((transaction) => [
+					transaction.date,
+					byId.get(transaction.accountId)?.name,
+					transaction.merchant,
+					transaction.description,
+					CATEGORY_META[transaction.category].label,
+					transaction.taxTag
+						? TAX_TAG_META[transaction.taxTag].label
+						: "",
+					transaction.amount.toFixed(2),
+					byId.get(transaction.accountId)?.currency,
+					transaction.pending ? "yes" : "",
+					transaction.note,
+					...(account
+						? [
+								shownRunningBalance(
+									transaction,
+									account,
+									includeOverdraft
+								)?.toFixed(2),
+							]
+						: []),
+				]),
+			]
+		)
 	}
 
 	useIntent("export", () => exportCsv(), !!txq.data && !!overview.data)
@@ -256,7 +304,6 @@ export function useTransactionsPage() {
 
 	function clearFilters() {
 		setQuery("")
-		setAccountId("all")
 		setCategory("all")
 		setFlow("all")
 		setTag("all")
@@ -270,8 +317,6 @@ export function useTransactionsPage() {
 		converter,
 		query,
 		setQuery,
-		accountId,
-		setAccountId,
 		category,
 		setCategory,
 		flow,
@@ -291,12 +336,13 @@ export function useTransactionsPage() {
 		setPerPage,
 		selected,
 		setSelected,
-		picked,
+		picked: picked,
 		setPicked,
 		applying,
 		accounts,
 		transactions,
-		accountItems,
+		account,
+		accountTransactions,
 		filtered,
 		totals,
 		shown,

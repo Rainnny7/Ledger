@@ -1,7 +1,7 @@
 import { Trash2Icon } from "@/components/icons/trash-2"
 import { KeyRoundIcon } from "@/components/icons/key-round"
 import { isProviderId, PROVIDERS } from "@/components/accounts/providers"
-import { canForget } from "@/components/dashboard/connection-utils"
+import { canForget } from "@/components/accounts/connection-utils"
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,

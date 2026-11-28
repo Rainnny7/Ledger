@@ -1,38 +1,29 @@
-import { confirmDialog } from "@/lib/confirm"
-import { PlusIcon } from "@/components/icons/plus"
-
-import { useMemo, useState } from "react"
-import { toast } from "sonner"
-import { toastError } from "@/lib/toast"
+import { ConnectDialog } from "@/components/accounts/connect-dialog"
+import { DashboardConnected } from "@/components/dashboard/dashboard-connected"
+import { DashboardEmptyState } from "@/components/dashboard/empty-state"
+import { Greeting } from "@/components/dashboard/greeting"
+import { StatementUploadDialog } from "@/components/accounts/statement-upload-dialog"
+import { QueryError } from "@/components/ui/query-error"
+import { Bones } from "@/components/common/bones"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
 	overdraftAllowance,
 	signedBalance,
 	useIncludeOverdraft,
 } from "@/components/accounts/account-figures"
-import { ConnectDialog } from "@/components/accounts/connect-dialog"
-import { DashboardConnected } from "@/components/dashboard/dashboard-connected"
-import { DashboardEmptyState } from "@/components/dashboard/empty-state"
-import { Greeting } from "@/components/dashboard/greeting"
 import { type RangeKey, rangeStart } from "@/lib/ranges"
-import { StatementUploadDialog } from "@/components/accounts/statement-upload-dialog"
-import { TransactionSheet } from "@/components/transactions/transaction-sheet"
-import { Button } from "@/components/ui/button"
-import { QueryError } from "@/components/ui/query-error"
-import { Bones } from "@/components/common/bones"
-import { Skeleton } from "@/components/ui/skeleton"
-import { api, type Connection, type Transaction } from "@/lib/api"
+import { useMemo, useState } from "react"
+import type { Connection } from "@/lib/api"
 import {
 	balanceSeries,
-	lastMonths,
-	monthlyCashflow,
 	pendingSpent,
 	startOfMonth,
 	totalDebtPaid,
 	totalSpent,
 } from "@/lib/finance"
-import { daysFromToday, isoDate } from "@/lib/format"
-import { inHomeCurrency, useConverter } from "@/lib/currency"
-import { demoMode } from "@/lib/demo"
+import { daysFromToday, formatMoney, isoDate } from "@/lib/format"
+import { inHomeCurrency } from "@/lib/currency"
+import { useConverter } from "@/lib/converter-provider"
 import {
 	useDashboardTransactions,
 	useOverview,
@@ -41,57 +32,8 @@ import {
 import { useIntent } from "@/lib/url-state"
 import { useNow } from "@/lib/use-now"
 import { AskLedgerButton } from "@/components/chat/ask-ledger-button"
-import { formatMoney } from "@/lib/format"
-import { dashboardStatTrends } from "@/lib/dashboard-stat-series"
 
-async function removeConnection(c: Connection) {
-	if (
-		!(await confirmDialog({
-			title: `Remove ${c.label}?`,
-			description:
-				"Its accounts, transactions and saved login are deleted from Ledger. Your bank account itself isn’t touched.",
-			action: "Remove",
-			destructive: true,
-		}))
-	) {
-		return
-	}
-	await api.deleteConnection(c.id)
-	toast.success("Connection removed")
-}
-
-async function toggleInstant(c: Connection) {
-	if (demoMode) {
-		return toastError(
-			"Demo mode is read-only. Exit demo mode to make changes."
-		)
-	}
-	try {
-		if (c.instantUpdates) {
-			await api.disableInstantUpdates(c.id)
-			toast.success("Instant updates turned off")
-		} else {
-			await api.enableInstantUpdates(c.id)
-			toast.success("Instant updates on", {
-				description:
-					"PayPal will notify Ledger about payments made through your PayPal app, like invoice checkouts.",
-			})
-		}
-	} catch (error) {
-		toastError(
-			error instanceof Error
-				? error.message
-				: "Could not change instant updates"
-		)
-	}
-}
-
-async function forgetCredentials(connection: Connection) {
-	await api.forgetCredentials(connection.id)
-	toast.success("Saved credentials deleted")
-}
-
-/** Home: balances, cash flow, budgets, and quick ways to connect or import. */
+/** Home: net worth, inbox, and how the month is tracking. */
 export function DashboardPage() {
 	const { data, loading, error, reload } = useOverview()
 	const [range, setRange] = useState<RangeKey>("90d")
@@ -100,7 +42,6 @@ export function DashboardPage() {
 	const [dialog, setDialog] = useState<{
 		open: boolean
 		connection: Connection | null
-		full?: boolean
 	}>({
 		open: false,
 		connection: null,
@@ -109,15 +50,12 @@ export function DashboardPage() {
 		open: boolean
 		connectionId?: string
 	}>({ open: false })
-	// From the command palette.
 	useIntent("connect", () => setDialog({ open: true, connection: null }))
 	useIntent("upload", () => setUpload({ open: true }))
-	const [selected, setSelected] = useState<Transaction | null>(null)
 
 	const connections = data?.connections ?? []
 	const accounts = useMemo(() => data?.accounts ?? [], [data])
 	const transactions = useMemo(() => txq.data?.transactions ?? [], [txq.data])
-	// Totals add up across currencies by restating every account in the home currency (today's rates).
 	const converter = useConverter()
 	const home = useMemo(
 		() => inHomeCurrency(accounts, transactions, converter),
@@ -171,6 +109,11 @@ export function DashboardPage() {
 	const cadTx = home.transactions
 
 	const now = useNow()
+	const dateLine = now.toLocaleDateString(undefined, {
+		weekday: "long",
+		month: "long",
+		day: "numeric",
+	})
 	const spend = useMemo(() => {
 		const todayDate = now
 		const today = isoDate(todayDate)
@@ -182,7 +125,6 @@ export function DashboardPage() {
 			todayDate.getMonth(),
 			0
 		).getDate()
-		// Same day-of-month last month, for a like-for-like comparison.
 		const prevSameDay = isoDate(
 			new Date(
 				todayDate.getFullYear(),
@@ -213,20 +155,6 @@ export function DashboardPage() {
 		() => balanceSeries(cad, cadTx, rangeStart(range), includeOverdraft),
 		[cad, cadTx, range, includeOverdraft]
 	)
-	const { series: statSeries, delta: statDelta } = useMemo(
-		() =>
-			dashboardStatTrends({
-				cad,
-				deposit,
-				transactions: cadTx,
-				includeOverdraft,
-				now,
-				spendNow: spend.now,
-				spendPrev: spend.prev,
-			}),
-		[cad, deposit, cadTx, includeOverdraft, now, spend.now, spend.prev]
-	)
-	const flow = useMemo(() => monthlyCashflow(cadTx, lastMonths(6)), [cadTx])
 	const upcoming = useMemo(
 		() =>
 			(subq.data?.subscriptions ?? [])
@@ -243,30 +171,21 @@ export function DashboardPage() {
 	)
 
 	return (
-		<div className="grid gap-8">
+		<div className="grid gap-6">
 			<div className="flex flex-wrap items-end justify-between gap-4">
-				<div>
-					<h1 className="text-2xl font-semibold tracking-tight">
+				<div className="flex flex-col gap-0.5">
+					<span className="text-sm text-muted-foreground">
+						{dateLine}
+					</span>
+					<h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
 						<Greeting />
 					</h1>
-					<p className="text-sm text-muted-foreground">
-						Balances, overdraft and activity from your linked banks.
-					</p>
 				</div>
-				<div className="flex flex-wrap items-center gap-2">
-					<AskLedgerButton
-						variant="tip"
-						label="Summarize My Month"
-						prompt={`Summarize my finances for this calendar month. Net worth about ${formatMoney(net, converter.home)}, spending ${formatMoney(spend.now, converter.home)} so far vs ${formatMoney(spend.prev, converter.home)} on the same days last month. Call out top categories, subscriptions due soon, and goals progress.`}
-					/>
-					<Button
-						onClick={() =>
-							setDialog({ open: true, connection: null })
-						}
-					>
-						<PlusIcon size={24} className="flex" /> Add account
-					</Button>
-				</div>
+				<AskLedgerButton
+					variant="tip"
+					label="Summarize my month"
+					prompt={`Summarize my finances for this calendar month. Net worth about ${formatMoney(net, converter.home)}, spending ${formatMoney(spend.now, converter.home)} so far vs ${formatMoney(spend.prev, converter.home)} on the same days last month. Call out top categories, subscriptions due soon, and goals progress.`}
+				/>
 			</div>
 
 			{error && !data && (
@@ -278,13 +197,18 @@ export function DashboardPage() {
 
 			<Bones
 				name="dashboard"
-				className="grid gap-8"
+				className="grid gap-4"
 				loading={loading && !data}
 				fallback={
-					<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-						{[0, 1, 2, 3].map((i) => (
-							<Skeleton key={i} className="h-24 rounded-xl" />
-						))}
+					<div className="grid gap-4">
+						<Skeleton className="h-64 rounded-xl" />
+						<div className="grid gap-4 lg:grid-cols-[1.25fr_1fr]">
+							<Skeleton className="h-48 rounded-xl" />
+							<div className="grid gap-4">
+								<Skeleton className="h-36 rounded-xl" />
+								<Skeleton className="h-36 rounded-xl" />
+							</div>
+						</div>
 					</div>
 				}
 			>
@@ -297,8 +221,6 @@ export function DashboardPage() {
 				) : (
 					<DashboardConnected
 						connections={connections}
-						accounts={accounts}
-						transactions={transactions}
 						cad={cad}
 						cadTx={cadTx}
 						home={home}
@@ -310,32 +232,10 @@ export function DashboardPage() {
 						owing={owing}
 						spend={spend}
 						txReady={Boolean(txq.data)}
-						statSeries={statSeries}
-						statDelta={statDelta}
 						series={series}
-						flow={flow}
 						range={range}
 						onRangeChange={setRange}
 						upcoming={upcoming}
-						subscriptionCount={subq.data?.subscriptions.length ?? 0}
-						suggestionCount={subq.data?.suggestions.length ?? 0}
-						onSelectTransaction={setSelected}
-						onRefreshConnection={(conn) =>
-							setDialog({ open: true, connection: conn })
-						}
-						onFullRefreshConnection={(conn) =>
-							setDialog({
-								open: true,
-								connection: conn,
-								full: true,
-							})
-						}
-						onUploadStatements={(connectionId) =>
-							setUpload({ open: true, connectionId })
-						}
-						onToggleInstant={toggleInstant}
-						onForget={forgetCredentials}
-						onRemove={removeConnection}
 					/>
 				)}
 			</Bones>
@@ -343,7 +243,6 @@ export function DashboardPage() {
 			<ConnectDialog
 				open={dialog.open}
 				connection={dialog.connection}
-				full={dialog.full}
 				onOpenChange={(open) =>
 					setDialog((state) => ({ ...state, open }))
 				}
@@ -359,15 +258,6 @@ export function DashboardPage() {
 				onOpenChange={(open) =>
 					setUpload((state) => ({ ...state, open }))
 				}
-			/>
-
-			<TransactionSheet
-				transaction={selected}
-				transactions={transactions}
-				accounts={accounts}
-				onClose={() => setSelected(null)}
-				onSelect={setSelected}
-				onUpdated={(transaction) => setSelected(transaction)}
 			/>
 		</div>
 	)

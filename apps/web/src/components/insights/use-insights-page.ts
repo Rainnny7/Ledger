@@ -2,7 +2,8 @@ import { useMemo, useState } from "react"
 import { rangeDays, rangeLabel, rangeStart, useRangeState } from "@/lib/ranges"
 import type { Category, Transaction } from "@/lib/api"
 import { CATEGORY_LIST } from "@/lib/categories"
-import { inHomeCurrency, useConverter } from "@/lib/currency"
+import { inHomeCurrency } from "@/lib/currency"
+import { useConverter } from "@/lib/converter-provider"
 import {
 	isSpend,
 	lastMonths,

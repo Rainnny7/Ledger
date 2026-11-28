@@ -8,7 +8,7 @@ import type { WorkPaymentDraft } from "@/components/work/dialogs/payment-dialog"
 import type { JobActions } from "@/components/work/job-actions"
 import { api, type WorkJob } from "@/lib/api"
 import { isoDate } from "@/lib/format"
-import { useConverter } from "@/lib/currency"
+import { useConverter } from "@/lib/converter-provider"
 import { useWork } from "@/lib/queries"
 import { useIntent } from "@/lib/url-state"
 

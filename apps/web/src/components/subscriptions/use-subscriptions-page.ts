@@ -7,7 +7,7 @@ import { subscriptionOccurrences } from "@/components/subscriptions/subscription
 import { splitShared } from "@/lib/sharing"
 import { api, type RecurringSuggestion, type Subscription } from "@/lib/api"
 import { addDays, isoDate } from "@/lib/format"
-import { useConverter } from "@/lib/currency"
+import { useConverter } from "@/lib/converter-provider"
 import { useOverview, useSubscriptions } from "@/lib/queries"
 import { URL_OPTIONS, useIntent } from "@/lib/url-state"
 

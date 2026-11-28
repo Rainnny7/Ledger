@@ -4,7 +4,7 @@
  * Router's `Link` expects, since a `?query` inside `to` would be treated as
  * part of the path and match no route.
  *
- * @param href In-app URL such as `/transactions?from=2025-01-01`.
+ * @param href In-app URL such as `/accounts?from=2025-01-01`.
  * @returns Props to spread onto `Link`.
  */
 export function hrefTarget(href: string) {

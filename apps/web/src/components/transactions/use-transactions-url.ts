@@ -9,10 +9,13 @@ import { URL_OPTIONS, useUrlState } from "@/lib/url-state"
 import { parseAsString, useQueryStates } from "nuqs"
 import { useMemo } from "react"
 
-/** React/UI entry: `useTransactionsUrl`. */
+/**
+ * The transaction filters kept in the page address (search, category, flow, period, tax tag and
+ * the merchant or date-range links other pages build). The account is not one of them: it comes
+ * from the `/accounts/$id` route.
+ */
 export function useTransactionsUrl() {
 	const [query, setQuery] = useUrlState<string>("q", "")
-	const [accountId, setAccountId] = useUrlState<string>("account", "all")
 	const [category, setCategory] = useUrlState<Category | "all">(
 		"category",
 		"all",
@@ -57,8 +60,6 @@ export function useTransactionsUrl() {
 	return {
 		query,
 		setQuery,
-		accountId,
-		setAccountId,
 		category,
 		setCategory,
 		flow,

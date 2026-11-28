@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query"
-import { useMemo } from "react"
 import { type Account, api, type FxRates, type Transaction } from "./api.ts"
 import { useSession } from "./auth-client.ts"
 import { useDemoPrefs } from "./demo.ts"
@@ -286,33 +285,27 @@ export interface Converter {
 	mixed: (currencies: Iterable<string>) => boolean
 }
 
-/** Converts amounts into the home currency at today's reference rates. */
-export function useConverter(): Converter {
-	const home = useHomeCurrency()
-	const fx = useFx()
-	return useMemo(() => {
-		const to = (amount: number, from: string) =>
-			convertAmount(amount, from, home, fx)
-		const toOr = (amount: number, from: string) =>
-			to(amount, from) ?? amount
-		return {
-			home,
-			fx,
-			to,
-			toOr,
-			sum: (items) => {
-				let total = 0
-				for (const [amount, currency] of items) {
-					total += toOr(amount, currency)
-				}
-				return total
-			},
-			missing: (currencies) =>
-				[...new Set(currencies)].filter((code) => to(1, code) === null),
-			mixed: (currencies) =>
-				[...currencies].some((code) => code !== home),
-		}
-	}, [home, fx])
+/** Builds a {@link Converter} from the home currency and an FX snapshot. */
+export function buildConverter(home: string, fx: FxRates | null): Converter {
+	const to = (amount: number, from: string) =>
+		convertAmount(amount, from, home, fx)
+	const toOr = (amount: number, from: string) => to(amount, from) ?? amount
+	return {
+		home,
+		fx,
+		to,
+		toOr,
+		sum: (items) => {
+			let total = 0
+			for (const [amount, currency] of items) {
+				total += toOr(amount, currency)
+			}
+			return total
+		},
+		missing: (currencies) =>
+			[...new Set(currencies)].filter((code) => to(1, code) === null),
+		mixed: (currencies) => [...currencies].some((code) => code !== home),
+	}
 }
 
 /**

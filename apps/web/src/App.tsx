@@ -8,6 +8,7 @@ import { useNoNativeContextMenu } from "@/components/layout/app-context-menu"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { MODE_CLASSES } from "@/lib/theme-classes"
 import { MODE_IDS } from "@ledger/shared/themes"
+import { ConverterProvider } from "@/lib/converter-provider"
 import { queryClient } from "@/lib/queries"
 import { SessionQueryCacheSync } from "@/lib/session-query-cache"
 import { router } from "./router.ts"
@@ -51,23 +52,25 @@ export default function App() {
 		<ErrorBoundary fullScreen>
 			<QueryClientProvider client={queryClient}>
 				<SessionQueryCacheSync />
-				<ThemeProvider
-					attribute="class"
-					themes={MODE_IDS}
-					value={MODE_CLASSES}
-					defaultTheme="system"
-					enableSystem
-					disableTransitionOnChange
-				>
-					<TooltipProvider delay={300}>
-						<RouterProvider router={router} />
-						<BootLoader />
-					</TooltipProvider>
-					<Suspense fallback={null}>
-						<ConfirmHost />
-						<Toaster />
-					</Suspense>
-				</ThemeProvider>
+				<ConverterProvider>
+					<ThemeProvider
+						attribute="class"
+						themes={MODE_IDS}
+						value={MODE_CLASSES}
+						defaultTheme="system"
+						enableSystem
+						disableTransitionOnChange
+					>
+						<TooltipProvider delay={300}>
+							<RouterProvider router={router} />
+							<BootLoader />
+						</TooltipProvider>
+						<Suspense fallback={null}>
+							<ConfirmHost />
+							<Toaster />
+						</Suspense>
+					</ThemeProvider>
+				</ConverterProvider>
 			</QueryClientProvider>
 		</ErrorBoundary>
 	)
